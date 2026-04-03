@@ -13,13 +13,17 @@ OCI_CLI_VERSION="${OCI_CLI_VERSION:-}"
 VERBOSE="${VERBOSE:-0}"
 VENV_PATH="${VENV_PATH:-$HOME/.venv/oci-cli}"
 
-# Expand leading ~ in VENV_PATH when passed from the composite action
-# (GitHub Actions passes the literal string "~/.venv/oci-cli" via env).
-case "$VENV_PATH" in
-  "~"|~/*)
+# Normalise VENV_PATH when passed from the composite action:
+# - strip any surrounding single/double quotes
+# - expand leading ~ against $HOME
+VENV_PATH="${VENV_PATH%\"}"
+VENV_PATH="${VENV_PATH#\"}"
+VENV_PATH="${VENV_PATH%\'}"
+VENV_PATH="${VENV_PATH#\'}"
+
+if [[ "${VENV_PATH}" == "~" || "${VENV_PATH}" == ~/* ]]; then
     VENV_PATH="${VENV_PATH/#\~/$HOME}"
-    ;;
-esac
+fi
 
 # Use sudo only when not already root
 SUDO=""

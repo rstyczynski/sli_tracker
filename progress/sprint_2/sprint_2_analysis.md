@@ -42,8 +42,8 @@ Action: `.github/actions/oci-profile-setup/action.yml`
 **Testing Strategy:**
 
 - Local test script with `--dry-run` flag validating pack/unpack round-trip without hitting GitHub.
-- `setup_oci_github_access.sh` is operator-run (human-assisted: `oci session authenticate` opens a browser). It uses `oci iam region-subscription list` internally to detect the home region — this is not a test step, it is part of the script's logic.
-- GitHub Actions test workflow (`workflow_dispatch`) tests only the `oci-profile-setup` action: it assumes the GitHub secret `OCI_CONFIG_PAYLOAD` is already set by the operator. The workflow installs OCI CLI, runs the action to restore `~/.oci/`, then calls one OCI CLI command to confirm credentials are usable.
+- `setup_oci_github_access.sh` is operator-run (human-assisted: `oci session authenticate` opens a browser). It uses `oci iam region-subscription list` internally to detect the home region — this is not a test step, it is part of the script's logic. The script sets `OCI_CONFIG_PAYLOAD` GitHub secret.
+- GitHub Actions test workflow (`workflow_dispatch`) tests only the `oci-profile-setup` action: it assumes the GitHub secret `OCI_CONFIG_PAYLOAD` is already set by `setup_oci_github_access.sh`. The workflow installs OCI CLI, runs the action to restore `~/.oci/`, then verifies `~/.oci/config` is present.
 - Error cases: malformed payload in secret, missing secret, missing `~/.oci/config` on operator side.
 
 **Risks/Concerns:**

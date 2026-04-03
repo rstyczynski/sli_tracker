@@ -41,8 +41,8 @@ Two deliverables:
 setup_oci_github_access.sh
   ├── resolve home region (oci iam ...)
   ├── oci session authenticate
-  ├── pack ~/.oci/config + session dir
-  │   (tar | base64 → single string)
+  ├── pack ~/.oci/config + session dir + any paths referenced by those profiles
+  │   (tar | base64 → single string; see pack completeness below)
   └── gh secret set OCI_CONFIG_PAYLOAD ──► GitHub Secret
 
 [GitHub Actions runner]
@@ -62,11 +62,20 @@ oci-profile-setup action
 
 ### Technical Specification
 
+**Pack completeness (required):**
+
+The archive **must contain every file** that the OCI CLI will read for the profile(s) involved in `oci session authenticate` (config profile and session profile name). That includes at minimum:
+
+- `~/.oci/config` (or the sections used by those profiles).
+- `~/.oci/sessions/<session-profile-name>/` and every file under it (tokens, keys, metadata written by the CLI).
+
+If `~/.oci/config` references paths outside that tree (for example `key_file`, `security_token_file`, or other entries pointing at absolute paths on the operator machine), those files **must be included** in the tarball at paths that, after extract with `tar -C "$HOME"`, match what the profile expects—or the setup script must normalize paths under `~/.oci` before packing so all references stay within the packed tree. **A partial pack that omits a referenced file will fail on the runner** (e.g. missing private key or token file).
+
 **Pack format:**
 
 ```bash
-# Pack (on operator machine):
-tar -czf - -C "$HOME" .oci/config .oci/sessions/<profile>/ | base64 -w 0
+# Pack (on operator machine) — paths must be the minimal complete set covering config + session + all referenced files:
+tar -czf - -C "$HOME" .oci/config .oci/sessions/<session-profile-name>/ [additional paths as needed] | base64 -w 0
 
 # Unpack (in action):
 echo "$OCI_CONFIG_PAYLOAD" | base64 -d | tar -xzf - -C "$HOME"
@@ -104,7 +113,7 @@ echo "$OCI_CONFIG_PAYLOAD" | base64 -d | tar -xzf - -C "$HOME"
 1. Validate prerequisites (`oci`, `gh`, `jq`, `base64`, `tar`).
 2. Resolve home region: `oci iam region-subscription list --profile "$PROFILE" | jq -r '.data[] | select(."is-home-region") | ."region-name"'`.
 3. Run `oci session authenticate --region "$HOME_REGION" --profile "$PROFILE"`.
-4. Pack: `tar -czf - -C "$HOME" .oci/config .oci/sessions/$PROFILE/ | base64 -w 0`.
+4. Pack: include `~/.oci/config`, `~/.oci/sessions/<session-profile-name>/`, and **any other paths** referenced by those profiles in `~/.oci/config` (so the tarball is self-contained). Example core paths: `tar -czf - -C "$HOME" .oci/config .oci/sessions/<session-profile-name>/ | base64 -w 0` (extend with extra path arguments if the profile references files outside those directories).
 5. If `--dry-run`: print payload size and exit 0.
 6. Set secret: `gh secret set "$SECRET_NAME" --body "$PAYLOAD" --repo "$REPO"`.
 7. Print confirmation.
@@ -165,6 +174,10 @@ echo "$OCI_CONFIG_PAYLOAD" | base64 -d | tar -xzf - -C "$HOME"
 
 **Decision 2:** `oci session authenticate` rather than API key auth.
 **Rationale:** Requirement explicitly states `oci session authenticate`. Session auth does not require storing long-lived private keys.
+
+**Decision 3:** Tarball must be **complete** for the session profile.
+**Rationale:** `oci` resolves `key_file`, token files, and related entries from `~/.oci/config`; omitting any referenced file breaks the runner. The pack step must include every path those profiles need (or normalize config so all paths live under directories that are packed).
+**Alternatives Considered:** Pack only `config` + one session folder — rejected because config can reference additional paths.
 
 ### Open Design Questions
 

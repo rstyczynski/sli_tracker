@@ -49,7 +49,7 @@ setup_oci_github_access.sh
 oci-profile-setup action
   ├── read OCI_CONFIG_PAYLOAD secret
   ├── base64 decode | tar extract → ~/.oci/
-  └── verify: oci iam region-subscription list
+  └── verify: ~/.oci/config exists and is readable
 ```
 
 **Key Components:**
@@ -115,7 +115,7 @@ echo "$OCI_CONFIG_PAYLOAD" | base64 -d | tar -xzf - -C "$HOME"
 2. Validate payload is non-empty.
 3. `mkdir -p "$HOME/.oci"`.
 4. Decode and extract: `echo "$OCI_CONFIG_PAYLOAD" | base64 -d | tar -xzf - -C "$HOME"`.
-5. Verify: `oci iam region-subscription list --profile "$OCI_PROFILE" --config-file "$HOME/.oci/config"`.
+5. Verify: check that `$HOME/.oci/config` exists and is readable. Emit `::notice::` with confirmation.
 
 ### Testing Strategy
 
@@ -129,8 +129,9 @@ echo "$OCI_CONFIG_PAYLOAD" | base64 -d | tar -xzf - -C "$HOME"
 **GitHub Actions test workflow (`test-oci-profile-setup.yml`):**
 
 - Trigger: `workflow_dispatch`
-- Steps: `install-oci-cli` → `oci-profile-setup` → `oci iam region-subscription list`
-- Validates end-to-end authentication on a real runner.
+- Prerequisite: operator has already run `setup_oci_github_access.sh` (human-assisted, browser-based) and `OCI_CONFIG_PAYLOAD` secret is set in the repository.
+- Steps: `install-oci-cli` → `oci-profile-setup` (unpacks secret to `~/.oci/`) → verify `~/.oci/config` exists.
+- Note: `oci iam region-subscription list` is used **internally** by `setup_oci_github_access.sh` to detect the home region. It is NOT a step in this test workflow.
 
 **Success Criteria:**
 

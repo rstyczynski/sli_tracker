@@ -31,7 +31,7 @@ Action: `.github/actions/oci-profile-setup/action.yml`
 
 - Input: `oci-config-secret` (name of the GitHub secret, default `OCI_CONFIG_PAYLOAD`).
 - Restore `~/.oci/config` and session key files from the payload.
-- Verify restoration by running `oci iam region-subscription list`.
+- Verify files are correctly restored (check `~/.oci/config` exists and is readable).
 
 **Dependencies:**
 
@@ -42,8 +42,9 @@ Action: `.github/actions/oci-profile-setup/action.yml`
 **Testing Strategy:**
 
 - Local test script with `--dry-run` flag validating pack/unpack round-trip without hitting GitHub.
-- GitHub Actions test workflow (`workflow_dispatch`) running `oci-profile-setup` then `oci iam region-subscription list`.
-- Error cases: missing config, missing `gh` auth, malformed payload.
+- `setup_oci_github_access.sh` is operator-run (human-assisted: `oci session authenticate` opens a browser). It uses `oci iam region-subscription list` internally to detect the home region — this is not a test step, it is part of the script's logic.
+- GitHub Actions test workflow (`workflow_dispatch`) tests only the `oci-profile-setup` action: it assumes the GitHub secret `OCI_CONFIG_PAYLOAD` is already set by the operator. The workflow installs OCI CLI, runs the action to restore `~/.oci/`, then calls one OCI CLI command to confirm credentials are usable.
+- Error cases: malformed payload in secret, missing secret, missing `~/.oci/config` on operator side.
 
 **Risks/Concerns:**
 

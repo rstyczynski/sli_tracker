@@ -8,7 +8,7 @@ Instruction for the implementor: keep analysis, design and implementation as sim
 
 ## Sprint 1 - OCI CLI Setup
 
-Status: Planned
+Status: Done
 Mode: managed
 
 Backlog Items:

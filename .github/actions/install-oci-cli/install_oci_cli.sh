@@ -13,6 +13,14 @@ OCI_CLI_VERSION="${OCI_CLI_VERSION:-}"
 VERBOSE="${VERBOSE:-0}"
 VENV_PATH="${VENV_PATH:-$HOME/.venv/oci-cli}"
 
+# Expand leading ~ in VENV_PATH when passed from the composite action
+# (GitHub Actions passes the literal string "~/.venv/oci-cli" via env).
+case "$VENV_PATH" in
+  "~"|~/*)
+    VENV_PATH="${VENV_PATH/#\~/$HOME}"
+    ;;
+esac
+
 # Use sudo only when not already root
 SUDO=""
 if [[ "$EUID" -ne 0 ]]; then

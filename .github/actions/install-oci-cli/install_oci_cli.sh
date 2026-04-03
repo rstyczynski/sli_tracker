@@ -15,13 +15,13 @@ VENV_PATH="${VENV_PATH:-$HOME/.venv/oci-cli}"
 
 # Normalise VENV_PATH when passed from the composite action:
 # - strip any surrounding single/double quotes
-# - expand leading ~ against $HOME
+# - expand leading ~ against $HOME (note: patterns like ~/* expand in [[ ]], so test first char)
 VENV_PATH="${VENV_PATH%\"}"
 VENV_PATH="${VENV_PATH#\"}"
 VENV_PATH="${VENV_PATH%\'}"
 VENV_PATH="${VENV_PATH#\'}"
 
-if [[ "${VENV_PATH}" == "~" || "${VENV_PATH}" == ~/* ]]; then
+if [[ "${VENV_PATH:0:1}" == "~" ]]; then
     VENV_PATH="${VENV_PATH/#\~/$HOME}"
 fi
 

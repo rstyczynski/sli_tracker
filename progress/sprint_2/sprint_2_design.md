@@ -69,7 +69,9 @@ The archive **must contain every file** that the OCI CLI will read for the profi
 - `~/.oci/config` (or the sections used by those profiles).
 - `~/.oci/sessions/<session-profile-name>/` and every file under it (tokens, keys, metadata written by the CLI).
 
-If `~/.oci/config` references paths outside that tree (for example `key_file`, `security_token_file`, or other entries pointing at absolute paths on the operator machine), those files **must be included** in the tarball at paths that, after extract with `tar -C "$HOME"`, match what the profile expects—or the setup script must normalize paths under `~/.oci` before packing so all references stay within the packed tree. **A partial pack that omits a referenced file will fail on the runner** (e.g. missing private key or token file).
+If `~/.oci/config` or session files reference paths outside the packed tree (for example `key_file`, `security_token_file`, or other entries pointing at absolute paths on the operator machine), those files **must be included** in the tarball at paths that, after extract with `tar -C "$HOME"`, match what the profile expects.
+
+To make the payload portable across machines (operator macOS vs runner Linux), the setup script replaces the operator `$HOME` prefix with a placeholder **`${{HOME}}`** before packing, and the runner action replaces **`${{HOME}}`** back to the runner's real `$HOME` after untar. This avoids hardcoding paths like `/Users/<name>/...` into the secret payload.
 
 **Pack format:**
 

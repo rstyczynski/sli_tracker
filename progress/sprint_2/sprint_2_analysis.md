@@ -24,13 +24,15 @@ Script: `setup_oci_github_access.sh`
 
 - Detect home region from existing `~/.oci/config` profile using `oci iam region-subscription list`.
 - Run `oci session authenticate --region <home_region>` to produce a session-token-based config.
-- Pack `~/.oci/config` + session key files into a base64 payload.
+- Before packing, replace the operator `$HOME` prefix with a portable placeholder `${{HOME}}` inside config/session files so the payload does not hardcode paths like `/Users/<name>/...`.
+- Pack `~/.oci` (config + sessions + all referenced files) into a base64 payload.
 - Call `gh secret set OCI_CONFIG_PAYLOAD --body <payload> --repo <owner/repo>`.
 
 Action: `.github/actions/oci-profile-setup/action.yml`
 
 - Input: `oci-config-secret` (name of the GitHub secret, default `OCI_CONFIG_PAYLOAD`).
 - Restore `~/.oci/config` and session key files from the payload.
+- After restore, replace placeholder `${{HOME}}` back to the runner's `$HOME` so OCI CLI can resolve file paths.
 - Verify files are correctly restored (check `~/.oci/config` exists and is readable).
 
 **Dependencies:**

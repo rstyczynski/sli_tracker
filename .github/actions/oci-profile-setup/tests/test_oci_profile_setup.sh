@@ -30,16 +30,20 @@ TESTS_RUN=$((TESTS_RUN + 1))
 SRC_HOME="$(mktemp -d)"
 DST_HOME="$(mktemp -d)"
 mkdir -p "$SRC_HOME/.oci/sessions/DEFAULT"
-printf '[DEFAULT]\n' >"$SRC_HOME/.oci/config"
+printf 'key_file=${{HOME}}/.oci/sessions/DEFAULT/oci_api_key.pem\n' >"$SRC_HOME/.oci/config"
+printf 'dummy-key\n' >"$SRC_HOME/.oci/sessions/DEFAULT/oci_api_key.pem"
 printf 'dummy-token\n' >"$SRC_HOME/.oci/sessions/DEFAULT/session_token"
 PAYLOAD="$( (cd "$SRC_HOME" && tar -czf - .oci/config .oci/sessions/DEFAULT) | b64_encode_nowrap )"
 export OCI_CONFIG_PAYLOAD="$PAYLOAD"
 HOME="$DST_HOME" OCI_PROFILE_VERIFY=DEFAULT bash "$PROFILE_SETUP"
-if ! cmp -s "$SRC_HOME/.oci/config" "$DST_HOME/.oci/config"; then
-  fail ".oci/config mismatch after round-trip"
+if grep -q '${{HOME}}' "$DST_HOME/.oci/config"; then
+  fail "HOME placeholder was not replaced in extracted config"
 fi
 if ! cmp -s "$SRC_HOME/.oci/sessions/DEFAULT/session_token" "$DST_HOME/.oci/sessions/DEFAULT/session_token"; then
   fail "session file mismatch after round-trip"
+fi
+if ! grep -q "$DST_HOME/.oci/sessions/DEFAULT/oci_api_key.pem" "$DST_HOME/.oci/config"; then
+  fail "HOME placeholder not replaced in extracted config"
 fi
 rm -rf "$SRC_HOME" "$DST_HOME"
 pass "round-trip restored config and session files"

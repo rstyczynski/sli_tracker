@@ -17,6 +17,15 @@ if ! printf '%s' "$OCI_CONFIG_PAYLOAD" | base64 -d 2>/dev/null | tar -xzf - -C "
   exit 1
 fi
 
+# Replace placeholder ${{HOME}} with the runner's HOME so OCI CLI can resolve file references.
+if [[ -r "${HOME}/.oci/config" ]]; then
+  if command -v perl >/dev/null 2>&1; then
+    perl -pi -e "s#\\$\\{\\{HOME\\}\\}#${HOME}#g" "${HOME}/.oci/config" || true
+  else
+    sed -i.bak "s#\${{HOME}}#${HOME}#g" "${HOME}/.oci/config" || true
+  fi
+fi
+
 if [[ ! -r "${HOME}/.oci/config" ]]; then
   echo "::error::~/.oci/config missing or not readable after extract." >&2
   exit 1
@@ -26,6 +35,12 @@ SESSION_DIR="${HOME}/.oci/sessions/${PROFILE}"
 if [[ ! -d "$SESSION_DIR" ]]; then
   echo "::error::Expected session directory missing after extract: ${SESSION_DIR}" >&2
   exit 1
+fi
+
+if command -v perl >/dev/null 2>&1; then
+  perl -pi -e "s#\\$\\{\\{HOME\\}\\}#${HOME}#g" "${SESSION_DIR}"/* 2>/dev/null || true
+else
+  sed -i.bak "s#\${{HOME}}#${HOME}#g" "${SESSION_DIR}"/* 2>/dev/null || true
 fi
 
 echo "::notice::OCI profile restored under ${HOME}/.oci (profile ${PROFILE})."

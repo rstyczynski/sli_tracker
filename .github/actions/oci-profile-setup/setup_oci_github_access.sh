@@ -142,19 +142,19 @@ if [[ ! -d "${HOME}/${SESSION_REL}" ]]; then
 fi
 
 # Normalize config so session file references are portable:
-# replace the absolute $HOME prefix with ~ in both the main config and
-# all session config files for the chosen session profile name, so that
-# on the runner the CLI resolves those paths against the runner's HOME instead.
+# replace the absolute operator $HOME prefix with a placeholder ${{HOME}}
+# in both the main config and all session files for the chosen session profile name.
+# The runner action replaces this placeholder back to the runner's $HOME after untar.
 if command -v perl >/dev/null 2>&1; then
-  perl -pi -e "s#\\Q$HOME\\E#~#g" "$HOME/.oci/config" || true
+  perl -pi -e "s#\\Q$HOME\\E#\\$\\{\\{HOME\\}\\}#g" "$HOME/.oci/config" || true
   if compgen -G "$HOME/${SESSION_REL}/*" >/dev/null 2>&1; then
-    perl -pi -e "s#\\Q$HOME\\E#~#g" "$HOME"/${SESSION_REL}/* || true
+    perl -pi -e "s#\\Q$HOME\\E#\\$\\{\\{HOME\\}\\}#g" "$HOME"/${SESSION_REL}/* || true
   fi
 else
   # Fallback: best-effort sed; may not handle all edge cases but avoids hardcoding operator HOME.
-  sed -i.bak "s#$HOME#~#g" "$HOME/.oci/config" || true
+  sed -i.bak "s#$HOME#\${{HOME}}#g" "$HOME/.oci/config" || true
   if compgen -G "$HOME/${SESSION_REL}/*" >/dev/null 2>&1; then
-    sed -i.bak "s#$HOME#~#g" "$HOME"/${SESSION_REL}/* || true
+    sed -i.bak "s#$HOME#\${{HOME}}#g" "$HOME"/${SESSION_REL}/* || true
   fi
 fi
 

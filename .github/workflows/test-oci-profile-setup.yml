@@ -9,6 +9,11 @@ on:
         description: "OCI profile name (must match pack from setup script)"
         type: string
         default: DEFAULT
+      oci-auth-mode:
+        description: "token_based (wrapper injects --auth security_token) | none"
+        type: choice
+        options: [token_based, none]
+        default: token_based
 
 permissions:
   contents: read
@@ -29,6 +34,7 @@ jobs:
         with:
           oci_config_payload: ${{ secrets.OCI_CONFIG_PAYLOAD }}
           profile: ${{ inputs.profile }}
+          oci-auth-mode: ${{ inputs.oci-auth-mode }}
 
       - name: Verify restored files
         env:
@@ -43,5 +49,4 @@ jobs:
         run: |
           # Use the restored profile to call a simple, read-only OCI API.
           # This validates that the CLI can authenticate, not just that files exist.
-          # Session profiles created by `oci session authenticate` require security token auth.
-          oci os ns get --profile "$OCI_CLI_PROFILE" --auth security_token
+          oci os ns get --profile "$OCI_CLI_PROFILE"

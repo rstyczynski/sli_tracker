@@ -31,6 +31,7 @@ Script: `setup_oci_github_access.sh`
 Action: `.github/actions/oci-profile-setup/action.yml`
 
 - Input: `oci-config-secret` (name of the GitHub secret, default `OCI_CONFIG_PAYLOAD`).
+- Input: `oci-auth-mode` — when set to `token_based`, the action installs an `oci` wrapper into `PATH` that injects `--auth security_token` for all subsequent `oci` calls in the job.
 - Restore `~/.oci/config` and session key files from the payload.
 - After restore, replace placeholder `${{HOME}}` back to the runner's `$HOME` so OCI CLI can resolve file paths.
 - Verify files are correctly restored (check `~/.oci/config` exists and is readable).

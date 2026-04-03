@@ -55,6 +55,8 @@ jobs:
           oci_config_payload: ${{ secrets.OCI_CONFIG_PAYLOAD }}
           # Must match the --session-profile-name you used when running setup_oci_github_access.sh
           profile: SLI_TEST
+          # token_based installs an `oci` wrapper that injects --auth security_token
+          oci-auth-mode: token_based
 ```
 
 ## Inputs
@@ -63,6 +65,7 @@ jobs:
 |-------|-------------|---------|
 | `oci_config_payload` | Repository secret value containing the base64 tarball (pass `secrets.OCI_CONFIG_PAYLOAD` or your secret name). | (required) |
 | `profile` | Session profile name you used when packing the secret (`--session-profile-name`); verifies `~/.oci/sessions/<profile>` after unpack. | `DEFAULT` |
+| `oci-auth-mode` | `token_based` installs an `oci` wrapper into `PATH` that injects `--auth security_token` for subsequent `oci` calls. Use `none` for API-key profiles. | `token_based` |
 
 The action default is `DEFAULT` only for repos that really use a session profile named `DEFAULT`. In most cases you should explicitly set `profile` to the same value you pass as `--session-profile-name` when running `setup_oci_github_access.sh` (for example `SLI_TEST`).
 

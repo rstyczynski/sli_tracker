@@ -9,6 +9,10 @@ inputs:
     description: "OCI profile name; used to verify ~/.oci/sessions/<profile> exists after unpack."
     required: false
     default: DEFAULT
+  oci-auth-mode:
+    description: "Authentication mode for OCI CLI calls made after restore. token_based creates an oci wrapper that injects --auth security_token."
+    required: false
+    default: token_based
 
 runs:
   using: composite
@@ -18,4 +22,5 @@ runs:
       env:
         OCI_CONFIG_PAYLOAD: ${{ inputs.oci_config_payload }}
         OCI_PROFILE_VERIFY: ${{ inputs.profile }}
+        OCI_AUTH_MODE: ${{ inputs.oci-auth-mode }}
       run: bash "${{ github.action_path }}/oci_profile_setup.sh"

@@ -49,6 +49,37 @@ rm -rf "$SRC_HOME" "$DST_HOME"
 pass "round-trip restored config and session files"
 
 echo ""
+echo "=== Test: token_based mode creates oci wrapper ==="
+TESTS_RUN=$((TESTS_RUN + 1))
+SRC_HOME="$(mktemp -d)"
+DST_HOME="$(mktemp -d)"
+mkdir -p "$SRC_HOME/.oci/sessions/DEFAULT"
+printf 'key_file=${{HOME}}/.oci/sessions/DEFAULT/oci_api_key.pem\n' >"$SRC_HOME/.oci/config"
+printf 'dummy-key\n' >"$SRC_HOME/.oci/sessions/DEFAULT/oci_api_key.pem"
+PAYLOAD="$( (cd "$SRC_HOME" && tar -czf - .oci) | b64_encode_nowrap )"
+export OCI_CONFIG_PAYLOAD="$PAYLOAD"
+
+# Provide a fake "real oci" so the wrapper can be generated deterministically.
+mkdir -p "$DST_HOME/bin"
+cat >"$DST_HOME/bin/oci" <<'EOF'
+#!/usr/bin/env bash
+echo "REAL_OCI $*"
+EOF
+chmod +x "$DST_HOME/bin/oci"
+
+HOME="$DST_HOME" PATH="$DST_HOME/bin:$PATH" OCI_PROFILE_VERIFY=DEFAULT OCI_AUTH_MODE=token_based bash "$PROFILE_SETUP"
+
+if [[ ! -x "$DST_HOME/.local/oci-wrapper/bin/oci" ]]; then
+  fail "oci wrapper not created"
+fi
+if ! PATH="$DST_HOME/.local/oci-wrapper/bin:$DST_HOME/bin:$PATH" "$DST_HOME/.local/oci-wrapper/bin/oci" os ns get --profile DEFAULT | grep -q -- "--auth security_token"; then
+  fail "oci wrapper does not inject --auth security_token"
+fi
+
+rm -rf "$SRC_HOME" "$DST_HOME"
+pass "oci wrapper created and injects token auth"
+
+echo ""
 echo "=== Test: empty OCI_CONFIG_PAYLOAD ==="
 TESTS_RUN=$((TESTS_RUN + 1))
 EMPTY_HOME="$(mktemp -d)"

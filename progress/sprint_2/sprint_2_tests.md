@@ -80,7 +80,7 @@ gh run list --repo "$REPO" --limit 5
 - Logs for the job show that:
   - `~/.oci/config` exists and is readable.
   - `~/.oci/sessions/SLI_TEST` directory exists.
-  - `oci os ns get --profile SLI_TEST --auth security_token` returns successfully (namespace JSON printed, no authentication error).
+  - `oci os ns get --profile SLI_TEST` returns successfully (namespace JSON printed, no authentication error). In `token_based` mode this is satisfied via the `oci` wrapper injecting `--auth security_token`.
 
 **Status:** PENDING (requires real OCI + GitHub environment to execute)
 

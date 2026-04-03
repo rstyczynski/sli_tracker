@@ -49,6 +49,7 @@ setup_oci_github_access.sh
 oci-profile-setup action
   ├── read OCI_CONFIG_PAYLOAD secret
   ├── base64 decode | tar extract → ~/.oci/
+  ├── optionally install OCI wrapper into PATH (token_based auth mode)
   └── verify: ~/.oci/config exists and is readable
 ```
 
@@ -100,6 +101,7 @@ echo "$OCI_CONFIG_PAYLOAD" | base64 -d | tar -xzf - -C "$HOME"
 |-------|-------------|---------|
 | `secret-name` | Name of the GitHub secret containing the packed OCI config | `OCI_CONFIG_PAYLOAD` |
 | `profile` | OCI profile name to verify after restore | `DEFAULT` |
+| `oci-auth-mode` | `token_based` installs an `oci` wrapper that injects `--auth security_token` for all subsequent `oci` calls; `none` does not modify the command | `token_based` |
 
 **Error Handling:**
 

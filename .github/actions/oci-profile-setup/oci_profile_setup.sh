@@ -4,6 +4,7 @@
 set -euo pipefail
 
 PROFILE="${OCI_PROFILE_VERIFY:-DEFAULT}"
+AUTH_MODE="${OCI_AUTH_MODE:-token_based}"
 
 if [[ -z "${OCI_CONFIG_PAYLOAD:-}" ]]; then
   echo "::error::OCI_CONFIG_PAYLOAD is empty. Pass the repository secret into the action input oci_config_payload (e.g. secrets.OCI_CONFIG_PAYLOAD)." >&2
@@ -52,6 +53,33 @@ if command -v perl >/dev/null 2>&1; then
 else
   sed -i.bak "s#\${{HOME}}#${HOME}#g" "${SESSION_DIR}"/* 2>/dev/null || true
   sed -i.bak -E "s#/(Users|home)/[^/]+/\\.oci/#${HOME}/.oci/#g" "${SESSION_DIR}"/* 2>/dev/null || true
+fi
+
+if [[ "$AUTH_MODE" == "token_based" ]]; then
+  REAL_OCI="$(command -v oci || true)"
+  if [[ -z "$REAL_OCI" ]]; then
+    echo "::error::oci not found in PATH. Ensure install-oci-cli ran before oci-profile-setup." >&2
+    exit 1
+  fi
+
+  WRAP_DIR="${HOME}/.local/oci-wrapper/bin"
+  mkdir -p "$WRAP_DIR"
+  cat >"${WRAP_DIR}/oci" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+exec "${REAL_OCI}" --auth security_token "\$@"
+EOF
+  chmod +x "${WRAP_DIR}/oci"
+
+  # Ensure the wrapper is used by subsequent steps in the job.
+  if [[ -n "${GITHUB_ENV:-}" ]]; then
+    echo "PATH=${WRAP_DIR}:\$PATH" >> "${GITHUB_ENV}"
+  fi
+  if [[ -n "${GITHUB_PATH:-}" ]]; then
+    echo "${WRAP_DIR}" >> "${GITHUB_PATH}"
+  fi
+
+  echo "::notice::OCI wrapper enabled (token_based): ${WRAP_DIR}/oci injects --auth security_token."
 fi
 
 echo "::notice::OCI profile restored under ${HOME}/.oci (profile ${PROFILE})."

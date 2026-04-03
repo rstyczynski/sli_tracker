@@ -40,7 +40,7 @@ bash .github/actions/oci-profile-setup/tests/test_oci_profile_setup.sh
 - A usable OCI config profile in `~/.oci/config` (for example `[MYTENANCY]`).
 - Network access to GitHub and OCI.
 
-**Expected Outcome:** The `Test OCI profile setup` workflow completes successfully on GitHub; the job verifies that `~/.oci/config` and `~/.oci/sessions/<session-profile-name>` exist on the runner.
+**Expected Outcome:** The `Test OCI profile setup` workflow completes successfully on GitHub; the job verifies that `~/.oci/config` and `~/.oci/sessions/<session-profile-name>` exist on the runner **and** that a simple OCI CLI call (`oci os ns get`) succeeds using the restored profile.
 
 **Test Sequence (operator machine):**
 
@@ -80,6 +80,7 @@ gh run list --repo "$REPO" --limit 5
 - Logs for the job show that:
   - `~/.oci/config` exists and is readable.
   - `~/.oci/sessions/SLI_TEST` directory exists.
+  - `oci os ns get --profile SLI_TEST` returns successfully (namespace JSON printed, no authentication error).
 
 **Status:** PENDING (requires real OCI + GitHub environment to execute)
 

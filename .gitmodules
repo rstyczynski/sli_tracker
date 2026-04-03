@@ -1,0 +1,3 @@
+[submodule "RUPStrikesBack"]
+	path = RUPStrikesBack
+	url = https://github.com/rstyczynski/RUPStrikesBack.git

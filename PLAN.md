@@ -17,18 +17,9 @@ Backlog Items:
 
 ## Sprint 2 - OCI Access Configuration
 
-Status: Planned
+Status: Progress
 Mode: managed
 
 Backlog Items:
 
 * SLI-2. GitHub repository workflow OCI access configuration script/action
-
-## Sprint 3 - Pluggable Emit Backends
-
-Status: Planned
-Mode: managed
-
-Backlog Items:
-
-* SLI-3. Pluggable emit backend for emit.sh

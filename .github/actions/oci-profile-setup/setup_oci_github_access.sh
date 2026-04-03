@@ -141,10 +141,21 @@ if [[ ! -d "${HOME}/${SESSION_REL}" ]]; then
   exit 1
 fi
 
+# Normalize config so session file references are portable:
+# replace the absolute $HOME prefix with ~, so that on the runner
+# the CLI resolves those paths against the runner's HOME instead.
+if command -v perl >/dev/null 2>&1; then
+  perl -pi -e "s#\\Q$HOME\\E#~#g" "$HOME/.oci/config" || true
+else
+  # Fallback: best-effort sed; may not handle all edge cases but avoids hardcoding operator HOME.
+  sed -i.bak "s#$HOME#~#g" "$HOME/.oci/config" || true
+fi
+
 TMP_TAR="$(mktemp)"
 trap 'rm -f "$TMP_TAR"' EXIT
 
-tar -czf "$TMP_TAR" -C "$HOME" .oci/config "$SESSION_REL"
+# Pack the entire .oci tree so all files referenced by the profiles are included.
+tar -czf "$TMP_TAR" -C "$HOME" .oci
 PAYLOAD="$(sli_base64_encode_nowrap <"$TMP_TAR")"
 
 MAX_BYTES=$((64 * 1024))

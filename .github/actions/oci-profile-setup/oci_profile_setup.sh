@@ -26,6 +26,15 @@ if [[ -r "${HOME}/.oci/config" ]]; then
   fi
 fi
 
+# Backward-compatibility: some OCI session configs embed operator absolute paths
+# (e.g. /Users/<name>/.oci/... on macOS, /home/<name>/.oci/... on Linux).
+# Rewrite those to the runner's HOME so the restored session is usable.
+if command -v perl >/dev/null 2>&1; then
+  perl -pi -e "s#/(Users|home)/[^/]+/\\.oci/#${HOME}/.oci/#g" "${HOME}/.oci/config" 2>/dev/null || true
+else
+  sed -i.bak -E "s#/(Users|home)/[^/]+/\\.oci/#${HOME}/.oci/#g" "${HOME}/.oci/config" 2>/dev/null || true
+fi
+
 if [[ ! -r "${HOME}/.oci/config" ]]; then
   echo "::error::~/.oci/config missing or not readable after extract." >&2
   exit 1
@@ -39,8 +48,10 @@ fi
 
 if command -v perl >/dev/null 2>&1; then
   perl -pi -e "s#\\$\\{\\{HOME\\}\\}#${HOME}#g" "${SESSION_DIR}"/* 2>/dev/null || true
+  perl -pi -e "s#/(Users|home)/[^/]+/\\.oci/#${HOME}/.oci/#g" "${SESSION_DIR}"/* 2>/dev/null || true
 else
   sed -i.bak "s#\${{HOME}}#${HOME}#g" "${SESSION_DIR}"/* 2>/dev/null || true
+  sed -i.bak -E "s#/(Users|home)/[^/]+/\\.oci/#${HOME}/.oci/#g" "${SESSION_DIR}"/* 2>/dev/null || true
 fi
 
 echo "::notice::OCI profile restored under ${HOME}/.oci (profile ${PROFILE})."

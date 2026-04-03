@@ -1,0 +1,37 @@
+name: "SLI Event"
+description: "Emits an SLI event to OCI Logging. Events are the raw data used to compute SLI/SLA reports. Always exits 0 — never breaks the workflow."
+
+inputs:
+  outcome:
+    description: "Step outcome: success, failure, cancelled, skipped"
+    required: true
+  context-json:
+    description: |
+      JSON merged into the log entry after inputs-json. Use for non-input fields (e.g. oci from step outputs).
+      The oci block is read for OCI CLI; other keys (except oci) are merged flat into the payload.
+    required: false
+    default: "{}"
+  inputs-json:
+    description: "JSON of workflow_call inputs (e.g. ${{ toJSON(inputs) }}). Merged first; context-json overlays."
+    required: false
+    default: "{}"
+  steps-json:
+    description: |
+      Optional JSON string of the job steps context (e.g. ${{ toJSON(steps) }}).
+      Steps with outcome failure are merged into failure_reasons as SLI_FAILURE_REASON_<STEP_ID> (id normalized to UPPER_SNAKE).
+      Explicit SLI_FAILURE_REASON_* env vars still apply and override keys from steps-json.
+    required: false
+    default: "{}"
+
+runs:
+  using: composite
+  steps:
+    - name: "Emit SLI log entry"
+      shell: bash
+      env:
+        STEPS_JSON: ${{ inputs.steps-json }}
+        INPUTS_JSON: ${{ inputs.inputs-json }}
+        SLI_CONTEXT_JSON: ${{ inputs.context-json }}
+        SLI_OUTCOME: ${{ inputs.outcome }}
+        SLI_OCI_LOG_ID: ${{ vars.SLI_OCI_LOG_ID }}
+      run: bash "${{ github.action_path }}/emit.sh"

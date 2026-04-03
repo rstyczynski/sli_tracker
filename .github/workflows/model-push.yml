@@ -1,0 +1,25 @@
+name: "MODEL — Push trigger"
+# Represents: 100-release.yml, 001-governance.yml (push path)
+# Technique: push event → programmatic workflow_dispatch via action
+#            (simulates avaloq/avaloq-utils-action/github-trigger-workflow)
+
+on:
+  push:
+    branches: [main, "release/**"]
+  workflow_dispatch:
+    inputs:
+      simulate-failure:
+        description: "Force the main step to fail (for SLI testing)"
+        type: boolean
+        default: false
+
+jobs:
+  reusable-workflow:
+    name: "Delegate to reusable"
+    uses: ./.github/workflows/model-reusable-main.yml
+    with:
+      environment: "model-env-1"
+      run-type: "apply"
+      instance: "1"
+      simulate-failure: ${{ inputs.simulate-failure || false }}
+    secrets: inherit

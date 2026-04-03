@@ -1,0 +1,19 @@
+name: "MODEL — PR trigger"
+# Represents: 001-governance.yml, 010-unit-tests.yml
+# Technique: PR event → calls reusable workflow
+
+on:
+  pull_request:
+    branches: [main, "release/**"]
+    types: [opened, synchronize, reopened, closed]
+
+jobs:
+  reusable-workflow:
+    name: "Delegate to reusable"
+    uses: ./.github/workflows/model-reusable-main.yml
+    with:
+      environment: "model-env-1"
+      run-type: "plan"
+      instance: "1"
+      simulate-failure: false
+    secrets: inherit

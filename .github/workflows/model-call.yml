@@ -1,0 +1,42 @@
+name: "MODEL — API / UI call"
+# Represents: external trigger (REST repository_dispatch, Actions Run workflow).
+# UI: Actions → this workflow → Run workflow.
+# API example (event_type must match repository_dispatch.types):
+#   curl -sS -X POST -H "Authorization: Bearer TOKEN" -H "Accept: application/vnd.github+json" \
+#     "https://api.github.com/repos/OWNER/REPO/dispatches" \
+#     -d '{"event_type":"model-call","client_payload":{"environment":"model-env-1","run-type":"apply","instance":"1","simulate-failure":false}}'
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        type: string
+        default: "model-env-1"
+      run-type:
+        description: "plan | apply | config"
+        type: choice
+        options: [plan, apply, config]
+        default: apply
+      instance:
+        description: "Instance number"
+        type: string
+        default: "1"
+      simulate-failure:
+        description: "Force the main step to fail (for SLI testing)"
+        type: boolean
+        default: false
+
+  repository_dispatch:
+    types: [model-call]
+
+jobs:
+  reusable-workflow:
+    name: "Delegate to reusable"
+    uses: ./.github/workflows/model-reusable-main.yml
+    with:
+      environment: ${{ inputs.environment || github.event.client_payload.environment || 'model-env-1' }}
+      run-type: ${{ inputs['run-type'] || github.event.client_payload['run-type'] || 'apply' }}
+      instance: ${{ inputs.instance || github.event.client_payload.instance || '1' }}
+      simulate-failure: ${{ github.event_name == 'workflow_dispatch' && inputs['simulate-failure'] || github.event.client_payload['simulate-failure'] == true }}
+    secrets: inherit

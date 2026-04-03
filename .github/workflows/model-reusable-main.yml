@@ -1,0 +1,108 @@
+name: "MODEL — Reusable main (two-job + matrix)"
+# Represents: reusable-020-terrateam.yml, reusable-900/901-destroy.yml
+# Techniques:
+#   - workflow_call with inputs
+#   - Job 1 (init): runner selection, outputs to Job 2
+#   - Job 2 (sli-init): needs init, if: always() — reports init-level SLI (pipeline setup failures)
+#   - Job 3 (main): needs init, if: always() && init succeeded/skipped
+#   - Matrix over environments (simulates per-env destroy/deploy)
+#   - Each matrix item calls reusable sub workflow
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: "Target environment"
+        type: string
+        required: true
+      run-type:
+        description: "Type of run: plan, apply, config"
+        type: string
+        default: "plan"
+      instance:
+        description: "Instance number"
+        type: string
+        default: "1"
+      simulate-failure:
+        description: "Force main step to fail"
+        type: boolean
+        default: false
+
+jobs:
+  # Represents: init job in reusable-020-terrateam.yml
+  # Technique: lightweight pre-job for runner selection / env evaluation
+  init:
+    name: "Init — runner selection"
+    runs-on: ubuntu-latest
+    outputs:
+      runs-on-json: ${{ steps.runner-eval.outputs.runs-on-json }}
+      environments-json: ${{ steps.env-matrix.outputs.environments-json }}
+      run-type: ${{ steps.identity.outputs.run-type }}
+      instance: ${{ steps.identity.outputs.instance }}
+    steps:
+      - name: "Init identity"
+        id: identity
+        run: |
+          # Propagate caller inputs so sli-init can reference them via needs.init.outputs
+          echo "run-type=${{ inputs.run-type }}" >> "$GITHUB_OUTPUT"
+          echo "instance=${{ inputs.instance }}" >> "$GITHUB_OUTPUT"
+
+      - name: "Evaluate runner"
+        id: runner-eval
+        run: |
+          # Simulates avaloq/avaloq-workflow-dispatcher-action/runs-on-evaluation
+          echo "runs-on-json=[\"ubuntu-latest\"]" >> "$GITHUB_OUTPUT"
+
+      - name: "Build environment matrix"
+        id: env-matrix
+        run: |
+          # Simulates reading stages.json and building a per-environment matrix
+          echo 'environments-json=["model-env-1","model-env-2"]' >> "$GITHUB_OUTPUT"
+
+  # SLI reporting for init-level failures (pipeline setup problems)
+  # Runs always after init — reports outcome regardless of init result
+  # Distinct SLI dimension from deployment SLI (tracked per-env in sub)
+  sli-init:
+    name: "SLI — init"
+    needs: [init]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: "init failure reason"
+        if: needs.init.result == 'failure'
+        uses: ./.github/actions/sli-failure-reason
+        with:
+          step: "INIT"
+          detail: "runner=${{ needs.init.outputs.runs-on-json }} environments=${{ needs.init.outputs.environments-json }}"
+
+      - name: "SLI Report — init"
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/sli-event
+        with:
+          outcome: ${{ needs.init.result }}
+          context-json: |
+            {
+              "environment": "${{ needs.init.outputs.environments-json }}",
+              "run_type":    "${{ needs.init.outputs.run-type }}",
+              "instance":    "${{ needs.init.outputs.instance }}",
+              "oci": {}
+            }
+
+  # Represents: terrateam job / destroy-env-execution-matrix job
+  # Technique: needs init, if: always() + init guard, matrix over environments
+  main:
+    name: "Main — per-env execution [${{ matrix.environment }}]"
+    needs: [init]
+    if: ${{ always() && (needs.init.result == 'success' || needs.init.result == 'skipped') }}
+    strategy:
+      matrix:
+        environment: ${{ fromJSON(needs.init.outputs.environments-json) }}
+      fail-fast: false
+    uses: ./.github/workflows/model-reusable-sub.yml
+    with:
+      environment: ${{ matrix.environment }}
+      run-type: ${{ inputs.run-type }}
+      instance: ${{ inputs.instance }}
+      simulate-failure: ${{ inputs.simulate-failure }}
+    secrets: inherit

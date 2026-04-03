@@ -1,0 +1,122 @@
+name: "MODEL — Reusable sub (step techniques + SLI)"
+# Represents: the terrateam job inside reusable-020-terrateam.yml
+# Techniques demonstrated:
+#   1. uses: external action with outputs consumed by next step  (step-auth)
+#   2. run: bash writing $GITHUB_OUTPUT                          (step-plan)
+#   3. if: steps.X.outputs.Y == 'Z'  conditional step           (step-conditional)
+#   4. if: inputs.X != ''            input-guard                (step-env-only)
+#   5. env: block on step                                        (step-main)
+#   6. failed steps → failure_reasons via sli-event + toJSON(steps) (no companion steps)
+#   7. if: !cancelled(), continue-on-error: true                 (sli-event)
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: "Target environment"
+        type: string
+        required: true
+      run-type:
+        description: "Type of run: plan, apply, config"
+        type: string
+        default: "plan"
+      instance:
+        description: "Instance number"
+        type: string
+        default: "1"
+      simulate-failure:
+        description: "Force the main step to fail (for SLI testing)"
+        type: boolean
+        default: false
+
+jobs:
+  leaf:
+    name: "Leaf execution"
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+
+      # ── Technique 1: uses: external action with outputs consumed downstream ──────────
+      # Represents: oci-auth step
+      - name: "Auth (simulated)"
+        id: step-auth
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Simulates avaloq/avaloq-oci-action/authentication outputs
+            core.setOutput('config-file', '/tmp/model-oci-config')
+            core.setOutput('profile', 'MODEL_DEFAULT')
+            core.setOutput('realm', 'model-realm')
+            core.setOutput('region', 'model-region-1')
+
+      # ── Technique 2: run: bash writing $GITHUB_OUTPUT ───────────────────────
+      # Represents: stages / plan evaluation steps
+      - name: "Plan evaluation (simulated)"
+        id: step-plan
+        run: |
+          # Simulates installator plan — reads config, emits plan JSON
+          echo "::group::Plan output"
+          echo "Evaluating plan for environment: ${{ inputs.environment }}"
+          echo "::endgroup::"
+
+          echo "plans-json=[{\"component\":\"model-component\",\"environment\":\"${{ inputs.environment }}\"}]" >> "$GITHUB_OUTPUT"
+          echo "config-valid=true" >> "$GITHUB_OUTPUT"
+
+      # ── Technique 3: conditional on prior step output ───────────────────────
+      # Represents: installator-setup conditional on constellation-file-path
+      - name: "Conditional step (simulated)"
+        id: step-conditional
+        if: ${{ steps.step-plan.outputs.config-valid == 'true' }}
+        run: |
+          echo "Config is valid — proceeding with setup"
+          echo "installed-version=2.3.1-model" >> "$GITHUB_OUTPUT"
+
+      # ── Technique 4: input-guard (only when environment is set) ─────────────
+      # Represents: steps guarded by if: inputs.environment != ''
+      - name: "Environment-only step (simulated)"
+        id: step-env-only
+        if: ${{ inputs.environment != '' }}
+        run: |
+          echo "Running environment-specific step for: ${{ inputs.environment }}"
+
+      # ── Technique 5: env: block + simulate-failure control ──────────────────
+      # Represents: terrateam step with env: ARM_*, OCI_*, TF_HTTP_* vars
+      - name: "Main action (simulated Terrateam)"
+        id: step-main
+        env:
+          MODEL_PROFILE: ${{ steps.step-auth.outputs.profile }}
+          MODEL_REGION: ${{ steps.step-auth.outputs.region }}
+          MODEL_RUN_TYPE: ${{ inputs.run-type }}
+          MODEL_INSTANCE: ${{ inputs.instance }}
+        run: |
+          echo "::group::Main action execution"
+          echo "Profile  : $MODEL_PROFILE"
+          echo "Region   : $MODEL_REGION"
+          echo "Run type : $MODEL_RUN_TYPE"
+          echo "Instance : $MODEL_INSTANCE"
+          echo "::endgroup::"
+
+          if [[ "${{ inputs.simulate-failure }}" == "true" ]]; then
+            echo "::error::Simulated failure triggered for SLI testing"
+            exit 1
+          fi
+
+          echo "Main action completed successfully"
+
+      # ── Technique 6–7: SLI report — ghost step; failure_reasons from steps context ───
+      # Represents: the sli-event step to be added to reusable-020-terrateam.yml
+      - name: "SLI Report"
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        uses: ./.github/actions/sli-event
+        with:
+          outcome: ${{ job.status }}
+          steps-json: ${{ toJSON(steps) }}
+          inputs-json: ${{ toJSON(inputs) }}
+          context-json: |
+            {
+              "oci": {
+                "config-file": "${{ steps.step-auth.outputs.config-file }}",
+                "profile":     "${{ steps.step-auth.outputs.profile }}"
+              }
+            }

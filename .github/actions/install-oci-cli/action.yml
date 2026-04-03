@@ -1,0 +1,31 @@
+name: "Install OCI CLI"
+description: "Installs OCI CLI with all prerequisites on a Linux (Ubuntu) GitHub runner. Adds oci to PATH for subsequent steps."
+
+inputs:
+  oci-cli-version:
+    description: "OCI CLI version to install (e.g. 3.40.0). Defaults to latest."
+    required: false
+    default: ""
+  verbose:
+    description: "Set to 'true' to enable verbose output from apt-get and pip."
+    required: false
+    default: "false"
+  use-venv:
+    description: "Install OCI CLI into a Python virtual environment. Recommended to avoid pip-as-root warnings and keep the system Python clean."
+    required: false
+    default: "true"
+  venv-path:
+    description: "Path for the Python virtual environment. Only used when use-venv is true."
+    required: false
+    default: "~/.venv/oci-cli"
+
+runs:
+  using: composite
+  steps:
+    - name: "Install OCI CLI"
+      shell: bash
+      env:
+        OCI_CLI_VERSION: ${{ inputs.oci-cli-version }}
+        VERBOSE: ${{ inputs.verbose == 'true' && '1' || '0' }}
+        VENV_PATH: ${{ inputs.use-venv == 'true' && inputs.venv-path || '' }}
+      run: bash "${{ github.action_path }}/install_oci_cli.sh"

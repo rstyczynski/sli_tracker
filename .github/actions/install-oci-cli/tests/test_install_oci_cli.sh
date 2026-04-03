@@ -77,6 +77,30 @@ fi
 pass "OCI CLI installed and verified inside $UBUNTU_IMAGE"
 
 # ---------------------------------------------------------------------------
+# Test: VENV_PATH literal tilde behaves like composite action
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== Test: VENV_PATH='~/.venv/oci-cli' expansion ==="
+TESTS_RUN=$((TESTS_RUN + 1))
+
+pull_image "$UBUNTU_IMAGE"
+if ! podman run --rm --name test-install-oci-cli-ubuntu-venv-tilde \
+    -v "$INSTALL_SCRIPT:/opt/install_oci_cli.sh:ro" \
+    "$UBUNTU_IMAGE" \
+    bash -c "
+        set -euo pipefail
+        export VENV_PATH=\"~/.venv/oci-cli\"
+        bash /opt/install_oci_cli.sh $version_arg
+        # install_oci_cli.sh should have normalised VENV_PATH to \$HOME/.venv/oci-cli;
+        # add that venv bin dir to PATH in this shell to find oci.
+        export PATH=\"\$HOME/.venv/oci-cli/bin:\$HOME/.local/bin:\$PATH\"
+        oci --version
+    "; then
+    fail \"OCI CLI install failed inside $UBUNTU_IMAGE when VENV_PATH='~/.venv/oci-cli'\"
+fi
+pass \"OCI CLI installed and callable with VENV_PATH='~/.venv/oci-cli'\"
+
+# ---------------------------------------------------------------------------
 # Test: unsupported OS (Alpine) is rejected with an error message
 # ---------------------------------------------------------------------------
 echo ""

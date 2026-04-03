@@ -17,7 +17,7 @@ Backlog Items:
 
 ## Sprint 2 - OCI Access Configuration
 
-Status: Progress
+Status: Done
 Mode: managed
 
 Backlog Items:

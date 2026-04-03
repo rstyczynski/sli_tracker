@@ -1,0 +1,21 @@
+name: "OCI profile setup"
+description: "Unpacks a base64-packed ~/.oci tree from a repository secret so OCI CLI can authenticate (use after install-oci-cli)."
+
+inputs:
+  oci_config_payload:
+    description: "Packed OCI config from a repository secret (pass secrets.OCI_CONFIG_PAYLOAD or the name you chose in setup)."
+    required: true
+  profile:
+    description: "OCI profile name; used to verify ~/.oci/sessions/<profile> exists after unpack."
+    required: false
+    default: DEFAULT
+
+runs:
+  using: composite
+  steps:
+    - name: "Restore ~/.oci from secret"
+      shell: bash
+      env:
+        OCI_CONFIG_PAYLOAD: ${{ inputs.oci_config_payload }}
+        OCI_PROFILE_VERIFY: ${{ inputs.profile }}
+      run: bash "${{ github.action_path }}/oci_profile_setup.sh"

@@ -1,0 +1,38 @@
+name: "Test OCI profile setup"
+
+# Requires repository secret OCI_CONFIG_PAYLOAD created via scripts/setup_oci_github_access.sh
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "OCI profile name (must match pack from setup script)"
+        type: string
+        default: DEFAULT
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: "install-oci-cli + oci-profile-setup"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install OCI CLI
+        uses: ./.github/actions/install-oci-cli
+
+      - name: Restore OCI profile from secret
+        uses: ./.github/actions/oci-profile-setup
+        with:
+          oci_config_payload: ${{ secrets.OCI_CONFIG_PAYLOAD }}
+          profile: ${{ inputs.profile }}
+
+      - name: Verify restored files
+        env:
+          PROFILE: ${{ inputs.profile }}
+        run: |
+          test -r "$HOME/.oci/config"
+          test -d "$HOME/.oci/sessions/${PROFILE}"

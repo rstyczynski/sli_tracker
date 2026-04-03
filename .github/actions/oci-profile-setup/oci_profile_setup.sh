@@ -64,11 +64,12 @@ if [[ "$AUTH_MODE" == "token_based" ]]; then
 
   WRAP_DIR="${HOME}/.local/oci-wrapper/bin"
   mkdir -p "$WRAP_DIR"
-  cat >"${WRAP_DIR}/oci" <<EOF
-#!/usr/bin/env bash
-set -euo pipefail
-exec "${REAL_OCI}" --auth security_token "\$@"
-EOF
+  # Use /bin/bash to avoid /usr/bin/env edge cases (e.g. CRLF in shebang).
+  {
+    printf '%s\n' '#!/bin/bash'
+    printf '%s\n' 'set -euo pipefail'
+    printf '%s\n' "exec \"${REAL_OCI}\" --auth security_token \"\$@\""
+  } > "${WRAP_DIR}/oci"
   chmod +x "${WRAP_DIR}/oci"
 
   # Ensure the wrapper is used by subsequent steps in the job.

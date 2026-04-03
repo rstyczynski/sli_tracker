@@ -43,4 +43,5 @@ jobs:
         run: |
           # Use the restored profile to call a simple, read-only OCI API.
           # This validates that the CLI can authenticate, not just that files exist.
-          oci os ns get --profile "$OCI_CLI_PROFILE"
+          # Session profiles created by `oci session authenticate` require security token auth.
+          oci os ns get --profile "$OCI_CLI_PROFILE" --auth security_token

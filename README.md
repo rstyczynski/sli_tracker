@@ -4,6 +4,24 @@ GitHub pipeline execution emits events used to compute Service Level Indicators 
 
 Model works on a GitHub repository interacting with OCI tenancy where events are stored.
 
+## Process
+
+This repository is developed using the **RUP Strikes Back** AI-driven development process. The process is managed by the `RUPStrikesBack` git submodule located at `./RUPStrikesBack/`.
+
+Key documents:
+
+- `BACKLOG.md` — full list of backlog items (SLI-1, SLI-2, ...)
+- `PLAN.md` — sprint plan; active sprint has `Status: Progress`
+- `PROGRESS_BOARD.md` — real-time sprint and item status
+
+To start or continue a development cycle, invoke the RUP Manager:
+
+```text
+@RUPStrikesBack/.claude/commands/rup-manager.md
+```
+
+All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifacts are stored under `progress/sprint_<N>/`.
+
 ## Goals
 
 1. track SLI for a GitHub pipeline

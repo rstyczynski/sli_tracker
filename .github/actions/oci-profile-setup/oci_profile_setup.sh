@@ -73,9 +73,8 @@ if [[ "$AUTH_MODE" == "token_based" ]]; then
   chmod +x "${WRAP_DIR}/oci"
 
   # Ensure the wrapper is used by subsequent steps in the job.
-  if [[ -n "${GITHUB_ENV:-}" ]]; then
-    echo "PATH=${WRAP_DIR}:\$PATH" >> "${GITHUB_ENV}"
-  fi
+  # Use GITHUB_PATH only — writing PATH=... to GITHUB_ENV would set the literal
+  # string "$PATH" rather than expanding it, breaking the runtime PATH entirely.
   if [[ -n "${GITHUB_PATH:-}" ]]; then
     echo "${WRAP_DIR}" >> "${GITHUB_PATH}"
   fi

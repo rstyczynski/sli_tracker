@@ -19,23 +19,42 @@ set -euo pipefail
 
 REPO="rstyczynski/sli_tracker"
 
-# ── Resolve OCI resource identifiers dynamically — no hardcoded OCIDs ──────────
-SLI_LOG_OCID=$(gh variable get SLI_OCI_LOG_ID -R "$REPO" --json value -q .value 2>/dev/null)
-[[ -z "$SLI_LOG_OCID" ]] && { echo "ERROR: SLI_OCI_LOG_ID repo variable not set (gh variable set SLI_OCI_LOG_ID --body <ocid>)"; false; }
+# ── Resolve OCI resource identifiers via oci_scaffold techniques (URI-style) ──
+#
+# SLI_OCI_LOG_URI repo variable holds:  log_group_name/log_name
+#   e.g.  sli-events/github-actions
+#
+# Techniques from https://github.com/rstyczynski/oci_scaffold (vendored in lib/oci_scaffold.sh):
+#   - Tenancy OCID:    _oci_tenancy_ocid()  →  oci os ns get-metadata
+#   - Log group OCID:  ensure-log_group.sh pattern  →  oci logging log-group list --display-name
+#   - Log OCID:        ensure-log.sh pattern         →  oci logging log list --display-name
 
-TENANCY=$(awk -F'=' '/^\[DEFAULT\]/{f=1} f && /^tenancy/{gsub(/ /,"",$2); print $2; f=0}' ~/.oci/config)
-[[ -z "$TENANCY" ]] && { echo "ERROR: tenancy not found in ~/.oci/config [DEFAULT] profile"; false; }
+SLI_OCI_LOG_URI=$(gh variable get SLI_OCI_LOG_URI -R "$REPO" --json value -q .value 2>/dev/null)
+[[ -z "$SLI_OCI_LOG_URI" ]] && { echo "ERROR: SLI_OCI_LOG_URI repo variable not set (format: log_group_name/log_name)"; false; }
 
-LOG_GROUP_OCID=""
-for _lg in $(oci logging log-group list --compartment-id "$TENANCY" --profile DEFAULT 2>/dev/null | jq -r '.data[] | .id'); do
-  _found=$(oci logging log list --log-group-id "$_lg" --profile DEFAULT 2>/dev/null | jq -r --arg id "$SLI_LOG_OCID" '.data[] | select(.id == $id) | .id')
-  if [[ -n "$_found" ]]; then
-    LOG_GROUP_OCID="$_lg"
-    break
-  fi
-done
-[[ -z "$LOG_GROUP_OCID" ]] && { echo "ERROR: log group containing $SLI_LOG_OCID not found in tenancy $TENANCY"; false; }
-# ───────────────────────────────────────────────────────────────────────────────
+LOG_GROUP_NAME="${SLI_OCI_LOG_URI%%/*}"
+LOG_NAME="${SLI_OCI_LOG_URI#*/}"
+[[ -z "$LOG_GROUP_NAME" || -z "$LOG_NAME" ]] && { echo "ERROR: SLI_OCI_LOG_URI must be log_group_name/log_name, got: $SLI_OCI_LOG_URI"; false; }
+
+# _oci_tenancy_ocid() technique: tenancy = default-s3-compartment-id from object-storage namespace
+TENANCY=$(oci os ns get-metadata \
+  --query 'data."default-s3-compartment-id"' --raw-output --profile DEFAULT 2>/dev/null)
+[[ -z "$TENANCY" || "$TENANCY" == "null" ]] && { echo "ERROR: tenancy OCID not resolved — check OCI CLI DEFAULT profile"; false; }
+
+# ensure-log_group.sh technique: look up log group by compartment + display-name
+LOG_GROUP_OCID=$(oci logging log-group list \
+  --compartment-id "$TENANCY" \
+  --display-name "$LOG_GROUP_NAME" \
+  --query 'data[0].id' --raw-output --profile DEFAULT 2>/dev/null)
+[[ -z "$LOG_GROUP_OCID" || "$LOG_GROUP_OCID" == "null" ]] && { echo "ERROR: log group '$LOG_GROUP_NAME' not found in tenancy $TENANCY"; false; }
+
+# ensure-log.sh technique: look up log by log-group + display-name
+SLI_LOG_OCID=$(oci logging log list \
+  --log-group-id "$LOG_GROUP_OCID" \
+  --display-name "$LOG_NAME" \
+  --query 'data[0].id' --raw-output --profile DEFAULT 2>/dev/null)
+[[ -z "$SLI_LOG_OCID" || "$SLI_LOG_OCID" == "null" ]] && { echo "ERROR: log '$LOG_NAME' not found in log group '$LOG_GROUP_NAME'"; false; }
+# ──────────────────────────────────────────────────────────────────────────────
 
 PASS=0; FAIL=0
 

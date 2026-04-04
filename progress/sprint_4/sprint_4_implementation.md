@@ -18,9 +18,11 @@ Replaced the three hardcoded OCID constants at lines 21–23 of `progress/sprint
 
 ### Main Features
 
-- `SLI_LOG_OCID` resolved via `gh variable get SLI_OCI_LOG_ID`
-- `TENANCY` extracted from `~/.oci/config [DEFAULT]` via `awk` (no network call)
-- `LOG_GROUP_OCID` derived by iterating log groups in the tenancy and matching the one containing `SLI_LOG_OCID` via `oci logging log list`
+- `oci_scaffold` vendored in `lib/oci_scaffold.sh` (source: https://github.com/rstyczynski/oci_scaffold)
+- New repo variable `SLI_OCI_LOG_URI` = `sli-events/github-actions` (URI-style: log_group_name/log_name)
+- `TENANCY` via `_oci_tenancy_ocid()` technique: `oci os ns get-metadata --query 'data."default-s3-compartment-id"'`
+- `LOG_GROUP_OCID` via `ensure-log_group.sh` pattern: `oci logging log-group list --display-name`
+- `SLI_LOG_OCID` via `ensure-log.sh` pattern: `oci logging log list --display-name`
 - Fail-fast with descriptive error messages if any resolution fails
 
 ### Design Compliance
@@ -32,6 +34,8 @@ Implementation follows the design in `sprint_4_design.md` exactly.
 | Artifact | Purpose | Status | Tested |
 |----------|---------|--------|--------|
 | `progress/sprint_3/test_sli_integration.sh` | Integration test script | Updated | Yes |
+| `lib/oci_scaffold.sh` | Vendored oci_scaffold library | New | Yes |
+| `.gitignore` | Excludes oci_scaffold state files | Updated | Yes |
 
 ### Testing Results
 
@@ -73,13 +77,14 @@ PASS: OCI CLI present
 PASS: jq present
 ```
 
-**Update OCI log OCID after resource recreation:**
+**Update OCI log/log-group display names after resource recreation:**
 
 ```bash
-gh variable set SLI_OCI_LOG_ID --body "ocid1.log.oc1.<region>.<new-ocid>" -R rstyczynski/sli_tracker
+# Set URI: log_group_display_name/log_display_name
+gh variable set SLI_OCI_LOG_URI --body "sli-events/github-actions" -R rstyczynski/sli_tracker
 ```
 
-No other changes needed — log group and tenancy are derived automatically.
+The script resolves all OCIDs at runtime from these names — no OCIDs to update.
 
 **Error if repo variable not set:**
 
@@ -109,7 +114,8 @@ implemented
 
 ### Challenges Encountered
 
-- `oci logging log get` requires `--log-group-id` (cannot derive log group from log OCID alone) → resolved by iterating log groups
+- Initial approach iterated log groups to find container of log OCID; replaced with oci_scaffold URI-style name-based lookup (display-name) which is simpler and more direct
+- `oci_scaffold.sh` creates `state.json` in CWD when sourced; resolved by inlining just the three API calls from the scaffold and vendoring the library for reference
 
 ### Integration Verification
 

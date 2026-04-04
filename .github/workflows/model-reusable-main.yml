@@ -68,6 +68,19 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Install OCI CLI"
+        uses: ./.github/actions/install-oci-cli
+
+      - name: "Restore OCI profile"
+        uses: ./.github/actions/oci-profile-setup
+        with:
+          oci_config_payload: ${{ secrets.OCI_CONFIG_PAYLOAD }}
+          profile: SLI_TEST
+          oci-auth-mode: token_based
+
       - name: "SLI Report — init"
         if: always()
         continue-on-error: true
@@ -79,7 +92,10 @@ jobs:
               "environment": "${{ needs.init.outputs.environments-json }}",
               "run_type":    "${{ needs.init.outputs.run-type }}",
               "instance":    "${{ needs.init.outputs.instance }}",
-              "oci": {}
+              "oci": {
+                "config-file": "~/.oci/config",
+                "profile":     "SLI_TEST"
+              }
             }
 
   # Represents: terrateam job / destroy-env-execution-matrix job

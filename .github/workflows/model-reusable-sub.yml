@@ -36,16 +36,31 @@ jobs:
     environment: ${{ inputs.environment }}
     steps:
 
+      # ── OCI CLI setup — required for SLI event push to OCI Logging ──────────────────
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Install OCI CLI"
+        uses: ./.github/actions/install-oci-cli
+
+      - name: "Restore OCI profile"
+        uses: ./.github/actions/oci-profile-setup
+        with:
+          oci_config_payload: ${{ secrets.OCI_CONFIG_PAYLOAD }}
+          profile: SLI_TEST
+          oci-auth-mode: token_based
+
       # ── Technique 1: uses: external action with outputs consumed downstream ──────────
-      # Represents: oci-auth step
+      # Represents: oci-auth step (simulated avaloq/avaloq-oci-action/authentication)
+      # Note: real auth outputs model values; OCI Logging uses the profile restored above.
       - name: "Auth (simulated)"
         id: step-auth
         uses: actions/github-script@v7
         with:
           script: |
             // Simulates avaloq/avaloq-oci-action/authentication outputs
-            core.setOutput('config-file', '/tmp/model-oci-config')
-            core.setOutput('profile', 'MODEL_DEFAULT')
+            core.setOutput('config-file', process.env.HOME + '/.oci/config')
+            core.setOutput('profile', 'SLI_TEST')
             core.setOutput('realm', 'model-realm')
             core.setOutput('region', 'model-region-1')
 

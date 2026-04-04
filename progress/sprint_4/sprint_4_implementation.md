@@ -33,9 +33,9 @@ Implementation follows the design in `sprint_4_design.md` exactly.
 
 | Artifact | Purpose | Status | Tested |
 |----------|---------|--------|--------|
-| `progress/sprint_3/test_sli_integration.sh` | Integration test script | Updated | Yes |
-| `lib/oci_scaffold.sh` | Vendored oci_scaffold library | New | Yes |
-| `.gitignore` | Excludes oci_scaffold state files | Updated | Yes |
+| `progress/sprint_4/test_sli_integration.sh` | New Sprint 4 integration test | New | Yes |
+| `oci_scaffold/` | Git submodule from github.com/rstyczynski/oci_scaffold | New | Yes |
+| `.gitignore` | Excludes oci_scaffold state files (`state*.json`) | New | Yes |
 
 ### Testing Results
 
@@ -61,11 +61,11 @@ The integration test script no longer requires any hardcoded OCI resource OCIDs.
 
 #### Usage
 
-**Run integration tests:**
+**Run Sprint 4 integration tests (URI-style, no hardcoded OCIDs):**
 
 ```bash
 cd /path/to/SLI_tracker
-bash progress/sprint_3/test_sli_integration.sh
+bash progress/sprint_4/test_sli_integration.sh
 ```
 
 Expected startup output (first lines):

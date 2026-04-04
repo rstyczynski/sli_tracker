@@ -82,9 +82,9 @@ SLI_LOG_OCID=$(oci logging log list \
 - Rationale: display names survive recreation; only one variable needed for both log group and log
 - Risk: Low — `SLI_OCI_LOG_ID` is kept for emit.sh backward compatibility
 
-**Decision 2: Inline oci_scaffold techniques rather than source full library**
+**Decision 2: Add oci_scaffold as git submodule (not vendored copy)**
 
-- Context: sourcing `oci_scaffold.sh` creates `state.json` in CWD (by design for full scaffold use)
-- Decision: vendor `lib/oci_scaffold.sh` for reference; inline just the three API calls in test script
-- Rationale: test script needs only discovery, not the full idempotent resource management
-- Risk: Low — techniques are stable single OCI CLI calls
+- Context: oci_scaffold creates `state*.json` in CWD when sourced; submodule or vendored copy both options
+- Decision: add as git submodule at `oci_scaffold/` (same pattern as RUPStrikesBack); add `state*.json` to `.gitignore`; use `NAME_PREFIX=sli_test_sprint4` to get a named state file
+- Rationale: submodule stays in sync with upstream; consistent with project conventions
+- Risk: Low — state file is ephemeral and gitignored

@@ -1,3 +1,6 @@
 [submodule "RUPStrikesBack"]
 	path = RUPStrikesBack
 	url = https://github.com/rstyczynski/RUPStrikesBack.git
+[submodule "oci_scaffold"]
+	path = oci_scaffold
+	url = https://github.com/rstyczynski/oci_scaffold.git

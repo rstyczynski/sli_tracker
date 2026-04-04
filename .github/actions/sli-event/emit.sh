@@ -165,7 +165,9 @@ sli_emit_main() {
       --argjson entry "$LOG_ENTRY" \
       '[{
         "defaultlogentrytime": $ts,
-        "entries": [{ "data": ($entry | tostring), "time": $ts }]
+        "source": "github-actions/sli-tracker",
+        "type":   "sli-event",
+        "entries": [{ "data": ($entry | tostring), "id": ($ts + "-sli"), "time": $ts }]
       }]')
 
     OCI_CONFIG_FILE="$OCI_CONFIG" \

@@ -20,7 +20,7 @@ Model real pipeline patterns in a self-contained, runnable form — used to deve
 
 ### Actions (`../actions/`)
 
-Documented in **[`.github/actions/README.md`](../actions/README.md)** — `sli-event` (payload + OCI push), `sli-failure-reason` (optional env companion).
+Documented in **[`.github/actions/README.md`](../actions/README.md)** — `sli-event` (payload + OCI push).
 
 ## Techniques Modelled
 
@@ -52,7 +52,7 @@ Example (abbreviated):
 
 ```json
 {
-  "source": "github-actions/terrateam",
+  "source": "github-actions/sli-tracker",
   "outcome": "failure",
   "workflow_run_id": "…",
   "repository": "owner/repo",
@@ -75,7 +75,7 @@ Keys such as **`run-type`** follow **`toJSON(inputs)`** from the reusable workfl
 ### Failure reasons
 
 - **Default path:** pass **`steps-json: ${{ toJSON(steps) }}`** into `sli-event` — failed step ids appear under `failure_reasons`.
-- **Optional:** companion steps can still use **`sli-failure-reason`** to set **`SLI_FAILURE_REASON_*`**; those override the same key from `steps-json`.
+- **Optional:** set **`SLI_FAILURE_REASON_*`** env vars directly in a step before `sli-event` runs; those override the same key derived from `steps-json`.
 
 ### Ghost step
 

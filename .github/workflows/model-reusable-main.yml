@@ -68,13 +68,6 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: "init failure reason"
-        if: needs.init.result == 'failure'
-        uses: ./.github/actions/sli-failure-reason
-        with:
-          step: "INIT"
-          detail: "runner=${{ needs.init.outputs.runs-on-json }} environments=${{ needs.init.outputs.environments-json }}"
-
       - name: "SLI Report — init"
         if: always()
         continue-on-error: true

@@ -44,10 +44,3 @@ Requires `bash`, `jq`, and `date` on `PATH`.
 
 Installs OCI CLI on a Linux (Ubuntu/Debian) runner. See [`install-oci-cli/README.md`](install-oci-cli/README.md).
 
----
-
-## `sli-failure-reason`
-
-Writes **`SLI_FAILURE_REASON_<STEP>=<detail>`** to `$GITHUB_ENV` for optional companion steps. **`sli-event`** still merges these env vars into `failure_reasons`; the model sub-workflow normally relies on **`steps-json`** instead of per-step companions.
-
-See [`sli-failure-reason/action.yml`](sli-failure-reason/action.yml).

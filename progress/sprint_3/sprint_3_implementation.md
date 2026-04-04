@@ -1,6 +1,6 @@
 # Sprint 3 — Implementation
 
-**Sprint status:** implemented
+**Sprint status:** implemented + integration-tested
 
 ## SLI-3 — model-* workflows
 
@@ -33,6 +33,10 @@
 | File | Change |
 |------|--------|
 | `.github/actions/sli-failure-reason/action.yml` | **Deleted** (no-value action; `steps-json` covers failure reasons) |
-| `.github/workflows/model-reusable-main.yml` | Removed `sli-failure-reason` companion step |
-| `.github/actions/sli-event/emit.sh` | `sli_expand_oci_config_path` bug fix; `source` rename |
+| `.github/workflows/model-reusable-main.yml` | Removed `sli-failure-reason` step; added OCI setup to `sli-init`; fixed `context-json` for init outputs |
+| `.github/workflows/model-reusable-sub.yml` | Added checkout + install-oci-cli + oci-profile-setup; `step-auth` now outputs real OCI config path |
+| `.github/actions/sli-event/action.yml` | Removed invalid `vars` context reference; fixed description strings with evaluatable `${{ }}` expressions |
+| `.github/actions/sli-event/emit.sh` | `sli_expand_oci_config_path` bug fix; `source` rename; added `--specversion 1.0`; added `source`, `type`, `id` to OCI batch |
 | `.github/actions/sli-event/tests/test_emit.sh` | Subshell isolation fix; `source` expected value updated; +3 effective assertions |
+| `.github/actions/oci-profile-setup/oci_profile_setup.sh` | Removed `GITHUB_ENV PATH=...` assignment (literal `$PATH` not expanded, breaking runtime PATH) |
+| `progress/sprint_3/test_sli_integration.sh` | **New**: executable end-to-end integration test script (41 assertions) |

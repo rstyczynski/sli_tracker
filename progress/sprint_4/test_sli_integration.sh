@@ -3,17 +3,19 @@
 # Extends Sprint 3 tests by replacing hardcoded OCI resource OCIDs with
 # URI-style dynamic resolution via oci_scaffold submodule.
 #
-# oci_scaffold: https://github.com/rstyczynski/oci_scaffold
-#   - _oci_tenancy_ocid()  →  tenancy via oci os ns get-metadata
-#   - ensure-log_group.sh pattern  →  log group by compartment + display-name
-#   - ensure-log.sh pattern        →  log by log-group + display-name
+# The OCI log URI is defined in this script (SLI_OCI_LOG_URI constant below).
+# oci_scaffold resolves the URI to OCIDs and sets them as GitHub repo variables
+# so that workflows always have up-to-date values.
+#
+# oci_scaffold: https://github.com/rstyczynski/oci_scaffold (submodule)
+#   - ensure-compartment.sh  →  compartment OCID from path
+#   - ensure-log_group.sh    →  log group OCID from display-name
+#   - ensure-log.sh          →  log OCID from display-name
 #
 # Prerequisites:
 #   gh       — authenticated GitHub CLI
 #   oci      — OCI CLI with DEFAULT profile
 #   jq       — JSON processor
-#   SLI_OCI_LOG_URI    — GitHub repo variable:  log_group_name/log_name
-#                        e.g. "sli-events/github-actions"
 #   OCI_CONFIG_PAYLOAD — GitHub repo secret (packed OCI session token)
 #   oci_scaffold       — git submodule at <repo_root>/oci_scaffold
 #
@@ -48,8 +50,9 @@ export NAME_PREFIX="sli_test_sprint4"
 # shellcheck source=oci_scaffold/do/oci_scaffold.sh
 source "${REPO_ROOT}/oci_scaffold/do/oci_scaffold.sh"
 
-SLI_OCI_LOG_URI=$(gh variable get SLI_OCI_LOG_URI -R "$REPO" --json value -q .value 2>/dev/null)
-[[ -z "$SLI_OCI_LOG_URI" ]] && { echo "ERROR: SLI_OCI_LOG_URI repo variable not set (format: /compartment/log_group/log)"; false; }
+# URI that identifies the OCI log to test against: /compartment/log_group/log
+# Empty compartment segment = tenancy root.
+SLI_OCI_LOG_URI="//sli-events/github-actions"
 
 # Parse /compartment/log_group/log  (empty compartment segment = tenancy root)
 IFS='/' read -ra _URI_PARTS <<< "$SLI_OCI_LOG_URI"

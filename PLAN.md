@@ -38,7 +38,7 @@ Backlog Items:
 
 ## Sprint 4 - Improve workflow tests
 
-Status: Planned
+Status: Progress
 Mode: YOLO
 
 Backlog Items:

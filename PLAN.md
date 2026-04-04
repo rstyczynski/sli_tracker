@@ -35,3 +35,12 @@ Backlog Items:
 
 * SLI-3. Review model-* workflows
 * SLI-4. Review sli-event action
+
+## Sprint 4 - Improve workflow tests
+
+Status: Planned
+Mode: YOLO
+
+Backlog Items:
+
+* SLI-5. Improve workflow tests

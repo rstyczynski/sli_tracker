@@ -1,30 +1,37 @@
 # Sprint 3 — Implementation
 
-**Sprint status:** implemented (review deliverables)
+**Sprint status:** implemented
 
 ## SLI-3 — model-* workflows
 
 | Check | Result |
 |-------|--------|
 | Call graph | `model-call` / PR / push → `model-reusable-main` → `model-reusable-sub` |
-| SLI coverage | `sli-event` + `sli-failure-reason` on init and job level |
-| Naming | Consistent `MODEL —` prefix; inputs documented in YAML |
-| Gaps | None blocking; optional future: unify `repository_dispatch` payload docs in one README |
+| SLI coverage | `sli-event` at leaf job level; `sli-event` + `sli-failure-reason` at init level |
+| Naming | Consistent `MODEL —` prefix; inline comments document each technique |
+| Bug fixed | Created `.github/actions/sli-failure-reason/action.yml` (was missing; broke init-failure path) |
 
 ## SLI-4 — sli-event
 
 | Check | Result |
 |-------|--------|
-| `action.yml` | Inputs align with `emit.sh` env |
-| `emit.sh` | Pure helpers testable; main tolerant; `SLI_SKIP_OCI_PUSH` for CI |
-| Tests | `tests/test_emit.sh` — **16 passed** (local run this sprint) |
+| `action.yml` | Inputs align with `emit.sh` env vars |
+| `emit.sh` | Pure helpers testable; main tolerant; `SLI_SKIP_OCI_PUSH` for local runs |
+| Bug fixed | `sli_expand_oci_config_path`: `~/*` glob bug → `"~/"*` + `${p:1}` |
+| Bug fixed | `source` field corrected to `"github-actions/sli-tracker"` |
+| Bug fixed | Test subshell counter isolation — two silently swallowed failures exposed and fixed |
+| Tests | `tests/test_emit.sh` — **19 passed, 0 failed** (was 16 passing with 2 invisible failures) |
 
-## YOLO Mode Decisions
+## YOLO decisions
 
-1. **No code change** in sli-event or model workflows — review satisfied by analysis + tests.
-2. **Test output:** harness prints `FAIL` lines inside passing cases; summary `failed: 0` is authoritative.
-3. **Risk:** Medium if GitHub changes `github.token` behavior — out of scope.
+1. No new inputs on sli-event; review-only except for bug fixes.
+2. `source` rename is safe (no downstream consumers in this repo).
+3. `sli-failure-reason` action is intentionally minimal — companion env-var pattern; `sli-event` docs call this optional.
 
 ## Code artifacts
 
-No new files; documentation under `progress/sprint_3/` only.
+| File | Change |
+|------|--------|
+| `.github/actions/sli-failure-reason/action.yml` | **Created** |
+| `.github/actions/sli-event/emit.sh` | `sli_expand_oci_config_path` bug fix; `source` rename |
+| `.github/actions/sli-event/tests/test_emit.sh` | Subshell isolation fix; `source` expected value updated; +3 effective assertions |

@@ -38,7 +38,7 @@ sli_build_base_json() {
     --arg ev        "${GITHUB_EVENT_NAME:-}" \
     --arg actor     "${GITHUB_ACTOR:-}" \
     '{
-      source:               "github-actions/terrateam",
+      source:               "github-actions/sli-tracker",
       outcome:              $outcome,
       workflow_run_id:      $run_id,
       workflow_run_number:  $run_num,
@@ -73,12 +73,15 @@ sli_extract_oci_json() {
 }
 
 # Paths from workflow outputs are literal strings: ~/.oci/config does not auto-expand (unlike typing in a shell).
+# Note: avoid using ~/* as an unquoted case pattern — bash expands it as a filesystem glob before matching,
+# so ~/.hidden paths never match. Use "~/"* (quoted ~/) and ${p:1} for safe tilde substitution.
 sli_expand_oci_config_path() {
   local p="${1:-}"
   [[ -z "$p" ]] && { echo ""; return; }
   case "$p" in
-    "~"|~/*) echo "${p/#\~/$HOME}" ;;
-    *)       echo "$p" ;;
+    "~")    echo "$HOME" ;;
+    "~/"*)  echo "${HOME}${p:1}" ;;
+    *)      echo "$p" ;;
   esac
 }
 

@@ -52,11 +52,12 @@ assert_json_eq "$(sli_normalize_json_object 'not json')" "{}" "invalid JSON -> {
 echo "== sli_expand_oci_config_path =="
 assert_eq "$(sli_expand_oci_config_path "")" "" "empty path"
 assert_eq "$(sli_expand_oci_config_path "/abs/file")" "/abs/file" "absolute unchanged"
-(
-  export HOME="/tmp/sli_test_home"
-  assert_eq "$(sli_expand_oci_config_path "~/.oci/config")" "/tmp/sli_test_home/.oci/config" "~/.oci/config -> \$HOME/.oci/config"
-  assert_eq "$(sli_expand_oci_config_path "~")" "/tmp/sli_test_home" "bare ~"
-)
+# Override HOME in a subshell to test ~ expansion; capture results back to parent shell so
+# pass/fail counters are correctly incremented (subshell variables do not propagate).
+_orig_home="$HOME"; HOME="/tmp/sli_test_home"
+assert_eq "$(sli_expand_oci_config_path "~/.oci/config")" "/tmp/sli_test_home/.oci/config" "~/.oci/config -> \$HOME/.oci/config"
+assert_eq "$(sli_expand_oci_config_path "~")" "/tmp/sli_test_home" "bare ~"
+HOME="$_orig_home"
 
 echo "== sli_merge_flat_context =="
 assert_json_eq \
@@ -103,25 +104,22 @@ assert_json_eq \
   "full merge"
 
 echo "== sli_build_base_json (fake GITHUB_*) =="
-(
-  export SLI_OUTCOME="success"
-  export SLI_TIMESTAMP="2026-01-01T00:00:00Z"
-  export GITHUB_RUN_ID="99"
-  export GITHUB_RUN_NUMBER="7"
-  export GITHUB_RUN_ATTEMPT="2"
-  export GITHUB_REPOSITORY="o/r"
-  export GITHUB_REPOSITORY_ID="42"
-  export GITHUB_REF_NAME="main"
-  export GITHUB_REF="refs/heads/main"
-  export GITHUB_SHA="abc"
-  export GITHUB_WORKFLOW="wf"
-  export GITHUB_WORKFLOW_REF="o/r/.github/workflows/w.yml@refs/heads/main"
-  export GITHUB_JOB="leaf"
-  export GITHUB_EVENT_NAME="push"
-  export GITHUB_ACTOR="me"
-  want='{"source":"github-actions/terrateam","outcome":"success","workflow_run_id":"99","workflow_run_number":"7","workflow_run_attempt":"2","repository":"o/r","repository_id":"42","ref":"main","ref_full":"refs/heads/main","sha":"abc","workflow":"wf","workflow_ref":"o/r/.github/workflows/w.yml@refs/heads/main","job":"leaf","event_name":"push","actor":"me","timestamp":"2026-01-01T00:00:00Z"}'
-  assert_json_eq "$(sli_build_base_json)" "$want" "base json from env"
-)
+# Save current env, inject fake values, restore after — avoids subshell so pass/fail counters propagate.
+_sli_test_vars=(SLI_OUTCOME SLI_TIMESTAMP GITHUB_RUN_ID GITHUB_RUN_NUMBER GITHUB_RUN_ATTEMPT
+  GITHUB_REPOSITORY GITHUB_REPOSITORY_ID GITHUB_REF_NAME GITHUB_REF GITHUB_SHA
+  GITHUB_WORKFLOW GITHUB_WORKFLOW_REF GITHUB_JOB GITHUB_EVENT_NAME GITHUB_ACTOR)
+declare -A _sli_test_saved
+for _v in "${_sli_test_vars[@]}"; do _sli_test_saved[$_v]="${!_v:-}"; done
+export SLI_OUTCOME="success" SLI_TIMESTAMP="2026-01-01T00:00:00Z"
+export GITHUB_RUN_ID="99" GITHUB_RUN_NUMBER="7" GITHUB_RUN_ATTEMPT="2"
+export GITHUB_REPOSITORY="o/r" GITHUB_REPOSITORY_ID="42"
+export GITHUB_REF_NAME="main" GITHUB_REF="refs/heads/main" GITHUB_SHA="abc"
+export GITHUB_WORKFLOW="wf" GITHUB_WORKFLOW_REF="o/r/.github/workflows/w.yml@refs/heads/main"
+export GITHUB_JOB="leaf" GITHUB_EVENT_NAME="push" GITHUB_ACTOR="me"
+want='{"source":"github-actions/sli-tracker","outcome":"success","workflow_run_id":"99","workflow_run_number":"7","workflow_run_attempt":"2","repository":"o/r","repository_id":"42","ref":"main","ref_full":"refs/heads/main","sha":"abc","workflow":"wf","workflow_ref":"o/r/.github/workflows/w.yml@refs/heads/main","job":"leaf","event_name":"push","actor":"me","timestamp":"2026-01-01T00:00:00Z"}'
+assert_json_eq "$(sli_build_base_json)" "$want" "base json from env"
+for _v in "${_sli_test_vars[@]}"; do export "$_v=${_sli_test_saved[$_v]}"; done
+unset _sli_test_vars _sli_test_saved _v want
 
 echo "== summary =="
 echo "passed: $passed  failed: $failed"

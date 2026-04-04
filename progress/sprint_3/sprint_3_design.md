@@ -1,35 +1,36 @@
 # Sprint 3 — Design
 
-## SLI-3 — model-* workflows
-
 Status: **Accepted** (YOLO auto-approve)
+
+## SLI-3 — model-* workflows
 
 | Workflow | Role |
 |----------|------|
 | `model-call.yml` | `workflow_dispatch` + `repository_dispatch` → calls reusable main |
-| `model-pr.yml` / `model-push.yml` | PR/push triggers |
+| `model-pr.yml` | PR event trigger (hardcoded plan run, no simulate-failure input) |
+| `model-push.yml` | Push + `workflow_dispatch` trigger (simulate-failure available) |
 | `model-reusable-main.yml` | `workflow_call`: init → sli-init (always) → matrix → sub |
-| `model-reusable-sub.yml` | Per-env job; emits via `sli-event` |
+| `model-reusable-sub.yml` | Per-env leaf job; demonstrates 7 step techniques; emits via `sli-event` |
 
-**Design notes:** Naming prefix `MODEL —` distinguishes from production. `simulate-failure` drives negative paths. `sli-init` uses `if: always()` for setup-level SLI — matches stated goal (init vs deploy dimensions).
+**Defects found:**
+1. **CRITICAL — missing action:** `model-reusable-main.yml` calls `./.github/actions/sli-failure-reason` which did not exist. GitHub workflow would fail when init fails. **Fix:** create `sli-failure-reason/action.yml`.
+2. **sli-init OCI push** — `oci: {}` empty in the init SLI context-json; init SLI events print payload but never push to OCI. Intentional (OCI auth runs in sub, not init), documented.
 
 ## SLI-4 — sli-event
-
-Status: **Accepted** (YOLO auto-approve)
 
 | Piece | Contract |
 |-------|----------|
 | Inputs | `outcome`, `inputs-json`, `context-json`, `steps-json` |
 | Payload | `sli_build_base_json` + flat merge + `failure_reasons` |
-| OCI | `SLI_OCI_LOG_ID` / `vars`; `oci` in context-json for `config-file`, `profile`, `log-id` |
-| Safety | `exit 0` always; push failures → `::warning::` |
+| OCI | `SLI_OCI_LOG_ID` var + `oci` block in context-json |
+| Safety | Always `exit 0`; push failures → `::warning::` |
 
-## YOLO Mode Decisions
+**Defects found:**
+1. **`sli_expand_oci_config_path` silent bug:** `case "$p" in "~"|~/*` — unquoted `~/*` is treated as a filesystem glob in bash case patterns, not a literal `~/` prefix. Hidden paths (`.oci/config`) never match. **Fix:** use `"~/"*` pattern + `${p:1}` slice.
+2. **Test subshell counter isolation:** both `sli_expand_oci_config_path` and `sli_build_base_json` tests ran inside `(...)` subshells; `passed`/`failed` increments were silently discarded. Two failures were invisible in the summary. **Fix:** save/restore env vars in the parent shell.
+3. **Hardcoded `source: "github-actions/terrateam"`** in `emit.sh` base payload — wrong project name. **Fix:** `"github-actions/sli-tracker"`.
 
-1. **No new inputs** on sli-event this sprint — review only.
-2. **Diagrams skipped** — table above replaces mermaid (YOLO speed).
-3. **Acceptance:** `bash .github/actions/sli-event/tests/test_emit.sh` passes.
+## YOLO decisions
 
-## Design Summary
-
-Reviews are documentation-first; implementation changes deferred unless blocking — none found.
+1. `sli-failure-reason` is a new file (one action.yml); no tests needed beyond it existing and the action being structurally valid YAML.
+2. `source` field rename is a payload schema change — no downstream consumer in the repo yet, safe to rename.

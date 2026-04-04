@@ -8,16 +8,18 @@ inputs:
   context-json:
     description: |
       JSON merged into the log entry after inputs-json. Use for non-input fields (e.g. oci from step outputs).
-      The oci block is read for OCI CLI; other keys (except oci) are merged flat into the payload.
+      The oci block is read for OCI CLI: config-file, profile, and optionally log-id.
+      Pass oci.log-id here to override the SLI_OCI_LOG_ID environment variable.
+      Other keys (except oci) are merged flat into the payload.
     required: false
     default: "{}"
   inputs-json:
-    description: "JSON of workflow_call inputs (e.g. ${{ toJSON(inputs) }}). Merged first; context-json overlays."
+    description: "JSON of workflow_call inputs (pass toJSON(inputs) from the calling step). Merged first; context-json overlays."
     required: false
     default: "{}"
   steps-json:
     description: |
-      Optional JSON string of the job steps context (e.g. ${{ toJSON(steps) }}).
+      Optional JSON string of the job steps context (pass toJSON(steps) from the calling step).
       Steps with outcome failure are merged into failure_reasons as SLI_FAILURE_REASON_<STEP_ID> (id normalized to UPPER_SNAKE).
       Explicit SLI_FAILURE_REASON_* env vars still apply and override keys from steps-json.
     required: false
@@ -33,5 +35,7 @@ runs:
         INPUTS_JSON: ${{ inputs.inputs-json }}
         SLI_CONTEXT_JSON: ${{ inputs.context-json }}
         SLI_OUTCOME: ${{ inputs.outcome }}
-        SLI_OCI_LOG_ID: ${{ vars.SLI_OCI_LOG_ID }}
+        # SLI_OCI_LOG_ID is read from the environment (set by the calling workflow via vars or env:)
+        # or from oci.log-id inside context-json. Do not reference vars here — vars context
+        # is not available inside composite action YAML.
       run: bash "${{ github.action_path }}/emit.sh"

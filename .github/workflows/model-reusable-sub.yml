@@ -131,6 +131,7 @@ jobs:
           context-json: |
             {
               "oci": {
+                "log-id":      "${{ vars.SLI_OCI_LOG_ID }}",
                 "config-file": "${{ steps.step-auth.outputs.config-file }}",
                 "profile":     "${{ steps.step-auth.outputs.profile }}"
               }

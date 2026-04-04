@@ -93,6 +93,7 @@ jobs:
               "run_type":    "${{ needs.init.outputs.run-type }}",
               "instance":    "${{ needs.init.outputs.instance }}",
               "oci": {
+                "log-id":      "${{ vars.SLI_OCI_LOG_ID }}",
                 "config-file": "~/.oci/config",
                 "profile":     "SLI_TEST"
               }

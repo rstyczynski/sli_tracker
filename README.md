@@ -22,6 +22,21 @@ To start or continue a development cycle, invoke the RUP Manager:
 
 All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifacts are stored under `progress/sprint_<N>/`.
 
+## Recent updates
+
+### Sprint 3 — Workflow and emit review (YOLO)
+
+**Status:** implemented (review-only; no workflow code changes)
+
+**Backlog**
+
+- **SLI-3:** Reviewed `model-*.yml` — call graph, `MODEL —` naming, `sli-event` / `sli-failure-reason` usage; see `progress/sprint_3/sprint_3_implementation.md`.
+- **SLI-4:** Reviewed `sli-event` (`action.yml`, `emit.sh`); unit tests: `bash .github/actions/sli-event/tests/test_emit.sh`.
+
+**Artifacts:** `progress/sprint_3/` (analysis, design, implementation, tests, documentation). Traceability: `progress/backlog/SLI-3/`, `progress/backlog/SLI-4/`.
+
+---
+
 ## Goals
 
 1. track SLI for a GitHub pipeline

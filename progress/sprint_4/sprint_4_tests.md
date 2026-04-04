@@ -1,5 +1,69 @@
 # Sprint 4 — Functional Tests
 
+## Integration test run — 2026-04-04
+
+**Result: 44 passed / 0 failed**
+
+Full output: `progress/sprint_4/test_sli_integration.sh` executed from repo root.
+
+```
+=== T0: repo tooling prerequisites ===
+PASS: gh CLI present
+PASS: OCI CLI present
+PASS: jq present
+
+=== T0b: OCI resource resolution (oci_scaffold URI-style) ===
+PASS: TENANCY resolved
+PASS: LOG_GROUP_OCID resolved
+PASS: SLI_LOG_OCID resolved
+
+=== T1: unit tests — emit.sh helper functions ===
+PASS: emit.sh unit tests: passed count (19)
+PASS: emit.sh unit tests: failed count (0)
+
+=== T2: model-call — success + failure workflow dispatch ===
+PASS: model-call success run triggered
+PASS: model-call failure run triggered
+
+=== T3: model-push — success + failure workflow dispatch ===
+PASS: model-push success run triggered
+PASS: model-push failure run triggered
+
+=== T4: wait for all four runs to complete ===
+PASS: run completed (×4)
+
+=== T5: expected workflow conclusions ===
+PASS: model-call success → conclusion success
+PASS: model-call failure → conclusion failure
+PASS: model-push success → conclusion success
+PASS: model-push failure → conclusion failure
+
+=== T6: sli-event step emitted to OCI (per-job notice) ===
+PASS: (×4 runs × 4 jobs = 16 assertions)
+  Init — runner selection → init job (no SLI step expected)
+  SLI — init → SLI pushed
+  Leaf execution [model-env-1] → SLI pushed
+  Leaf execution [model-env-2] → SLI pushed
+
+=== T7: OCI Logging received events — query last 15 min ===
+PASS: OCI received at least 12 events
+PASS: OCI: at least 4 success outcome events
+PASS: OCI: at least 4 failure outcome events
+PASS: OCI: model-call events present
+PASS: OCI: model-push events present
+PASS: OCI: at least 4 failure events carry failure_reasons
+PASS: OCI: sli-init job events present
+PASS: OCI: leaf job events present
+
+=== Summary ===
+passed: 44  failed: 0
+```
+
+**Notes:**
+- First run failed (T6, T7) due to expired OCI session token. Refreshed via `setup_oci_github_access.sh --session-profile-name SLI_TEST`. Second run passed 44/44.
+
+---
+
 ## Test Environment Setup
 
 ### Prerequisites

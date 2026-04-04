@@ -20,14 +20,6 @@ passed: 19  failed: 0
 
 **Status: PASS**
 
-## SLI-3 — sli-failure-reason action exists
-
-```bash
-test -f .github/actions/sli-failure-reason/action.yml && echo PASS || echo FAIL
-```
-
-**Status: PASS**
-
 ## SLI-3 — model workflow YAML syntax
 
 ```bash
@@ -43,5 +35,5 @@ done
 
 | Item | Tests | Passed | Failed |
 |------|-------|--------|--------|
-| SLI-3 | 2 (action exists, YAML present) | 2 | 0 |
+| SLI-3 | 1 (model YAML files present) | 1 | 0 |
 | SLI-4 | 19 (unit harness) | 19 | 0 |

@@ -7,9 +7,9 @@
 | Check | Result |
 |-------|--------|
 | Call graph | `model-call` / PR / push → `model-reusable-main` → `model-reusable-sub` |
-| SLI coverage | `sli-event` at leaf job level; `sli-event` + `sli-failure-reason` at init level |
+| SLI coverage | `sli-event` at leaf job level and init level (`sli-init` job) |
 | Naming | Consistent `MODEL —` prefix; inline comments document each technique |
-| Bug fixed | Created `.github/actions/sli-failure-reason/action.yml` (was missing; broke init-failure path) |
+| Refactored | Removed `sli-failure-reason` call from `model-reusable-main.yml`; `steps-json` covers failure reasons without a companion action |
 
 ## SLI-4 — sli-event
 
@@ -26,12 +26,13 @@
 
 1. No new inputs on sli-event; review-only except for bug fixes.
 2. `source` rename is safe (no downstream consumers in this repo).
-3. `sli-failure-reason` action is intentionally minimal — companion env-var pattern; `sli-event` docs call this optional.
+3. `sli-failure-reason` action removed — `steps-json` already covers all failure reason cases automatically.
 
 ## Code artifacts
 
 | File | Change |
 |------|--------|
-| `.github/actions/sli-failure-reason/action.yml` | **Created** |
+| `.github/actions/sli-failure-reason/action.yml` | **Deleted** (no-value action; `steps-json` covers failure reasons) |
+| `.github/workflows/model-reusable-main.yml` | Removed `sli-failure-reason` companion step |
 | `.github/actions/sli-event/emit.sh` | `sli_expand_oci_config_path` bug fix; `source` rename |
 | `.github/actions/sli-event/tests/test_emit.sh` | Subshell isolation fix; `source` expected value updated; +3 effective assertions |

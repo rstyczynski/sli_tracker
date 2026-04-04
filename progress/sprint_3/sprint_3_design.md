@@ -13,7 +13,7 @@ Status: **Accepted** (YOLO auto-approve)
 | `model-reusable-sub.yml` | Per-env leaf job; demonstrates 7 step techniques; emits via `sli-event` |
 
 **Defects found:**
-1. **CRITICAL — missing action:** `model-reusable-main.yml` calls `./.github/actions/sli-failure-reason` which did not exist. GitHub workflow would fail when init fails. **Fix:** create `sli-failure-reason/action.yml`.
+1. **CRITICAL — spurious action call:** `model-reusable-main.yml` called `./.github/actions/sli-failure-reason` which added no value — `steps-json` already captures all failed step reasons automatically. **Fix:** remove the companion step and the action entirely.
 2. **sli-init OCI push** — `oci: {}` empty in the init SLI context-json; init SLI events print payload but never push to OCI. Intentional (OCI auth runs in sub, not init), documented.
 
 ## SLI-4 — sli-event
@@ -32,5 +32,5 @@ Status: **Accepted** (YOLO auto-approve)
 
 ## YOLO decisions
 
-1. `sli-failure-reason` is a new file (one action.yml); no tests needed beyond it existing and the action being structurally valid YAML.
+1. `sli-failure-reason` removed entirely — `steps-json` pattern is sufficient and cleaner.
 2. `source` field rename is a payload schema change — no downstream consumer in the repo yet, safe to rename.

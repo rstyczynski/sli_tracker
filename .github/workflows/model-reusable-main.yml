@@ -87,11 +87,9 @@ jobs:
         uses: ./.github/actions/sli-event
         with:
           outcome: ${{ needs.init.result }}
+          inputs-json: ${{ toJSON(needs.init.outputs) }}
           context-json: |
             {
-              "environment": "${{ needs.init.outputs.environments-json }}",
-              "run_type":    "${{ needs.init.outputs.run-type }}",
-              "instance":    "${{ needs.init.outputs.instance }}",
               "oci": {
                 "log-id":      "${{ vars.SLI_OCI_LOG_ID }}",
                 "config-file": "~/.oci/config",

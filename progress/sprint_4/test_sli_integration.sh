@@ -54,17 +54,15 @@ source "${REPO_ROOT}/oci_scaffold/do/oci_scaffold.sh"
 # Empty compartment segment = tenancy root.
 SLI_OCI_LOG_URI="//sli-events/github-actions"
 
-# Parse /compartment/log_group/log  (empty compartment segment = tenancy root)
-IFS='/' read -ra _URI_PARTS <<< "$SLI_OCI_LOG_URI"
-# _URI_PARTS: [0]="" [1]=compartment_or_empty [2]=log_group [3]=log
-COMPARTMENT_SEG="${_URI_PARTS[1]:-}"
-LOG_GROUP_NAME="${_URI_PARTS[2]:-}"
-LOG_NAME="${_URI_PARTS[3]:-}"
-[[ -z "$LOG_GROUP_NAME" || -z "$LOG_NAME" ]] && { echo "ERROR: SLI_OCI_LOG_URI must be /compartment/log_group/log, got: $SLI_OCI_LOG_URI"; false; }
+# Parse URI from the end: last=log, second-to-last=log_group, rest=compartment_path
+# Supports multi-level compartment paths e.g. /a/b/c/log_group/log
+LOG_NAME="${SLI_OCI_LOG_URI##*/}"
+_REST="${SLI_OCI_LOG_URI%/*}"
+LOG_GROUP_NAME="${_REST##*/}"
+COMPARTMENT_PATH="${_REST%/*}"
+COMPARTMENT_PATH="${COMPARTMENT_PATH:-/}"   # empty = tenancy root
 
-# compartment: empty segment = tenancy root ("/"), named segment = child compartment
-COMPARTMENT_PATH="${COMPARTMENT_SEG:+/${COMPARTMENT_SEG}}"
-COMPARTMENT_PATH="${COMPARTMENT_PATH:-/}"
+[[ -z "$LOG_GROUP_NAME" || -z "$LOG_NAME" ]] && { echo "ERROR: SLI_OCI_LOG_URI must be /[compartment/]log_group/log, got: $SLI_OCI_LOG_URI"; false; }
 
 _state_set '.inputs.compartment_path' "$COMPARTMENT_PATH"
 _state_set '.inputs.name_prefix'      "$NAME_PREFIX"

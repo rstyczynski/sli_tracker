@@ -103,6 +103,8 @@ install_prerequisites() {
 # Python version gate (>= 3.6 required by oci-cli)
 # ---------------------------------------------------------------------------
 check_python() {
+    echo "::group::Check Python"
+
     local ver major minor
     ver="$(python3 --version 2>&1 | grep -oE '[0-9]+\.[0-9]+'| head -1)"
     major="$(echo "$ver" | cut -d. -f1)"
@@ -110,10 +112,12 @@ check_python() {
 
     if [[ "$major" -lt 3 || ( "$major" -eq 3 && "$minor" -lt 6 ) ]]; then
         echo "::error::Python 3.6+ required. Found: $ver"
+        echo "::endgroup::"
         exit 1
     fi
 
     echo "Python: $(python3 --version)"
+    echo "::endgroup::"
 }
 
 # ---------------------------------------------------------------------------

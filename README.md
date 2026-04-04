@@ -24,6 +24,27 @@ All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifac
 
 ## Recent updates
 
+### Sprint 4 — Improve workflow tests (YOLO)
+
+**Status:** implemented + tested
+
+**Backlog:**
+
+- **SLI-5:** Replaced hardcoded OCIDs in `test_sli_integration.sh` with URI-style dynamic resolution via `oci_scaffold` techniques. Vendored `lib/oci_scaffold.sh`. New repo variable `SLI_OCI_LOG_URI = log_group_name/log_name`.
+
+**Key changes:**
+
+- `lib/oci_scaffold.sh` — vendored from https://github.com/rstyczynski/oci_scaffold
+- `progress/sprint_3/test_sli_integration.sh` — zero hardcoded OCIDs; tenancy via `oci os ns get-metadata`, log group + log via display-name lookup
+- `SLI_OCI_LOG_URI` repo variable added (`sli-events/github-actions`)
+- `.gitignore` — excludes `state*.json` (oci_scaffold state files)
+
+**After OCI resource recreation:** update `SLI_OCI_LOG_URI` with new names; all OCIDs resolve automatically.
+
+**Artifacts:** `progress/sprint_4/` (analysis, design, implementation, tests). Traceability: `progress/backlog/SLI-5/`.
+
+---
+
 ### Sprint 3 — Workflow and emit review (YOLO)
 
 **Status:** implemented (review-only; no workflow code changes)

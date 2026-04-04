@@ -27,7 +27,38 @@ The uploaded profile is consumed by `oci_profile_setup` action that reads the se
 
 Script is supported by a test script that validates correctness of all operations. GitHub action is tested using available regular GitHub test routines.
 
-### SLI-3. Pluggable emit backend for emit.sh
+### SLI-3. Review model-* workflows
+
+Model-* workflows are variations of real-life pipelines used to simulate failures and successes that the SLI monitoring layer will see via the sli-event action. Review them for clarity, naming, and alignment with how events are emitted and interpreted.
+
+### SLI-4. Review sli-event action
+
+The sli-event action emits SLI tracking events to the OCI logging service. Review inputs, emit path, error handling, and tests so the contract is stable for callers.
+
+### SLI-5. Improve workflow tests
+
+Workflow tests introduced in Sprint 3 use hardcoded OCI log OCIDs. Replace every hardcoded OCID in `test_sli_integration.sh` with values read from the `SLI_OCI_LOG_ID` GitHub repo variable so the test script works without modification after an OCI resource recreation.
+
+### SLI-7. Simplify OCI log OCID delivery to emit.sh via job-level env
+
+Currently callers must embed `"log-id": "${{ vars.SLI_OCI_LOG_ID }}"` inside the `context-json` input of every `sli-event` step. This is necessary because `vars` context is not valid inside composite action YAML (bug B1, Sprint 3).
+
+The simpler pattern is to declare `SLI_OCI_LOG_ID` once at the workflow or job `env:` block, where `vars` context is valid. The composite action inherits job-level env vars, so `emit.sh` can read `$SLI_OCI_LOG_ID` directly without it being passed through `context-json`.
+
+Proposed change:
+
+1. In each model-* workflow (or in a shared `env:` at the top), add:
+   ```yaml
+   env:
+     SLI_OCI_LOG_ID: ${{ vars.SLI_OCI_LOG_ID }}
+   ```
+2. Remove `"log-id"` from every `context-json` block — OCI block shrinks to just `config-file` and `profile`.
+3. Update `action.yml` comment to document the preferred delivery path (job env > context-json fallback).
+4. Update documentation and the integration test script accordingly.
+
+
+
+### SLI-6. Pluggable emit backend for emit.sh
 
 The current emit.sh is tightly coupled to OCI CLI. Add a configurable backend interface so the caller can select the most appropriate transport without changing emit logic.
 

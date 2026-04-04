@@ -32,8 +32,15 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 #
 # SLI_OCI_LOG_URI format:  log_group_display_name/log_display_name
 #
-# NAME_PREFIX controls the oci_scaffold state file name; state-*.json is
-# excluded from git via .gitignore.
+# NAME_PREFIX controls the oci_scaffold state file (state-sli_test_sprint4.json);
+# state-*.json is excluded from git via .gitignore.
+#
+# Workflow:
+#   1. source oci_scaffold.sh  — sets STATE_FILE, provides _oci_tenancy_ocid()
+#   2. populate state inputs   — compartment, names
+#   3. ensure-log_group.sh     — idempotent lookup/create; writes .log_group.ocid
+#   4. ensure-log.sh           — idempotent lookup/create; writes .log.ocid
+#   5. read OCIDs from state
 
 export NAME_PREFIX="sli_test_sprint4"
 # shellcheck source=oci_scaffold/do/oci_scaffold.sh
@@ -45,23 +52,22 @@ SLI_OCI_LOG_URI=$(gh variable get SLI_OCI_LOG_URI -R "$REPO" --json value -q .va
 LOG_GROUP_NAME="${SLI_OCI_LOG_URI%%/*}"
 LOG_NAME="${SLI_OCI_LOG_URI#*/}"
 
-# _oci_tenancy_ocid() from oci_scaffold: uses oci os ns get-metadata
 TENANCY=$(_oci_tenancy_ocid)
 [[ -z "$TENANCY" || "$TENANCY" == "null" ]] && { echo "ERROR: tenancy OCID not resolved — check OCI CLI DEFAULT profile"; false; }
 
-# ensure-log_group.sh pattern: lookup by compartment + display-name
-LOG_GROUP_OCID=$(oci logging log-group list \
-  --compartment-id "$TENANCY" \
-  --display-name "$LOG_GROUP_NAME" \
-  --query 'data[0].id' --raw-output --profile DEFAULT 2>/dev/null)
-[[ -z "$LOG_GROUP_OCID" || "$LOG_GROUP_OCID" == "null" ]] && { echo "ERROR: log group '$LOG_GROUP_NAME' not found"; false; }
+_state_set '.inputs.oci_compartment' "$TENANCY"
+_state_set '.inputs.name_prefix'     "$NAME_PREFIX"
+_state_set '.inputs.log_group_name'  "$LOG_GROUP_NAME"
+_state_set '.inputs.log_name'        "$LOG_NAME"
 
-# ensure-log.sh pattern: lookup by log-group + display-name
-SLI_LOG_OCID=$(oci logging log list \
-  --log-group-id "$LOG_GROUP_OCID" \
-  --display-name "$LOG_NAME" \
-  --query 'data[0].id' --raw-output --profile DEFAULT 2>/dev/null)
-[[ -z "$SLI_LOG_OCID" || "$SLI_LOG_OCID" == "null" ]] && { echo "ERROR: log '$LOG_NAME' not found in group '$LOG_GROUP_NAME'"; false; }
+bash "${REPO_ROOT}/oci_scaffold/resource/ensure-log_group.sh"
+bash "${REPO_ROOT}/oci_scaffold/resource/ensure-log.sh"
+
+LOG_GROUP_OCID=$(_state_get '.log_group.ocid')
+SLI_LOG_OCID=$(_state_get '.log.ocid')
+
+[[ -z "$LOG_GROUP_OCID" || "$LOG_GROUP_OCID" == "null" ]] && { echo "ERROR: ensure-log_group.sh did not resolve log group '$LOG_GROUP_NAME'"; false; }
+[[ -z "$SLI_LOG_OCID"   || "$SLI_LOG_OCID"   == "null" ]] && { echo "ERROR: ensure-log.sh did not resolve log '$LOG_NAME'"; false; }
 # ──────────────────────────────────────────────────────────────────────────────
 
 PASS=0; FAIL=0

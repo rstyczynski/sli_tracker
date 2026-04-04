@@ -18,9 +18,24 @@
 set -euo pipefail
 
 REPO="rstyczynski/sli_tracker"
-SLI_LOG_OCID="ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa"
-LOG_GROUP_OCID="ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq"
-TENANCY="ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a"
+
+# ── Resolve OCI resource identifiers dynamically — no hardcoded OCIDs ──────────
+SLI_LOG_OCID=$(gh variable get SLI_OCI_LOG_ID -R "$REPO" --json value -q .value 2>/dev/null)
+[[ -z "$SLI_LOG_OCID" ]] && { echo "ERROR: SLI_OCI_LOG_ID repo variable not set (gh variable set SLI_OCI_LOG_ID --body <ocid>)"; false; }
+
+TENANCY=$(awk -F'=' '/^\[DEFAULT\]/{f=1} f && /^tenancy/{gsub(/ /,"",$2); print $2; f=0}' ~/.oci/config)
+[[ -z "$TENANCY" ]] && { echo "ERROR: tenancy not found in ~/.oci/config [DEFAULT] profile"; false; }
+
+LOG_GROUP_OCID=""
+for _lg in $(oci logging log-group list --compartment-id "$TENANCY" --profile DEFAULT 2>/dev/null | jq -r '.data[] | .id'); do
+  _found=$(oci logging log list --log-group-id "$_lg" --profile DEFAULT 2>/dev/null | jq -r --arg id "$SLI_LOG_OCID" '.data[] | select(.id == $id) | .id')
+  if [[ -n "$_found" ]]; then
+    LOG_GROUP_OCID="$_lg"
+    break
+  fi
+done
+[[ -z "$LOG_GROUP_OCID" ]] && { echo "ERROR: log group containing $SLI_LOG_OCID not found in tenancy $TENANCY"; false; }
+# ───────────────────────────────────────────────────────────────────────────────
 
 PASS=0; FAIL=0
 

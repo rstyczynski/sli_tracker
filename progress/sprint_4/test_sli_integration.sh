@@ -30,44 +30,65 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
 # ── Resolve OCI resource identifiers via oci_scaffold (URI-style) ─────────────
 #
-# SLI_OCI_LOG_URI format:  log_group_display_name/log_display_name
+# SLI_OCI_LOG_URI format:  /compartment_path/log_group_name/log_name
+#   empty compartment segment = tenancy root  e.g. //sli-events/github-actions
 #
 # NAME_PREFIX controls the oci_scaffold state file (state-sli_test_sprint4.json);
 # state-*.json is excluded from git via .gitignore.
 #
 # Workflow:
-#   1. source oci_scaffold.sh  — sets STATE_FILE, provides _oci_tenancy_ocid()
-#   2. populate state inputs   — compartment, names
-#   3. ensure-log_group.sh     — idempotent lookup/create; writes .log_group.ocid
-#   4. ensure-log.sh           — idempotent lookup/create; writes .log.ocid
-#   5. read OCIDs from state
+#   1. source oci_scaffold.sh       — sets STATE_FILE, provides helpers
+#   2. parse URI into 3 segments
+#   3. ensure-compartment.sh        — resolves/creates compartment; writes .compartment.ocid
+#   4. ensure-log_group.sh          — resolves/creates log group;   writes .log_group.ocid
+#   5. ensure-log.sh                — resolves/creates log;          writes .log.ocid
+#   6. set resolved OCIDs as GitHub repo variables via gh
 
 export NAME_PREFIX="sli_test_sprint4"
 # shellcheck source=oci_scaffold/do/oci_scaffold.sh
 source "${REPO_ROOT}/oci_scaffold/do/oci_scaffold.sh"
 
 SLI_OCI_LOG_URI=$(gh variable get SLI_OCI_LOG_URI -R "$REPO" --json value -q .value 2>/dev/null)
-[[ -z "$SLI_OCI_LOG_URI" ]] && { echo "ERROR: SLI_OCI_LOG_URI repo variable not set (format: log_group_name/log_name)"; false; }
+[[ -z "$SLI_OCI_LOG_URI" ]] && { echo "ERROR: SLI_OCI_LOG_URI repo variable not set (format: /compartment/log_group/log)"; false; }
 
-LOG_GROUP_NAME="${SLI_OCI_LOG_URI%%/*}"
-LOG_NAME="${SLI_OCI_LOG_URI#*/}"
+# Parse /compartment/log_group/log  (empty compartment segment = tenancy root)
+IFS='/' read -ra _URI_PARTS <<< "$SLI_OCI_LOG_URI"
+# _URI_PARTS: [0]="" [1]=compartment_or_empty [2]=log_group [3]=log
+COMPARTMENT_SEG="${_URI_PARTS[1]:-}"
+LOG_GROUP_NAME="${_URI_PARTS[2]:-}"
+LOG_NAME="${_URI_PARTS[3]:-}"
+[[ -z "$LOG_GROUP_NAME" || -z "$LOG_NAME" ]] && { echo "ERROR: SLI_OCI_LOG_URI must be /compartment/log_group/log, got: $SLI_OCI_LOG_URI"; false; }
 
-TENANCY=$(_oci_tenancy_ocid)
-[[ -z "$TENANCY" || "$TENANCY" == "null" ]] && { echo "ERROR: tenancy OCID not resolved — check OCI CLI DEFAULT profile"; false; }
+# compartment: empty segment = tenancy root ("/"), named segment = child compartment
+COMPARTMENT_PATH="${COMPARTMENT_SEG:+/${COMPARTMENT_SEG}}"
+COMPARTMENT_PATH="${COMPARTMENT_PATH:-/}"
 
-_state_set '.inputs.oci_compartment' "$TENANCY"
-_state_set '.inputs.name_prefix'     "$NAME_PREFIX"
-_state_set '.inputs.log_group_name'  "$LOG_GROUP_NAME"
-_state_set '.inputs.log_name'        "$LOG_NAME"
+_state_set '.inputs.compartment_path' "$COMPARTMENT_PATH"
+_state_set '.inputs.name_prefix'      "$NAME_PREFIX"
+_state_set '.inputs.log_group_name'   "$LOG_GROUP_NAME"
+_state_set '.inputs.log_name'         "$LOG_NAME"
+
+bash "${REPO_ROOT}/oci_scaffold/resource/ensure-compartment.sh"
+
+COMPARTMENT_OCID=$(_state_get '.compartment.ocid')
+[[ -z "$COMPARTMENT_OCID" || "$COMPARTMENT_OCID" == "null" ]] && { echo "ERROR: ensure-compartment.sh did not resolve compartment '$COMPARTMENT_PATH'"; false; }
+
+_state_set '.inputs.oci_compartment' "$COMPARTMENT_OCID"
 
 bash "${REPO_ROOT}/oci_scaffold/resource/ensure-log_group.sh"
 bash "${REPO_ROOT}/oci_scaffold/resource/ensure-log.sh"
 
 LOG_GROUP_OCID=$(_state_get '.log_group.ocid')
 SLI_LOG_OCID=$(_state_get '.log.ocid')
+TENANCY=$(_oci_tenancy_ocid)
 
-[[ -z "$LOG_GROUP_OCID" || "$LOG_GROUP_OCID" == "null" ]] && { echo "ERROR: ensure-log_group.sh did not resolve log group '$LOG_GROUP_NAME'"; false; }
-[[ -z "$SLI_LOG_OCID"   || "$SLI_LOG_OCID"   == "null" ]] && { echo "ERROR: ensure-log.sh did not resolve log '$LOG_NAME'"; false; }
+[[ -z "$LOG_GROUP_OCID" || "$LOG_GROUP_OCID" == "null" ]] && { echo "ERROR: ensure-log_group.sh did not resolve '$LOG_GROUP_NAME'"; false; }
+[[ -z "$SLI_LOG_OCID"   || "$SLI_LOG_OCID"   == "null" ]] && { echo "ERROR: ensure-log.sh did not resolve '$LOG_NAME'"; false; }
+
+# Persist resolved OCIDs back to GitHub repo variables so workflows and other
+# scripts always have up-to-date values without manual OCID management.
+gh variable set SLI_OCI_LOG_ID       --body "$SLI_LOG_OCID"   -R "$REPO"
+gh variable set SLI_OCI_LOG_GROUP_ID --body "$LOG_GROUP_OCID" -R "$REPO"
 # ──────────────────────────────────────────────────────────────────────────────
 
 PASS=0; FAIL=0

@@ -172,6 +172,7 @@ sli_emit_main() {
     oci logging-ingestion put-logs \
       --log-id "$OCI_LOG_ID" \
       --log-entry-batches "$BATCH" \
+      --specversion "1.0" \
       --profile "$OCI_PROFILE" \
     && echo "::notice::SLI log entry pushed to OCI Logging" \
     || echo "::warning::SLI report failed to push to OCI Logging (non-fatal)"

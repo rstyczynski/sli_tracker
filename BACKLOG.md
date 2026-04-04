@@ -37,14 +37,16 @@ The sli-event action emits SLI tracking events to the OCI logging service. Revie
 
 ### SLI-5. Improve workflow tests
 
-Workflow tests introduced in Sprint 3 use hardcoded OCI log OCIDs. Replace every hardcoded OCID in `test_sli_integration.sh` with values read from the `SLI_OCI_LOG_ID` GitHub repo variable so the test script works without modification after an OCI resource recreation.
+Workflow tests introduced in Sprint 3 use hardcoded OCI log OCIDs with manual not optimal log/log_group creation step. Tenancy is hardcoded. All of this must be changed. Integrate https://github.com/rstyczynski/oci_scaffold where log_group and log are handled. Use technique to identify both by compartment nad log / log grpup names - use URI style. The same project discovers tenancy id - apply this technique.
 
-### SLI-7. Read SLI_OCI_LOG_ID from repo-level variable without workflow YAML changes
+Replace every hardcoded OCID in `test_sli_integration.sh` with values read from scripts using the the sci_scaffold.
+
+### SLI-6. Read SLI_OCI_LOG_ID from repo-level variable without workflow YAML changes
 
 The operator sets `SLI_OCI_LOG_ID` once at repository level:
 
 ```bash
-gh variable set SLI_OCI_LOG_ID --body "<log-ocid>"
+gh variable set SLI_OCI_LOG_ID --body "<log-ociSLI-5d>"
 ```
 
 Workflows must not require any YAML edits to consume it. Currently callers must embed `"log-id": "${{ vars.SLI_OCI_LOG_ID }}"` inside every `sli-event` `context-json` block — a workaround for `vars` not being available in composite action YAML.
@@ -62,7 +64,7 @@ After this change:
 - `context-json` contains only OCI credentials (`config-file` + `profile`); no `log-id`.
 - `action.yml` comment updated to document env var as the primary delivery path.
 
-### SLI-6. Pluggable emit backend for emit.sh
+### SLI-7. Pluggable emit backend for emit.sh
 
 The current emit.sh is tightly coupled to OCI CLI. Add a configurable backend interface so the caller can select the most appropriate transport without changing emit logic.
 

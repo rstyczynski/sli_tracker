@@ -91,5 +91,5 @@ gh run list --repo "$REPO" --limit 5
 | Test | Description                                        | Status  |
 |------|----------------------------------------------------|---------|
 | 1    | Local round-trip and setup script smoke tests      | PASS    |
-| 2    | gh-triggered `test-oci-profile-setup` workflow run | PENDING |
+| 2    | gh-triggered `test-oci-profile-setup` workflow run | PASS    |
 

@@ -115,7 +115,8 @@ pass "missing config rejected"
 echo ""
 echo "=== Test: setup script --help ==="
 TESTS_RUN=$((TESTS_RUN + 1))
-if ! bash "$SETUP_SCRIPT" --help | grep -q dry-run; then
+if ! bash "$SETUP_SCRIPT" --help | grep -q dry-run \
+  || ! bash "$SETUP_SCRIPT" --help | grep -q skip-session-auth; then
   fail "--help output missing expected text"
 fi
 pass "help text present"

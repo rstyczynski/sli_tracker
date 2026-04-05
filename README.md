@@ -24,6 +24,23 @@ All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifac
 
 ## Recent updates
 
+### Sprint 5 — Test execution artifacts (YOLO)
+
+**Status:** implemented + tested
+
+**Backlog:**
+
+- **SLI-8:** `test_sli_integration.sh` now auto-creates two durable artifacts on every run: a timestamped execution log (`test_run_<ts>.log`) as proof of execution, and a raw OCI Logging JSON capture (`oci_logs_<ts>.json`) as proof of work. Both file paths are printed at the end of each run.
+
+**Key changes:**
+
+- `progress/sprint_5/test_sli_integration.sh` — extended sprint_4 script; exec tee redirect + OCI JSON write
+- Sprint 4 script untouched
+
+**Artifacts:** `progress/sprint_5/` (contract, analysis, design, implementation, tests, documentation). Traceability: `progress/backlog/SLI-8/`.
+
+---
+
 ### Sprint 4 — Improve workflow tests (YOLO)
 
 **Status:** implemented + tested
@@ -34,7 +51,7 @@ All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifac
 
 **Key changes:**
 
-- `lib/oci_scaffold.sh` — vendored from https://github.com/rstyczynski/oci_scaffold
+- `lib/oci_scaffold.sh` — vendored from [oci_scaffold](https://github.com/rstyczynski/oci_scaffold)
 - `progress/sprint_3/test_sli_integration.sh` — zero hardcoded OCIDs; tenancy via `oci os ns get-metadata`, log group + log via display-name lookup
 - `SLI_OCI_LOG_URI` repo variable added (`sli-events/github-actions`)
 - `.gitignore` — excludes `state*.json` (oci_scaffold state files)
@@ -49,7 +66,7 @@ All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifac
 
 **Status:** implemented (review-only; no workflow code changes)
 
-**Backlog**
+**Backlog:**
 
 - **SLI-3:** Reviewed `model-*.yml` — call graph, `MODEL —` naming, `sli-event` usage; see `progress/sprint_3/sprint_3_implementation.md`.
 - **SLI-4:** Reviewed `sli-event` (`action.yml`, `emit.sh`); unit tests: `bash .github/actions/sli-event/tests/test_emit.sh`.

@@ -99,24 +99,24 @@ assert_json_eq \
 
 echo "== sli_unescape_json_fields =="
 assert_json_eq \
-  "$(sli_unescape_json_fields '{"environments-json":"[\"a\",\"b\"]","other":"x"}')" \
-  '{"environments-json":["a","b"],"other":"x"}' \
+  "$(sli_unescape_json_fields '{"environments":"[\"a\",\"b\"]","other":"x"}')" \
+  '{"environments":["a","b"],"other":"x"}' \
   "array string unescaped to native array"
 assert_json_eq \
-  "$(sli_unescape_json_fields '{"config-json":"{\"k\":\"v\"}","other":"x"}')" \
-  '{"config-json":{"k":"v"},"other":"x"}' \
+  "$(sli_unescape_json_fields '{"config":"{\"k\":\"v\"}","other":"x"}')" \
+  '{"config":{"k":"v"},"other":"x"}' \
   "object string unescaped to native object"
 assert_json_eq \
-  "$(sli_unescape_json_fields '{"note-json":"not valid json {","other":"x"}')" \
-  '{"note-json":"not valid json {","other":"x"}' \
-  "invalid json string left as-is"
+  "$(sli_unescape_json_fields '{"note":"plain string","other":"x"}')" \
+  '{"note":"plain string","other":"x"}' \
+  "plain string not starting with [ or { left as-is"
 assert_json_eq \
   "$(sli_unescape_json_fields '{"environment":"prod"}')" \
   '{"environment":"prod"}' \
-  "non -json key not touched"
+  "plain value not touched"
 assert_json_eq \
-  "$(sli_unescape_json_fields '{"environments-json":["a","b"]}')" \
-  '{"environments-json":["a","b"]}' \
+  "$(sli_unescape_json_fields '{"environments":["a","b"]}')" \
+  '{"environments":["a","b"]}' \
   "already-native array left unchanged"
 
 echo "== sli_build_log_entry =="

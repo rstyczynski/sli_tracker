@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       runs-on-json: ${{ steps.runner-eval.outputs.runs-on-json }}
-      environments-json: ${{ steps.env-matrix.outputs.environments-json }}
+      environments: ${{ steps.env-matrix.outputs.environments }}
       run-type: ${{ steps.identity.outputs.run-type }}
       instance: ${{ steps.identity.outputs.instance }}
     steps:
@@ -57,7 +57,7 @@ jobs:
         id: env-matrix
         run: |
           # Simulates reading stages.json and building a per-environment matrix
-          echo 'environments-json=["model-env-1","model-env-2"]' >> "$GITHUB_OUTPUT"
+          echo 'environments=["model-env-1","model-env-2"]' >> "$GITHUB_OUTPUT"
 
   # SLI reporting for init-level failures (pipeline setup problems)
   # Runs always after init — reports outcome regardless of init result
@@ -105,7 +105,7 @@ jobs:
     if: ${{ always() && (needs.init.result == 'success' || needs.init.result == 'skipped') }}
     strategy:
       matrix:
-        environment: ${{ fromJSON(needs.init.outputs.environments-json) }}
+        environment: ${{ fromJSON(needs.init.outputs.environments) }}
       fail-fast: false
     uses: ./.github/workflows/model-reusable-sub.yml
     with:

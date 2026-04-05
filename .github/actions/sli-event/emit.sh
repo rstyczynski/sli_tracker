@@ -115,16 +115,16 @@ sli_failure_reasons_from_env() {
   jq -n 'env | with_entries(select(.key | startswith("SLI_FAILURE_REASON_")))'
 }
 
-# Unescape any top-level field whose key ends with "-json" and whose value is a
-# JSON-encoded string. GitHub Actions outputs are always strings, so array/object
-# inputs arrive double-encoded; this restores them to native JSON values.
-# Fields that are already non-string or whose string value is not valid JSON are
-# left unchanged.
+# Unescape any top-level field whose value is a string that looks like a JSON
+# array or object (starts with "[" or "{"). GitHub Actions outputs are always
+# strings, so array/object values arrive double-encoded; this restores them to
+# native JSON values. Fields whose string value is not valid JSON are left
+# unchanged. Fields that are already non-string are left unchanged.
 sli_unescape_json_fields() {
   local payload="${1:?}"
   echo "$payload" | jq -c '
     with_entries(
-      if (.key | endswith("-json")) and (.value | type) == "string"
+      if (.value | type) == "string" and ((.value | startswith("[")) or (.value | startswith("{")))
       then .value |= (. as $orig | try fromjson catch $orig)
       else . end
     )'

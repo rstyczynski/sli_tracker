@@ -24,6 +24,30 @@ All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifac
 
 ## Recent updates
 
+### Sprint 7 — Test-first quality gates bootstrap (managed)
+
+**Status:** implemented + tested
+
+**Backlog:**
+
+- **SLI-10:** Bootstrapped the centralized test infrastructure defined in `agent_qualitygate.md`. First sprint using the patched RUP process with Phase 3.1 (Test Specification) and Phase 4.1 (Test Execution).
+
+**Key changes:**
+
+- `tests/run.sh` — centralized test runner with `--smoke`, `--unit`, `--integration`, `--all`, `--new-only <manifest>` flags
+- `tests/smoke/test_critical_emit.sh` — smoke test verifying emit.sh core JSON output
+- `tests/unit/test_emit.sh` — migrated from `.github/actions/sli-event/tests/`
+- `tests/unit/test_install_oci_cli.sh` — migrated from `.github/actions/install-oci-cli/tests/`
+- `tests/unit/test_oci_profile_setup.sh` — migrated from `.github/actions/oci-profile-setup/tests/`
+- `tests/integration/test_sli_integration.sh` — migrated from `progress/sprint_6/`
+- Old test locations replaced with backward-compatible wrapper scripts
+
+**Quality gates:** Smoke 7/7, Unit 35/35, Integration 46/46. All passed.
+
+**Artifacts:** `progress/sprint_7/`. Traceability: `progress/backlog/SLI-10/`.
+
+---
+
 ### Sprint 6 — Fix *-json field escaping in emit.sh (YOLO)
 
 **Status:** implemented + tested

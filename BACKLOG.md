@@ -74,6 +74,24 @@ The integration test script `test_sli_integration.sh` currently prints results t
 
 Both artifacts must be created automatically by the test script on every run. The test script must print the paths of both files at the end of each run so the operator knows where to find them.
 
+### SLI-9. emit.sh: unescape *-json fields to native JSON in emitted log entries
+
+GitHub Actions outputs are always strings. When a caller passes a JSON array or object via a `*-json` input (e.g. `inputs-json`, `environments-json`), the value arrives in `emit.sh` as an escaped string:
+
+```json
+"environments-json": "[\"model-env-1\",\"model-env-2\"]"
+```
+
+This is a bug. All fields whose name ends with `-json` and whose value is a valid JSON value (object or array) must be unescaped and embedded as native JSON before the log entry is pushed to OCI:
+
+```json
+"environments-json": ["model-env-1", "model-env-2"]
+```
+
+Fix in `emit.sh`: after assembling the payload, walk all top-level keys; for any key matching `*-json`, attempt `jq` parse of the string value — if it succeeds, replace the string with the parsed value; if it fails, leave the field as-is.
+
+This must be covered by new unit tests in `test_emit.sh`.
+
 ### SLI-7. Pluggable emit backend for emit.sh
 
 The current emit.sh is tightly coupled to OCI CLI. Add a configurable backend interface so the caller can select the most appropriate transport without changing emit logic.

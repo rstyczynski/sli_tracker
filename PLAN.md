@@ -56,9 +56,22 @@ Backlog Items:
 
 ## Sprint 6 - Fix *-json field escaping in emit.sh
 
-Status: Progress
+Status: Done
 Mode: YOLO
 
 Backlog Items:
 
 * SLI-9. emit.sh: unescape *-json fields to native JSON in emitted log entries
+
+## Sprint 7 - Test-first quality gates bootstrap
+
+Status: Progress
+Mode: managed
+Test: smoke, unit, integration
+Regression: none
+
+First sprint using the patched RUP process (`rup_manager_patched.md`). Bootstraps the centralized test infrastructure, migrates existing tests, and creates initial smoke tests. Uses `Regression: none` because no prior tests exist in `tests/` yet.
+
+Backlog Items:
+
+* SLI-10. Implement test-first quality gates

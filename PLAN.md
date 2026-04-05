@@ -65,7 +65,7 @@ Backlog Items:
 
 ## Sprint 7 - Test-first quality gates bootstrap
 
-Status: Progress
+Status: Done
 Mode: managed
 Test: smoke, unit, integration
 Regression: none

@@ -1,0 +1,17 @@
+# Sprint 7 — new test scripts added/migrated by this sprint
+# Format: suite:script_name[:function_name]
+
+# SM-1: New smoke test for critical emit.sh functions
+smoke:test_critical_emit.sh
+
+# UT-1: Migrated unit tests for emit.sh
+unit:test_emit.sh
+
+# UT-2: Migrated unit tests for install_oci_cli.sh
+unit:test_install_oci_cli.sh
+
+# UT-3: Migrated unit tests for oci_profile_setup.sh
+unit:test_oci_profile_setup.sh
+
+# IT-1: Migrated integration test for SLI pipeline
+integration:test_sli_integration.sh

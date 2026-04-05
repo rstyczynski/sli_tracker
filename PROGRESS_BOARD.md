@@ -10,3 +10,4 @@ Progress board is a table showing sprint, and backlog items state. It's the only
 | Sprint 3 | implemented         | SLI-4        | tested              |
 | Sprint 4 | implemented         | SLI-5        | tested              |
 | Sprint 5 | implemented         | SLI-8        | tested              |
+| Sprint 6 | implemented         | SLI-9        | tested              |

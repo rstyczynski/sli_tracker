@@ -47,9 +47,18 @@ Backlog Items:
 
 ## Sprint 5 - Test execution artifacts
 
-Status: Progress
+Status: Done
 Mode: YOLO
 
 Backlog Items:
 
 * SLI-8. Test procedure execution log and OCI log capture
+
+## Sprint 6 - Fix *-json field escaping in emit.sh
+
+Status: Progress
+Mode: YOLO
+
+Backlog Items:
+
+* SLI-9. emit.sh: unescape *-json fields to native JSON in emitted log entries

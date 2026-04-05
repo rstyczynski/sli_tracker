@@ -64,6 +64,16 @@ After this change:
 - `context-json` contains only OCI credentials (`config-file` + `profile`); no `log-id`.
 - `action.yml` comment updated to document env var as the primary delivery path.
 
+### SLI-8. Test procedure execution log and OCI log capture
+
+The integration test script `test_sli_integration.sh` currently prints results to stdout but leaves no durable artifact. Two artifacts are required:
+
+1. **Execution log (proof of execution)** — the full stdout/stderr of the test run, timestamped and written to a file (e.g. `progress/sprint_N/test_run_<timestamp>.log`) so that every test execution is traceable without relying on terminal scrollback.
+
+2. **OCI log capture (proof of work)** — after querying OCI Logging in T7, the raw JSON response from OCI must be saved to a file (e.g. `progress/sprint_N/oci_logs_<timestamp>.json`). This captures what OCI actually received and provides evidence independent of the pass/fail assertions.
+
+Both artifacts must be created automatically by the test script on every run. The test script must print the paths of both files at the end of each run so the operator knows where to find them.
+
 ### SLI-7. Pluggable emit backend for emit.sh
 
 The current emit.sh is tightly coupled to OCI CLI. Add a configurable backend interface so the caller can select the most appropriate transport without changing emit logic.

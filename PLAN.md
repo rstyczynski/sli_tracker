@@ -38,9 +38,18 @@ Backlog Items:
 
 ## Sprint 4 - Improve workflow tests
 
-Status: Progress
+Status: Done
 Mode: YOLO
 
 Backlog Items:
 
 * SLI-5. Improve workflow tests
+
+## Sprint 5 - Test execution artifacts
+
+Status: Progress
+Mode: YOLO
+
+Backlog Items:
+
+* SLI-8. Test procedure execution log and OCI log capture

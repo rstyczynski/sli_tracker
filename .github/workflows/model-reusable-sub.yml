@@ -74,7 +74,7 @@ jobs:
           echo "Evaluating plan for environment: ${{ inputs.environment }}"
           echo "::endgroup::"
 
-          echo "plans-json=[{\"component\":\"model-component\",\"environment\":\"${{ inputs.environment }}\"}]" >> "$GITHUB_OUTPUT"
+          echo "plans=[{\"component\":\"model-component\",\"environment\":\"${{ inputs.environment }}\"}]" >> "$GITHUB_OUTPUT"
           echo "config-valid=true" >> "$GITHUB_OUTPUT"
 
       # ── Technique 3: conditional on prior step output ───────────────────────

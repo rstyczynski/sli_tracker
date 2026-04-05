@@ -35,7 +35,7 @@ jobs:
     name: "Init — runner selection"
     runs-on: ubuntu-latest
     outputs:
-      runs-on-json: ${{ steps.runner-eval.outputs.runs-on-json }}
+      runs-on: ${{ steps.runner-eval.outputs.runs-on }}
       environments: ${{ steps.env-matrix.outputs.environments }}
       run-type: ${{ steps.identity.outputs.run-type }}
       instance: ${{ steps.identity.outputs.instance }}
@@ -51,7 +51,7 @@ jobs:
         id: runner-eval
         run: |
           # Simulates avaloq/avaloq-workflow-dispatcher-action/runs-on-evaluation
-          echo "runs-on-json=[\"ubuntu-latest\"]" >> "$GITHUB_OUTPUT"
+          echo "runs-on=[\"ubuntu-latest\"]" >> "$GITHUB_OUTPUT"
 
       - name: "Build environment matrix"
         id: env-matrix

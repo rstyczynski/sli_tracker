@@ -37,7 +37,7 @@ The sli-event action emits SLI tracking events to the OCI logging service. Revie
 
 ### SLI-5. Improve workflow tests
 
-Workflow tests introduced in Sprint 3 use hardcoded OCI log OCIDs with manual not optimal log/log_group creation step. Tenancy is hardcoded. All of this must be changed. Integrate https://github.com/rstyczynski/oci_scaffold where log_group and log are handled. Use technique to identify both by compartment nad log / log grpup names - use URI style. The same project discovers tenancy id - apply this technique.
+Workflow tests introduced in Sprint 3 use hardcoded OCI log OCIDs with manual not optimal log/log_group creation step. Tenancy is hardcoded. All of this must be changed. Integrate [oci_scaffold](https://github.com/rstyczynski/oci_scaffold) where log_group and log are handled. Use technique to identify both by compartment nad log / log grpup names - use URI style. The same project discovers tenancy id - apply this technique.
 
 Replace every hardcoded OCID in `test_sli_integration.sh` with values read from scripts using the the sci_scaffold.
 
@@ -60,6 +60,7 @@ env:
 ```
 
 After this change:
+
 - Operator sets the variable once via `gh variable set` — no workflow YAML to touch.
 - `context-json` contains only OCI credentials (`config-file` + `profile`); no `log-id`.
 - `action.yml` comment updated to document env var as the primary delivery path.
@@ -90,7 +91,11 @@ This is a bug. Any top-level field whose string value starts with `[` or `{` and
 
 Fix in `emit.sh`: after assembling the payload, walk all top-level string values; if a value starts with `[` or `{` and parses as valid JSON, replace the string with the parsed value; otherwise leave as-is.
 
-Also rename `environments-json` output in `model-reusable-main.yml` to `environments` — the `-json` suffix was a workaround naming convention with no value.
+Also rename all `*-json` outputs in workflow files to clean names — the `-json` suffix was a workaround naming convention with no value:
+
+- `environments-json` → `environments` (model-reusable-main.yml)
+- `runs-on-json` → `runs-on` (model-reusable-main.yml)
+- `plans-json` → `plans` (model-reusable-sub.yml)
 
 This must be covered by new unit tests in `test_emit.sh`.
 

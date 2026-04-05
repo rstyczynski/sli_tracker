@@ -24,6 +24,23 @@ All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifac
 
 ## Recent updates
 
+### Sprint 6 — Fix *-json field escaping in emit.sh (YOLO)
+
+**Status:** implemented + tested
+
+**Backlog:**
+
+- **SLI-9:** `emit.sh` now unescapes any top-level field ending in `-json` from an escaped string to native JSON before pushing to OCI Logging. `environments-json` and similar fields now appear as native arrays/objects in OCI log entries instead of escaped strings.
+
+**Key changes:**
+
+- `.github/actions/sli-event/emit.sh` — new `sli_unescape_json_fields` helper; called at end of `sli_build_log_entry`
+- `.github/actions/sli-event/tests/test_emit.sh` — 5 new unit tests; total 24/24 passing
+
+**Artifacts:** `progress/sprint_6/`. Traceability: `progress/backlog/SLI-9/`.
+
+---
+
 ### Sprint 5 — Test execution artifacts (YOLO)
 
 **Status:** implemented + tested

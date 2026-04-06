@@ -99,6 +99,34 @@ Also rename all `*-json` outputs in workflow files to clean names — the `-json
 
 This must be covered by new unit tests in `test_emit.sh`.
 
+### SLI-10. Implement test-first quality gates
+
+Implement the test-first quality gate process defined in `agent_qualitygate.md` and orchestrated by `rup_manager_patched.md`. This sprint bootstraps the centralized test infrastructure and migrates existing tests.
+
+**Deliverables:**
+
+1. **Centralized test tree** -- Create `tests/run.sh` runner with working `--smoke`, `--unit`, `--integration`, `--all`, and `--new-only <manifest>` flags. The runner must discover and execute `test_*.sh` scripts in the corresponding subdirectories and return nonzero on any failure.
+
+2. **Test migration** -- Move existing tests to the centralized tree:
+   - `.github/actions/sli-event/tests/test_emit.sh` -> `tests/unit/test_emit.sh`
+   - `.github/actions/install-oci-cli/tests/test_install_oci_cli.sh` -> `tests/unit/test_install_oci_cli.sh`
+   - `.github/actions/oci-profile-setup/tests/test_oci_profile_setup.sh` -> `tests/unit/test_oci_profile_setup.sh`
+   - `progress/sprint_6/test_sli_integration.sh` (latest) -> `tests/integration/test_sli_integration.sh`
+   - Replace old locations with one-line wrappers delegating to the new paths.
+
+3. **Initial smoke tests** -- Create at least one smoke test in `tests/smoke/` that covers the most critical path (e.g. `test_critical_emit.sh` verifying emit.sh produces valid JSON).
+
+4. **Validation** -- Run `tests/run.sh --all` and confirm all migrated tests pass from the new locations. Run `tests/run.sh --smoke` and confirm smoke tests pass.
+
+Test: smoke, unit, integration
+Regression: none (this is the migration sprint -- no prior tests in `tests/` to regress against)
+
+### SLI-11. Split emit.sh into emit_oci.sh and emit_curl.sh
+
+The current `emit.sh` is a single file mixing payload assembly with OCI CLI transport. Rename it to `emit_oci.sh`, extract shared helpers to `emit_common.sh`, and add `emit_curl.sh` as a zero-install backend (pure bash + curl + openssl) so SLI events can be pushed without the ~2-min OCI CLI install step. `emit.sh` becomes a thin dispatcher selecting the backend via an `emit-backend: oci-cli | curl` input (default `oci-cli`).
+
+Test: unit test for `emit_curl.sh` using a mock `curl` that verifies the signed Authorization header and correct payload.
+
 ### SLI-7. Pluggable emit backend for emit.sh
 
 The current emit.sh is tightly coupled to OCI CLI. Add a configurable backend interface so the caller can select the most appropriate transport without changing emit logic.

@@ -1,4 +1,7 @@
 # Sprint 8 new tests manifest
+# Format: suite:script_name[:label]  (see tests/run.sh --new-only)
+
+# UT-1 … UT-7 — emit split / curl backend (tests/unit/test_emit.sh)
 unit:test_emit.sh:UT-1
 unit:test_emit.sh:UT-2
 unit:test_emit.sh:UT-3
@@ -6,3 +9,6 @@ unit:test_emit.sh:UT-4
 unit:test_emit.sh:UT-5
 unit:test_emit.sh:UT-6
 unit:test_emit.sh:UT-7
+
+# IT-1 — full SLI pipeline (tests/integration/test_sli_integration.sh)
+integration:test_sli_integration.sh

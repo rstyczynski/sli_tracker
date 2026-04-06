@@ -69,12 +69,12 @@ sli_emit_main() {
   #    - DATE=$(date -u "+%a, %d %b %Y %H:%M:%S GMT")
   #    - BODY_HASH=$(echo -n "$BATCH" | openssl dgst -binary -sha256 | openssl base64 -A)
   #    - HOST=ingestion.logging.<region>.oci.oraclecloud.com
-  #    - REQUEST_TARGET="put /20200831/logs/${OCI_LOG_ID}/actions/push"
+  #    - REQUEST_TARGET="post /20200831/logs/${OCI_LOG_ID}/actions/push"
   #    - SIGNING_STRING="(request-target): ${REQUEST_TARGET}\ndate: ${DATE}\nhost: ${HOST}\nx-content-sha256: ${BODY_HASH}\ncontent-type: application/json\ncontent-length: ${#BATCH}"
   #    - SIGNATURE=$(printf '%s' "$SIGNING_STRING" | openssl dgst -sha256 -sign "$KEY_FILE" | openssl base64 -A)
   #    - KEY_ID="${TENANCY}/${USER_OCID}/${FINGERPRINT}"
   #    - AUTH="Signature version=\"1\",keyId=\"${KEY_ID}\",algorithm=\"rsa-sha256\",headers=\"(request-target) date host x-content-sha256 content-type content-length\",signature=\"${SIGNATURE}\""
-  # 6. curl -s -X PUT "https://${HOST}/20200831/logs/${OCI_LOG_ID}/actions/push" \
+  # 6. curl -s -X POST "https://${HOST}/20200831/logs/${OCI_LOG_ID}/actions/push" \
   #      -H "Authorization: ${AUTH}" -H "Date: ${DATE}" ...
 }
 
@@ -125,8 +125,8 @@ Pass to run step:
 ### Testing Strategy
 
 #### Recommended Sprint Parameters
-- Test: unit — all logic is pure bash, no infrastructure needed
-- Regression: unit — existing 24 unit tests must still pass
+- Test: unit, integration — unit covers bash helpers + mocked curl; integration runs all `tests/integration/test_*.sh` (full pipeline, live `gh` + OCI)
+- Regression: unit — full `tests/run.sh --unit` only; integration is not a regression shrink (each run hits real infra)
 
 #### Unit Test Targets
 

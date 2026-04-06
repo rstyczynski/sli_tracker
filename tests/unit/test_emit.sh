@@ -234,11 +234,11 @@ else
   fail "UT-4b: rsa-sha256 algorithm not in Authorization header"
 fi
 
-echo "== UT-5: emit_curl.sh — payload is valid JSON batch =="
-if jq -e '.[0].entries[0].data' "$_curl_body" >/dev/null 2>&1; then
+echo "== UT-5: emit_curl.sh — payload matches put-logs shape (specversion + logEntryBatches) =="
+if jq -e '.specversion == "1.0" and .logEntryBatches[0].entries[0].data' "$_curl_body" >/dev/null 2>&1; then
   pass
 else
-  fail "UT-5: payload is not a valid JSON batch — body: $(cat "$_curl_body" 2>/dev/null | head -1)"
+  fail "UT-5: payload is not a valid ingestion body — body: $(cat "$_curl_body" 2>/dev/null | head -1)"
 fi
 rm -rf "$_keydir"
 

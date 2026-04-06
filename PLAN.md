@@ -80,7 +80,7 @@ Backlog Items:
 
 Status: Done
 Mode: YOLO
-Test: unit
+Test: unit, integration
 Regression: unit
 
 Backlog Items:

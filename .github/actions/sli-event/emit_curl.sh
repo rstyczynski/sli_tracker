@@ -76,21 +76,25 @@ sli_emit_main() {
       return 0
     fi
 
+    # Same wire format as `oci logging-ingestion put-logs`: POST body with specversion + logEntryBatches.
     BATCH=$(jq -nc \
       --arg ts "$TIMESTAMP" \
       --argjson entry "$LOG_ENTRY" \
-      '[{
-        "defaultlogentrytime": $ts,
-        "source": "github-actions/sli-tracker",
-        "type":   "sli-event",
-        "entries": [{ "data": ($entry | tostring), "id": ($ts + "-sli"), "time": $ts }]
-      }]')
+      '{
+        specversion: "1.0",
+        logEntryBatches: [{
+          defaultlogentrytime: $ts,
+          source: "github-actions/sli-tracker",
+          type: "sli-event",
+          entries: [{ data: ($entry | tostring), id: ($ts + "-sli"), time: $ts }]
+        }]
+      }')
 
     local HOST DATE BODY_HASH REQUEST_TARGET SIGNING_STRING SIGNATURE KEY_ID AUTH
     HOST="ingestion.logging.${REGION}.oci.${API_DOMAIN}"
     DATE="$(date -u "+%a, %d %b %Y %H:%M:%S GMT")"
     BODY_HASH="$(printf '%s' "$BATCH" | openssl dgst -binary -sha256 | openssl base64 -A)"
-    REQUEST_TARGET="put /20200831/logs/${OCI_LOG_ID}/actions/push"
+    REQUEST_TARGET="post /20200831/logs/${OCI_LOG_ID}/actions/push"
 
     SIGNING_STRING="(request-target): ${REQUEST_TARGET}
 date: ${DATE}
@@ -103,7 +107,7 @@ content-length: ${#BATCH}"
     KEY_ID="${TENANCY}/${USER_OCID}/${FINGERPRINT}"
     AUTH='Signature version="1",keyId="'"${KEY_ID}"'",algorithm="rsa-sha256",headers="(request-target) date host x-content-sha256 content-type content-length",signature="'"${SIGNATURE}"'"'
 
-    curl -s -f -X PUT \
+    curl -s -f -X POST \
       "https://${HOST}/20200831/logs/${OCI_LOG_ID}/actions/push" \
       -H "Authorization: ${AUTH}" \
       -H "Date: ${DATE}" \

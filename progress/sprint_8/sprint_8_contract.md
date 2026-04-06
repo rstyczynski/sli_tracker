@@ -13,7 +13,7 @@ SLI Tracker: GitHub Actions + shell scripts that emit Service Level Indicators t
 ## Current Sprint
 
 Sprint 8 — curl backend for emit.sh  
-Mode: YOLO | Test: unit | Regression: unit  
+Mode: YOLO | Test: unit, integration | Regression: unit  
 Backlog Item: SLI-11
 
 ## Rule Compliance

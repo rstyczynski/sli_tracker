@@ -1,8 +1,10 @@
 # Sprint 8 — Test Specification
 
 ## Sprint Test Configuration
-- Test: unit
+
+- Test: unit, integration
 - Mode: YOLO
+- Regression: unit — full `tests/unit/` suite; no regression shrink for integration (each run is live infra)
 
 ## Unit Tests
 
@@ -32,9 +34,9 @@
 - **Isolation:** mock `curl`, temp OCI config with RSA test key (generated inline)
 - **Target file:** tests/unit/test_emit.sh (append)
 
-### UT-5: emit_curl.sh — payload is valid JSON batch
+### UT-5: emit_curl.sh — ingestion body matches `put-logs`
 - **Input:** same as UT-4
-- **Expected Output:** body passed to curl is a JSON array with one element containing `entries[0].data`
+- **Expected Output:** body passed to curl is JSON with `specversion == "1.0"` and `logEntryBatches[0].entries[0].data` present (same wire shape as `oci logging-ingestion put-logs`)
 - **Target file:** tests/unit/test_emit.sh (append)
 
 ### UT-6: emit.sh dispatcher — EMIT_BACKEND=curl invokes emit_curl.sh
@@ -48,12 +50,22 @@
 - **Expected Output:** exits 0; output contains "SLI OCI push skipped"
 - **Target file:** tests/unit/test_emit.sh (append)
 
+## Integration Tests
+
+### IT-1: Full SLI pipeline (existing)
+- **Preconditions:** Authenticated `gh` CLI, OCI CLI with DEFAULT profile, `jq`, `OCI_CONFIG_PAYLOAD` repo secret, `oci_scaffold` submodule
+- **Steps:** oci_scaffold ensure + `gh variable set`; nested unit count check; dispatch model-call / model-push; wait; OCI Logging search; SLI-9 field checks
+- **Expected Outcome:** Script exits 0; artifacts `test_run_*.log` and `oci_logs_*.json` under `tests/integration/`
+- **Target file:** tests/integration/test_sli_integration.sh
+
+**Running all integration tests:** `tests/run.sh` executes every `tests/integration/test_*.sh` (sorted). New domains append new `test_<domain>.sh` files; do not split by sprint.
+
 ## Traceability
 
-| Backlog Item | Unit Tests |
-| --- | --- |
-| SLI-11 | UT-1, UT-2, UT-3, UT-4, UT-5, UT-6, UT-7 |
+| Backlog Item | Unit Tests | Integration Tests |
+| --- | --- | --- |
+| SLI-11 | UT-1 … UT-7 | IT-1 (full pipeline; includes nested unit gate) |
 
 ## Regression
 
-Existing 24 unit tests in tests/unit/test_emit.sh must still pass after the split.
+Existing unit tests in `tests/unit/test_emit.sh` (helpers predating UT-1) and other `tests/unit/test_*.sh` scripts must still pass after the split — tracked as full `tests/run.sh --unit`.

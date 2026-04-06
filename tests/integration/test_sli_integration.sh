@@ -4,19 +4,65 @@
 #
 # Prerequisites:
 #   gh       — authenticated GitHub CLI
-#   oci      — OCI CLI with DEFAULT profile
+#   oci      — OCI CLI; session profile SLI_TEST (default) for T7 logging-search and oci_scaffold
 #   jq       — JSON processor
-#   OCI_CONFIG_PAYLOAD — GitHub repo secret (packed OCI session token)
+#   OCI_CONFIG_PAYLOAD — GitHub repo secret (packed OCI session for workflows; refresh via setup script)
 #   oci_scaffold       — git submodule at <repo_root>/oci_scaffold
+#
+# CI vs local: Workflows use profile SLI_TEST (token) from the secret. Local runs use the same profile
+# name by default; export OCI_CLI_PROFILE so bare `oci` calls match. If the GitHub secret expires,
+# emit shows "re-authenticate" in CI — refresh with setup_oci_github_access.sh + gh secret set.
 #
 # Usage (run from repo root):
 #   bash tests/integration/test_sli_integration.sh
+#
+# OCI profile: SLI_INTEGRATION_OCI_PROFILE (default: SLI_TEST, same as setup_oci_github_access session).
+#   Gate: oci iam region list --profile <that profile> must succeed.
+# Single attempt only (e.g. CI): SLI_INTEGRATION_AUTH_NO_LOOP=1
 
 set -euo pipefail
+
+# Same as setup_oci_github_access.sh — expand ${{HOME}} in ~/.oci after packing for GitHub (local oci breaks otherwise).
+_sli_expand_placeholder_home_in_oci_tree() {
+  if command -v perl >/dev/null 2>&1; then
+    perl -pi -e "s#\\$\\{\\{HOME\\}\\}#${HOME}#g" "${HOME}/.oci/config" || true
+    if [[ -d "${HOME}/.oci/sessions" ]]; then
+      find "${HOME}/.oci/sessions" -type f -print0 2>/dev/null \
+        | while IFS= read -r -d '' f; do
+            perl -pi -e "s#\\$\\{\\{HOME\\}\\}#${HOME}#g" "$f" || true
+          done
+    fi
+  else
+    sed -i.bak "s#\${{HOME}}#${HOME}#g" "${HOME}/.oci/config" || true
+    if [[ -d "${HOME}/.oci/sessions" ]]; then
+      find "${HOME}/.oci/sessions" -type f -print0 2>/dev/null \
+        | while IFS= read -r -d '' f; do
+            sed -i.bak "s#\${{HOME}}#${HOME}#g" "$f" || true
+          done
+    fi
+  fi
+}
+
+# Profile for auth gate, T0a, T7 logging-search; oci_scaffold uses OCI_CLI_PROFILE (same value).
+OCI_INT_PROFILE="${SLI_INTEGRATION_OCI_PROFILE:-SLI_TEST}"
+export OCI_INT_PROFILE
+export OCI_CLI_PROFILE="$OCI_INT_PROFILE"
 
 REPO="rstyczynski/sli_tracker"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# Real oci Python entrypoint (not ~/.local/oci-wrapper), for building the token_based wrapper.
+_SLI_REAL_OCI_BIN=""
+for _c in /opt/homebrew/bin/oci /usr/local/bin/oci; do
+  if [[ -x "$_c" ]]; then _SLI_REAL_OCI_BIN="$_c"; break; fi
+done
+if [[ -z "$_SLI_REAL_OCI_BIN" ]]; then
+  _v="$(command -v oci 2>/dev/null || true)"
+  if [[ -n "$_v" && "$_v" != *oci-wrapper* ]]; then
+    _SLI_REAL_OCI_BIN="$_v"
+  fi
+fi
+unset _c _v
 
 # Artifact setup — logs land in the integration test directory
 TS="$(date -u '+%Y%m%d_%H%M%S')"
@@ -27,6 +73,58 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 
 echo "# Integration test run — $(date -u)"
 echo "# Execution log : $LOG_FILE"
+
+if [[ -f "${HOME}/.oci/config" ]]; then
+  _sli_expand_placeholder_home_in_oci_tree
+  echo "# Expanded \${{HOME}} in ~/.oci for local oci (same as setup_oci_github_access.sh startup)"
+fi
+
+echo ""
+echo "=== Operator gate: OCI authentication (mandatory — verified by API) ==="
+echo "Profile: $OCI_INT_PROFILE (OCI_CLI_PROFILE=$OCI_CLI_PROFILE)"
+echo "This script blocks until: oci iam region list --profile \"$OCI_INT_PROFILE\" succeeds."
+echo "To create/refresh the SLI_TEST session and upload to GitHub (browser + gh):"
+echo "  bash \"${REPO_ROOT}/.github/actions/oci-profile-setup/setup_oci_github_access.sh\" --repo \"$REPO\""
+echo "(Uses DEFAULT only to resolve home region; session profile name defaults to SLI_TEST — see script --help.)"
+echo ""
+
+# Session profiles (e.g. SLI_TEST) use --auth security_token; API-key-only profiles omit it.
+_sli_oci_region_list_ok() {
+  if oci iam region list --profile "$OCI_INT_PROFILE" --auth security_token >/dev/null 2>&1; then
+    return 0
+  fi
+  oci iam region list --profile "$OCI_INT_PROFILE" >/dev/null 2>&1
+}
+
+_auth_attempt=0
+while ! _sli_oci_region_list_ok; do
+  _auth_attempt=$((_auth_attempt + 1))
+  echo "OCI session not valid for profile '$OCI_INT_PROFILE' (failed attempt $_auth_attempt)."
+  if [[ "${SLI_INTEGRATION_AUTH_NO_LOOP:-}" == "1" ]]; then
+    echo "SLI_INTEGRATION_AUTH_NO_LOOP=1 — exiting. Fix auth and re-run."
+    exit 1
+  fi
+  echo "Run setup_oci_github_access.sh (above) or fix ~/.oci, then wait. Retrying in 20 seconds (Ctrl+C to abort)..."
+  sleep 20
+done
+echo "OK: profile '$OCI_INT_PROFILE' passed oci iam region list — continuing."
+echo ""
+
+# oci_scaffold runs bare `oci` (no --auth). Session profiles need --auth security_token — same as
+# oci_profile_setup.sh token_based wrapper on GitHub Actions.
+if [[ -n "${_SLI_REAL_OCI_BIN:-}" ]] && oci iam region list --profile "$OCI_INT_PROFILE" --auth security_token >/dev/null 2>&1; then
+  _wrap_dir="${HOME}/.local/oci-wrapper/bin"
+  mkdir -p "$_wrap_dir"
+  {
+    printf '%s\n' '#!/bin/bash'
+    printf '%s\n' 'set -euo pipefail'
+    printf '%s\n' "exec \"${_SLI_REAL_OCI_BIN}\" --auth security_token \"\$@\""
+  } > "${_wrap_dir}/oci"
+  chmod +x "${_wrap_dir}/oci"
+  export PATH="${_wrap_dir}:${PATH}"
+  echo "# token_based: PATH prepends ${_wrap_dir}/oci (real oci: ${_SLI_REAL_OCI_BIN})"
+fi
+echo ""
 
 export NAME_PREFIX="sli_test_sprint6"
 # shellcheck source=../../oci_scaffold/do/oci_scaffold.sh
@@ -88,6 +186,14 @@ command -v oci >/dev/null 2>&1 && pass "OCI CLI present" || fail "OCI CLI missin
 command -v jq  >/dev/null 2>&1 && pass "jq present"      || fail "jq missing"
 
 echo ""
+echo "=== T0a: OCI profile (same as gate) — T7 logging-search uses this profile ==="
+if _sli_oci_region_list_ok; then
+  pass "local profile $OCI_INT_PROFILE: API call succeeded (already verified at gate)"
+else
+  fail "local profile $OCI_INT_PROFILE: API call failed (unexpected after gate)"
+fi
+
+echo ""
 echo "=== T0b: OCI resource resolution (oci_scaffold URI-style) ==="
 [[ "$TENANCY"       == ocid1.tenancy.*  ]] && pass "TENANCY resolved: $TENANCY"           || fail "TENANCY invalid"
 [[ "$LOG_GROUP_OCID" == ocid1.loggroup.* ]] && pass "LOG_GROUP_OCID resolved: $LOG_GROUP_OCID" || fail "LOG_GROUP_OCID invalid"
@@ -98,7 +204,7 @@ echo "=== T1: unit tests — emit.sh helper functions ==="
 UNIT_OUT=$(bash "${REPO_ROOT}/tests/unit/test_emit.sh" 2>&1)
 UNIT_PASSED=$(echo "$UNIT_OUT" | grep -oE 'passed: [0-9]+' | grep -oE '[0-9]+')
 UNIT_FAILED=$(echo "$UNIT_OUT" | grep -oE 'failed: [0-9]+'  | grep -oE '[0-9]+')
-assert_eq "emit.sh unit tests: passed count" "$UNIT_PASSED" "24"
+assert_eq "emit.sh unit tests: passed count" "$UNIT_PASSED" "33"
 assert_eq "emit.sh unit tests: failed count" "$UNIT_FAILED" "0"
 
 echo ""
@@ -166,6 +272,8 @@ for RUN_ID in $ALL_RUNS; do
       pass "run $RUN_ID / $JOB_NAME → SLI pushed"
     elif echo "$LOG" | grep -q "SLI OCI push skipped"; then
       pass "run $RUN_ID / $JOB_NAME → SLI push skipped (no OCI config in this job)"
+    elif echo "$LOG" | grep -qE "re-authenticate your CLI session|SLI report failed to push to OCI Logging"; then
+      fail "run $RUN_ID / $JOB_NAME → OCI push failed in CI (token/session in OCI_CONFIG_PAYLOAD likely expired — refresh secret; not your local browser session)"
     elif echo "$LOG" | grep -q "Init — runner selection" && ! echo "$LOG" | grep -q "SLI"; then
       pass "run $RUN_ID / $JOB_NAME → init job (no SLI step expected)"
     else
@@ -182,7 +290,7 @@ TS_END=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
 EVENTS=$(oci logging-search search-logs \
   --search-query "search \"${TENANCY}/${LOG_GROUP_OCID}/${SLI_LOG_OCID}\" | sort by datetime desc | limit 50" \
   --time-start "$TS_START" --time-end "$TS_END" \
-  --profile DEFAULT 2>/dev/null | jq '.data.results')
+  --profile "$OCI_INT_PROFILE" 2>/dev/null | jq '.data.results')
 
 printf '%s\n' "$EVENTS" > "$OCI_LOG_FILE"
 echo "# OCI log captured: $OCI_LOG_FILE"
@@ -195,18 +303,18 @@ FAILURE_COUNT=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="st
 assert_ge "OCI: at least 4 success outcome events" "$SUCCESS_COUNT" 4
 assert_ge "OCI: at least 4 failure outcome events" "$FAILURE_COUNT" 4
 
-CALL_EVENTS=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select(.workflow | test("API / UI call"))] | length')
-PUSH_EVENTS=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select(.workflow | test("Push trigger"))] | length')
+CALL_EVENTS=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select((.workflow // "") | type == "string" and test("API / UI call"))] | length')
+PUSH_EVENTS=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select((.workflow // "") | type == "string" and test("Push trigger"))] | length')
 assert_ge "OCI: model-call events present" "$CALL_EVENTS" 3
 assert_ge "OCI: model-push events present" "$PUSH_EVENTS" 3
 
-FAIL_REASON_COUNT=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select(.failure_reasons | length > 0)] | length')
+FAIL_REASON_COUNT=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select((.failure_reasons // {}) | type == "object" and length > 0)] | length')
 assert_ge "OCI: at least 4 failure events carry failure_reasons" "$FAIL_REASON_COUNT" 4
 
-INIT_EVENTS=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select(.job=="sli-init")] | length')
+INIT_EVENTS=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select((.job // "") == "sli-init")] | length')
 assert_ge "OCI: sli-init job events present" "$INIT_EVENTS" 4
 
-LEAF_EVENTS=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select(.job=="leaf")] | length')
+LEAF_EVENTS=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select((.job // "") == "leaf")] | length')
 assert_ge "OCI: leaf job events present" "$LEAF_EVENTS" 8
 
 echo ""
@@ -224,5 +332,11 @@ echo ""
 echo "=== Artifacts ==="
 echo "  execution log : $LOG_FILE"
 echo "  OCI log       : $OCI_LOG_FILE"
+
+PROGRESS_RUN_DIR="${REPO_ROOT}/progress/integration_runs/${TS}"
+mkdir -p "$PROGRESS_RUN_DIR"
+cp -f "$LOG_FILE" "${PROGRESS_RUN_DIR}/integration_test_run.log"
+[[ -f "$OCI_LOG_FILE" ]] && cp -f "$OCI_LOG_FILE" "${PROGRESS_RUN_DIR}/oci_logs.json" || true
+echo "  progress copy : $PROGRESS_RUN_DIR (same files for archive under progress/)"
 
 [[ "$FAIL" -eq 0 ]] && exit 0 || exit 1

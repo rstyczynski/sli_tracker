@@ -198,47 +198,48 @@ user=ocid1.user.oc1..test
 fingerprint=11:22:33:44
 key_file=${_keydir}/key.pem
 CFGEOF
-# Mock curl: capture args
+# Mock curl: real script on PATH so subshell invocations pick it up
 _curl_out="$_keydir/curl_args.txt"
-curl() { echo "$@" > "$_curl_out"; echo "HTTP 200 OK"; }
-export -f curl
-_out4="$(SLI_OUTCOME=success SLI_OCI_LOG_ID="ocid1.log.oc1..test" \
+_curl_body="$_keydir/curl_body.txt"
+mkdir -p "$_keydir/bin"
+cat > "$_keydir/bin/curl" <<'MOCKEOF'
+#!/usr/bin/env bash
+# Capture all args to file; extract -d body separately
+args_file="${_MOCK_CURL_ARGS:-/tmp/curl_args.txt}"
+body_file="${_MOCK_CURL_BODY:-/tmp/curl_body.txt}"
+printf '%s\n' "$@" >> "$args_file"
+capture=false
+for arg in "$@"; do
+  if $capture; then printf '%s' "$arg" > "$body_file"; capture=false; fi
+  [[ "$arg" == "-d" ]] && capture=true
+done
+echo "HTTP 200 OK"
+MOCKEOF
+chmod +x "$_keydir/bin/curl"
+
+_out4="$(PATH="$_keydir/bin:$PATH" \
+  _MOCK_CURL_ARGS="$_curl_out" \
+  _MOCK_CURL_BODY="$_curl_body" \
+  SLI_OUTCOME=success SLI_OCI_LOG_ID="ocid1.log.oc1..test" \
   SLI_CONTEXT_JSON="{\"oci\":{\"config-file\":\"${_keydir}/config\",\"profile\":\"SLI_TEST\"}}" \
   bash "${ACTION_DIR}/emit_curl.sh" 2>&1)"
 if grep -qE 'Signature version="1"' "$_curl_out" 2>/dev/null; then
   pass
 else
-  fail "UT-4: Authorization header not found or malformed in: $(cat "$_curl_out" 2>/dev/null)"
+  fail "UT-4: Authorization header not found or malformed — output: $_out4"
 fi
 if grep -qE 'algorithm="rsa-sha256"' "$_curl_out" 2>/dev/null; then
   pass
 else
   fail "UT-4b: rsa-sha256 algorithm not in Authorization header"
 fi
-unset -f curl
 
 echo "== UT-5: emit_curl.sh — payload is valid JSON batch =="
-# Reuse _keydir from UT-4
-_curl_body="$_keydir/curl_body.txt"
-curl() {
-  local capture=false
-  while [[ $# -gt 0 ]]; do
-    if [[ "$1" == "-d" || "$1" == "--data" ]]; then capture=true; shift; continue; fi
-    if $capture; then echo "$1" > "$_curl_body"; capture=false; fi
-    shift
-  done
-  echo "HTTP 200 OK"
-}
-export -f curl
-SLI_OUTCOME=success SLI_OCI_LOG_ID="ocid1.log.oc1..test" \
-  SLI_CONTEXT_JSON="{\"oci\":{\"config-file\":\"${_keydir}/config\",\"profile\":\"SLI_TEST\"}}" \
-  bash "${ACTION_DIR}/emit_curl.sh" 2>/dev/null
 if jq -e '.[0].entries[0].data' "$_curl_body" >/dev/null 2>&1; then
   pass
 else
-  fail "UT-5: payload is not a valid JSON batch array with entries[0].data"
+  fail "UT-5: payload is not a valid JSON batch — body: $(cat "$_curl_body" 2>/dev/null | head -1)"
 fi
-unset -f curl
 rm -rf "$_keydir"
 
 echo "== UT-6: emit.sh dispatcher — EMIT_BACKEND=curl =="

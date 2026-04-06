@@ -24,6 +24,10 @@ inputs:
       Explicit SLI_FAILURE_REASON_* env vars still apply and override keys from steps-json.
     required: false
     default: "{}"
+  emit-backend:
+    description: "Transport backend: oci-cli (default, requires install-oci-cli action) or curl (zero install, uses curl+openssl)"
+    required: false
+    default: "oci-cli"
 
 runs:
   using: composite
@@ -35,6 +39,7 @@ runs:
         INPUTS_JSON: ${{ inputs.inputs-json }}
         SLI_CONTEXT_JSON: ${{ inputs.context-json }}
         SLI_OUTCOME: ${{ inputs.outcome }}
+        EMIT_BACKEND: ${{ inputs.emit-backend }}
         # SLI_OCI_LOG_ID is read from the environment (set by the calling workflow via vars or env:)
         # or from oci.log-id inside context-json. Do not reference vars here — vars context
         # is not available inside composite action YAML.

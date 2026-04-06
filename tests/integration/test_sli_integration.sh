@@ -204,7 +204,7 @@ echo "=== T1: unit tests — emit.sh helper functions ==="
 UNIT_OUT=$(bash "${REPO_ROOT}/tests/unit/test_emit.sh" 2>&1)
 UNIT_PASSED=$(echo "$UNIT_OUT" | grep -oE 'passed: [0-9]+' | grep -oE '[0-9]+')
 UNIT_FAILED=$(echo "$UNIT_OUT" | grep -oE 'failed: [0-9]+'  | grep -oE '[0-9]+')
-assert_eq "emit.sh unit tests: passed count" "$UNIT_PASSED" "33"
+assert_eq "emit.sh unit tests: passed count" "$UNIT_PASSED" "47"
 assert_eq "emit.sh unit tests: failed count" "$UNIT_FAILED" "0"
 
 echo ""

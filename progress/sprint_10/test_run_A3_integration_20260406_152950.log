@@ -1,0 +1,34 @@
+=== integration tests ===
+[run] integration/test_sli_emit_curl_local.sh
+# emit_curl local integration — Mon Apr  6 15:29:50 UTC 2026
+# Log: /Users/rstyczynski/projects/SLI_tracker/tests/integration/test_run_emit_curl_local_20260406_152950.log
+
+=== Auth gate: OCI profile SLI_TEST ===
+OCI session not valid (attempt 1).
+Retrying in 20s...
+OCI session not valid (attempt 2).
+Retrying in 20s...
+OCI session not valid (attempt 3).
+Retrying in 20s...
+OCI session not valid (attempt 4).
+Retrying in 20s...
+OCI session not valid (attempt 5).
+Retrying in 20s...
+OCI session not valid (attempt 6).
+Retrying in 20s...
+OCI session not valid (attempt 7).
+Retrying in 20s...
+OCI session not valid (attempt 8).
+Retrying in 20s...
+OCI session not valid (attempt 9).
+Retrying in 20s...
+OCI session not valid (attempt 10).
+Retrying in 20s...
+Terminated: 15             bash "$script"
+[FAIL] integration/test_sli_emit_curl_local.sh (exit code 143)
+=== integration summary: 1 scripts, 0 passed, 1 failed ===
+
+========================================
+TOTAL: 1 scripts, 0 passed, 1 failed
+========================================
+RESULT: FAIL

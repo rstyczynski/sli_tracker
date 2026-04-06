@@ -1,0 +1,217 @@
+=== integration tests ===
+[run] integration/test_sli_emit_curl_local.sh
+# emit_curl local integration — Mon Apr  6 15:34:16 UTC 2026
+# Log: /Users/rstyczynski/projects/SLI_tracker/tests/integration/test_run_emit_curl_local_20260406_153416.log
+
+=== Auth gate: OCI profile SLI_TEST ===
+OK: OCI profile valid.
+
+# token_based wrapper installed for local oci
+
+  [INFO] COMPARTMENT_OCID defaulted to tenancy: ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a
+  [INFO] OCI_REGION defaulted to home region: eu-zurich-1
+  [INFO] STATE_FILE: /Users/rstyczynski/projects/SLI_tracker/state-sli_test_sprint6.json
+  [EXISTING] Log Group 'sli-events': ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq
+  [EXISTING] Log 'github-actions': ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa
+=== T1: emit_curl.sh push (self-crafted signing, local process) ===
+::group::SLI Report payload
+{
+  "source": "github-actions/sli-tracker",
+  "outcome": "success",
+  "timestamp": "2026-04-06T15:34:23Z",
+  "workflow": {
+    "run_id": "local-1775489663",
+    "run_number": "1",
+    "run_attempt": "1",
+    "name": "LOCAL — emit_curl (no workflow)",
+    "ref": "local/test_sli_emit_curl_local",
+    "job": "emit-curl-local",
+    "event_name": "workflow_dispatch",
+    "actor": "rstyczynski"
+  },
+  "repo": {
+    "repository": "rstyczynski/sli_tracker",
+    "repository_id": "1200217885",
+    "ref": "main",
+    "ref_full": "refs/heads/main",
+    "sha": "c4248e22f92901bf9e2af637a5712d6626f5534b"
+  },
+  "failure_reasons": {}
+}
+::endgroup::
+::notice::SLI log entry pushed to OCI Logging (curl)
+PASS: emit_curl reports successful curl push to OCI Logging
+
+=== T2: OCI Logging — event present (workflow filter) ===
+# OCI sample: /Users/rstyczynski/projects/SLI_tracker/tests/integration/oci_logs_emit_curl_local_20260406_153416.json
+PASS: OCI log contains at least one event with workflow.name LOCAL — emit_curl
+
+=== Summary ===
+passed: 2  failed: 0
+
+Artifacts: /Users/rstyczynski/projects/SLI_tracker/tests/integration/test_run_emit_curl_local_20260406_153416.log
+           /Users/rstyczynski/projects/SLI_tracker/tests/integration/oci_logs_emit_curl_local_20260406_153416.json
+[PASS] integration/test_sli_emit_curl_local.sh
+[run] integration/test_sli_emit_curl_workflow.sh
+# emit_curl workflow integration test — Mon Apr  6 15:34:39 UTC 2026
+# Log: /Users/rstyczynski/projects/SLI_tracker/tests/integration/test_run_curl_20260406_153439.log
+
+=== Auth gate: OCI profile SLI_TEST ===
+OK: OCI profile valid.
+
+# token_based wrapper installed for local oci
+
+  [INFO] COMPARTMENT_OCID defaulted to tenancy: ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a
+  [INFO] OCI_REGION defaulted to home region: eu-zurich-1
+  [INFO] STATE_FILE: /Users/rstyczynski/projects/SLI_tracker/state-sli_test_sprint6.json
+  [EXISTING] Log Group 'sli-events': ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq
+  [EXISTING] Log 'github-actions': ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa
+
+=== T1: Dispatch model-emit-curl — success + failure ===
+PASS: emit-curl success triggered: 24038228868
+PASS: emit-curl failure triggered: 24038230846
+
+=== T2: Wait for runs to complete ===
+    Runs: 24038228868 24038230846
+PASS: run 24038228868 completed
+PASS: run 24038230846 completed
+
+=== T3: Expected workflow conclusions ===
+PASS: emit-curl success → conclusion success
+PASS: emit-curl failure → conclusion failure
+
+=== T4: Verify no OCI CLI install step ran ===
+PASS: run 24038230846 — no OCI CLI install in job logs
+PASS: run 24038230846 — OCI profile restore confirmed
+PASS: run 24038228868 — no OCI CLI install in job logs
+PASS: run 24038228868 — OCI profile restore confirmed
+
+=== T5: Verify curl-specific SLI push notice ===
+PASS: run 24038228868 — curl push notice present
+PASS: run 24038230846 — curl push notice present
+
+=== T6: OCI Logging — verify curl events (content) ===
+# OCI log captured: /Users/rstyczynski/projects/SLI_tracker/tests/integration/oci_logs_curl_20260406_153439.json
+PASS: OCI received at least 2 events (2 runs × 1 job)
+PASS: OCI: at least 1 success event
+PASS: OCI: at least 1 failure event
+PASS: OCI: events carry correct workflow.name (contains 'emit_curl')
+
+=== T7: Failure event carries failure_reasons ===
+PASS: OCI: at least 1 failure event with non-empty failure_reasons
+PASS: OCI: failure_reasons contains a STEP_MAIN key
+
+=== Summary ===
+passed: 18  failed: 0
+
+=== Artifacts ===
+  execution log : /Users/rstyczynski/projects/SLI_tracker/tests/integration/test_run_curl_20260406_153439.log
+  OCI log       : /Users/rstyczynski/projects/SLI_tracker/tests/integration/oci_logs_curl_20260406_153439.json
+  progress copy : /Users/rstyczynski/projects/SLI_tracker/progress/integration_runs/curl_20260406_153439
+[PASS] integration/test_sli_emit_curl_workflow.sh
+[run] integration/test_sli_integration.sh
+# Integration test run — Mon Apr  6 15:35:49 UTC 2026
+# Execution log : /Users/rstyczynski/projects/SLI_tracker/tests/integration/test_run_20260406_153549.log
+# Expanded ${{HOME}} in ~/.oci for local oci (same as setup_oci_github_access.sh startup)
+
+=== Operator gate: OCI authentication (mandatory — verified by API) ===
+Profile: SLI_TEST (OCI_CLI_PROFILE=SLI_TEST)
+This script blocks until: oci iam region list --profile "SLI_TEST" succeeds.
+To create/refresh the SLI_TEST session and upload to GitHub (browser + gh):
+  bash "/Users/rstyczynski/projects/SLI_tracker/.github/actions/oci-profile-setup/setup_oci_github_access.sh" --repo "rstyczynski/sli_tracker"
+(Uses DEFAULT only to resolve home region; session profile name defaults to SLI_TEST — see script --help.)
+
+OK: profile 'SLI_TEST' passed oci iam region list — continuing.
+
+# token_based: PATH prepends /Users/rstyczynski/.local/oci-wrapper/bin/oci (real oci: /opt/homebrew/bin/oci)
+
+  [INFO] COMPARTMENT_OCID defaulted to tenancy: ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a
+  [INFO] OCI_REGION defaulted to home region: eu-zurich-1
+  [INFO] STATE_FILE: /Users/rstyczynski/projects/SLI_tracker/state-sli_test_sprint6.json
+  [EXISTING] Log Group 'sli-events': ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq
+  [EXISTING] Log 'github-actions': ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa
+=== T0: repo tooling prerequisites ===
+PASS: gh CLI present
+PASS: OCI CLI present
+PASS: jq present
+
+=== T0a: OCI profile (same as gate) — T7 logging-search uses this profile ===
+PASS: local profile SLI_TEST: API call succeeded (already verified at gate)
+
+=== T0b: OCI resource resolution (oci_scaffold URI-style) ===
+PASS: TENANCY resolved: ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a
+PASS: LOG_GROUP_OCID resolved: ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq
+PASS: SLI_LOG_OCID resolved: ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa
+
+=== T1: unit tests — emit.sh helper functions ===
+FAIL: emit.sh unit tests: passed count  (got=47 want=33)
+PASS: emit.sh unit tests: failed count
+
+=== T2: model-call — success + failure workflow dispatch ===
+PASS: model-call success run triggered: 24038273044
+PASS: model-call failure run triggered: 24038274931
+
+=== T3: model-push — success + failure workflow dispatch ===
+PASS: model-push success run triggered: 24038277560
+PASS: model-push failure run triggered: 24038279824
+
+=== T4: wait for all four runs to complete ===
+    Runs: 24038273044 24038274931 24038277560 24038279824
+PASS: run 24038273044 completed
+PASS: run 24038274931 completed
+PASS: run 24038277560 completed
+PASS: run 24038279824 completed
+
+=== T5: expected workflow conclusions ===
+PASS: model-call success → conclusion success
+PASS: model-call failure → conclusion failure
+PASS: model-push success → conclusion success
+PASS: model-push failure → conclusion failure
+
+=== T6: sli-event step emitted to OCI (per-job notice) ===
+PASS: run 24038273044 / Delegate to reusable / Init — runner selection → init job (no SLI step expected)
+PASS: run 24038273044 / Delegate to reusable / SLI — init → SLI pushed
+PASS: run 24038273044 / Delegate to reusable / Main — per-env execution [model-env-2] / Leaf execution → SLI pushed
+PASS: run 24038273044 / Delegate to reusable / Main — per-env execution [model-env-1] / Leaf execution → SLI pushed
+PASS: run 24038274931 / Delegate to reusable / Init — runner selection → init job (no SLI step expected)
+PASS: run 24038274931 / Delegate to reusable / SLI — init → SLI pushed
+PASS: run 24038274931 / Delegate to reusable / Main — per-env execution [model-env-2] / Leaf execution → SLI pushed
+PASS: run 24038274931 / Delegate to reusable / Main — per-env execution [model-env-1] / Leaf execution → SLI pushed
+PASS: run 24038277560 / Delegate to reusable / Init — runner selection → init job (no SLI step expected)
+PASS: run 24038277560 / Delegate to reusable / SLI — init → SLI pushed
+PASS: run 24038277560 / Delegate to reusable / Main — per-env execution [model-env-2] / Leaf execution → SLI pushed
+PASS: run 24038277560 / Delegate to reusable / Main — per-env execution [model-env-1] / Leaf execution → SLI pushed
+PASS: run 24038279824 / Delegate to reusable / Init — runner selection → init job (no SLI step expected)
+PASS: run 24038279824 / Delegate to reusable / SLI — init → SLI pushed
+PASS: run 24038279824 / Delegate to reusable / Main — per-env execution [model-env-2] / Leaf execution → SLI pushed
+PASS: run 24038279824 / Delegate to reusable / Main — per-env execution [model-env-1] / Leaf execution → SLI pushed
+
+=== T7: OCI Logging received events — query last 15 min ===
+# OCI log captured: /Users/rstyczynski/projects/SLI_tracker/tests/integration/oci_logs_20260406_153549.json
+PASS: OCI received at least 12 events (4 runs × 3 jobs)
+PASS: OCI: at least 4 success outcome events
+PASS: OCI: at least 4 failure outcome events
+PASS: OCI: model-call events present
+PASS: OCI: model-push events present
+PASS: OCI: at least 4 failure events carry failure_reasons
+PASS: OCI: sli-init job events present
+PASS: OCI: leaf job events present
+
+=== T8: SLI-9 — environments field is native JSON array (not escaped string) ===
+PASS: OCI: environments field is not an escaped string (count=0)
+PASS: OCI: environments field is native array in at least 4 events
+
+=== Summary ===
+passed: 46  failed: 1
+
+=== Artifacts ===
+  execution log : /Users/rstyczynski/projects/SLI_tracker/tests/integration/test_run_20260406_153549.log
+  OCI log       : /Users/rstyczynski/projects/SLI_tracker/tests/integration/oci_logs_20260406_153549.json
+  progress copy : /Users/rstyczynski/projects/SLI_tracker/progress/integration_runs/20260406_153549 (same files for archive under progress/)
+[FAIL] integration/test_sli_integration.sh (exit code 1)
+=== integration summary: 3 scripts, 2 passed, 1 failed ===
+
+========================================
+TOTAL: 3 scripts, 2 passed, 1 failed
+========================================
+RESULT: FAIL

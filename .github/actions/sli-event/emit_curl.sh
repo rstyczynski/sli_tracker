@@ -115,14 +115,14 @@ x-content-sha256: ${BODY_HASH}
 content-type: application/json
 content-length: ${#BATCH}"
 
-    if [[ -n "$SECURITY_TOKEN" ]]; then
-      _signed_headers="${_signed_headers} x-security-token"
-      SIGNING_STRING="${SIGNING_STRING}
-x-security-token: ${SECURITY_TOKEN}"
-    fi
-
     SIGNATURE="$(printf '%s' "$SIGNING_STRING" | openssl dgst -sha256 -sign "$KEY_FILE" | openssl base64 -A)"
-    KEY_ID="${TENANCY}/${USER_OCID}/${FINGERPRINT}"
+
+    local KEY_ID
+    if [[ -n "$SECURITY_TOKEN" ]]; then
+      KEY_ID="ST\$${SECURITY_TOKEN}"
+    else
+      KEY_ID="${TENANCY}/${USER_OCID}/${FINGERPRINT}"
+    fi
     AUTH='Signature version="1",keyId="'"${KEY_ID}"'",algorithm="rsa-sha256",headers="'"${_signed_headers}"'",signature="'"${SIGNATURE}"'"'
 
     local _curl_args=( -s -X POST
@@ -133,11 +133,8 @@ x-security-token: ${SECURITY_TOKEN}"
       -H "x-content-sha256: ${BODY_HASH}"
       -H "Content-Type: application/json"
       -H "Content-Length: ${#BATCH}"
+      -d "$BATCH"
     )
-    if [[ -n "$SECURITY_TOKEN" ]]; then
-      _curl_args+=( -H "x-security-token: ${SECURITY_TOKEN}" )
-    fi
-    _curl_args+=( -d "$BATCH" )
 
     local _resp_file _http_code _body
     _resp_file="$(mktemp)"

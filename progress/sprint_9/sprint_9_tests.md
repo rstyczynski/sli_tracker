@@ -17,7 +17,7 @@ Script: `tests/integration/test_sli_emit_curl_workflow.sh`
 | IT-4 | T6 | OCI Logging has ≥2 events with correct `outcome` and `workflow` fields |
 | IT-5 | T7 | Failure event carries non-empty `failure_reasons` incl. `STEP_MAIN` key |
 
-**Status:** PENDING (requires live dispatch — operator runs manually or via Phase 4.1)
+**Status:** PASS (2026-04-06)
 
 ## Regression (Unit Gate)
 
@@ -27,5 +27,10 @@ Run `tests/run.sh --unit` — all 33 unit tests must pass (0 failures).
 
 | Suite | Script | Cases | Status |
 |-------|--------|-------|--------|
-| Integration (new) | `test_sli_emit_curl_workflow.sh` | IT-1..IT-5 | PENDING |
-| Regression (unit) | `tests/run.sh --unit` | 33 | PENDING |
+| Integration (new) | `test_sli_emit_curl_workflow.sh` | IT-1..IT-5 | PASS (2026-04-06) |
+| Regression (unit) | `tests/run.sh --unit` | 33 | PASS (2026-04-06) |
+
+## Execution Notes (2026-04-06)
+
+- Integration gate run: `bash tests/run.sh --integration --new-only progress/sprint_9/new_tests.manifest` — PASS (18 assertions)
+- Unit regression: `bash tests/run.sh --unit` — PASS (3 scripts)

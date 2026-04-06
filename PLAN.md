@@ -91,14 +91,14 @@ Backlog Items:
 
 ## Sprint 9 - emit_curl workflow and integration test
 
-Status: Failed
+Status: Done
 Mode: YOLO
 Test: integration
 Regression: unit
 
 Adds a minimal GitHub Actions workflow that emits SLI events with `emit-backend: curl` without installing OCI CLI, while still using `oci-profile-setup` for the profile. Adds an integration test that dispatches that workflow and verifies OCI Logging.
 
-**Failure reason:** `emit_curl.sh` curl-based OCI request signing does not authenticate successfully with session-token profiles. See `progress/sprint_9/sprint_9_failure_summary.md` for investigation details and next steps.
+**Completed (2026-04-06):** Workflow dispatch integration (`tests/integration/test_sli_emit_curl_workflow.sh`) now passes end-to-end and verifies events landed in OCI Logging. Session-token request signing is aligned with `oci-python-sdk` (see `progress/sprint_8/sprint_8_implementation.md` for the signing algorithm).
 
 Backlog Items:
 

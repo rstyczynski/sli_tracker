@@ -2,10 +2,16 @@
 
 **Sprint:** 9 — emit_curl workflow and integration test
 **Backlog Item:** SLI-12
-**Status:** Failed
+**Status:** Resolved (2026-04-06)
 **Date:** 2026-04-06
 
 ---
+
+## Resolution (2026-04-06)
+
+The root cause was the incomplete `emit_curl.sh` signing implementation for session-token authentication. After aligning `emit_curl.sh` with `oci-python-sdk` request signing (header order, `Authorization` field ordering, UTF-8 `content-length`, and `keyId="ST$<token>"`), the workflow path succeeds.
+
+**Retest:** `tests/integration/test_sli_emit_curl_workflow.sh` now passes end-to-end (18/18 assertions) and confirms both success and failure events landed in OCI Logging.
 
 ## What was accomplished
 
@@ -15,7 +21,7 @@
 4. **Integration test:** `tests/integration/test_sli_emit_curl_workflow.sh` — 7 test sections (T1–T7) covering dispatch, completion, conclusions, no OCI CLI install, curl notice, OCI event content, and `failure_reasons`.
 5. **Partial test pass:** 12 of 18 assertions pass (T1–T4 all green).
 
-## What failed
+## What failed (historical)
 
 `emit_curl.sh` cannot successfully push events to OCI Logging when using a **session-token** profile. The curl-based HTTP request signing returns **HTTP 401**.
 
@@ -65,4 +71,4 @@ The exact OCI REST API signing protocol for `ST$` session-token authentication i
 
 ## Current state of `emit_curl.sh`
 
-The file currently contains diagnostic code (response body capture, no `-f` flag). Before the next attempt, this should be cleaned up or the diagnostic mode should be made conditional.
+`emit_curl.sh` is now in its normal (non-diagnostic) form and successfully emits to OCI Logging for both API-key and session-token profiles (validated locally and via workflow dispatch integration).

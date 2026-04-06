@@ -303,18 +303,18 @@ FAILURE_COUNT=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="st
 assert_ge "OCI: at least 4 success outcome events" "$SUCCESS_COUNT" 4
 assert_ge "OCI: at least 4 failure outcome events" "$FAILURE_COUNT" 4
 
-CALL_EVENTS=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select((.workflow // "") | type == "string" and test("API / UI call"))] | length')
-PUSH_EVENTS=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select((.workflow // "") | type == "string" and test("Push trigger"))] | length')
+CALL_EVENTS=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select((.workflow.name // "") | test("API / UI call"))] | length')
+PUSH_EVENTS=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select((.workflow.name // "") | test("Push trigger"))] | length')
 assert_ge "OCI: model-call events present" "$CALL_EVENTS" 3
 assert_ge "OCI: model-push events present" "$PUSH_EVENTS" 3
 
 FAIL_REASON_COUNT=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select((.failure_reasons // {}) | type == "object" and length > 0)] | length')
 assert_ge "OCI: at least 4 failure events carry failure_reasons" "$FAIL_REASON_COUNT" 4
 
-INIT_EVENTS=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select((.job // "") == "sli-init")] | length')
+INIT_EVENTS=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select((.workflow.job // "") == "sli-init")] | length')
 assert_ge "OCI: sli-init job events present" "$INIT_EVENTS" 4
 
-LEAF_EVENTS=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select((.job // "") == "leaf")] | length')
+LEAF_EVENTS=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select((.workflow.job // "") == "leaf")] | length')
 assert_ge "OCI: leaf job events present" "$LEAF_EVENTS" 8
 
 echo ""

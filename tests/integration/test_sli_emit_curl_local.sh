@@ -176,11 +176,11 @@ EVENTS=$(oci logging-search search-logs \
 printf '%s\n' "$EVENTS" > "$OCI_LOG_FILE"
 echo "# OCI sample: $OCI_LOG_FILE"
 
-MATCH=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select(.workflow != null) | select(.workflow | test("LOCAL — emit_curl"))] | length')
+MATCH=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select(.workflow.name != null) | select(.workflow.name | test("LOCAL — emit_curl"))] | length')
 if [[ "${MATCH:-0}" -ge 1 ]]; then
-  pass "OCI log contains at least one event with workflow LOCAL — emit_curl"
+  pass "OCI log contains at least one event with workflow.name LOCAL — emit_curl"
 else
-  fail "OCI log: no event with workflow LOCAL — emit_curl (got=$MATCH want>=1)"
+  fail "OCI log: no event with workflow.name LOCAL — emit_curl (got=$MATCH want>=1)"
 fi
 
 echo ""

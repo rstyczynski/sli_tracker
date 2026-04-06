@@ -15,6 +15,7 @@ sli_normalize_json_object() {
 }
 
 # Build BASE log object from env (expects GITHUB_* + SLI_OUTCOME + optional SLI_TIMESTAMP).
+# Schema: workflow.* = GitHub Actions runtime context; repo.* = repository/git state.
 sli_build_base_json() {
   local ts="${SLI_TIMESTAMP:-}"
   [[ -z "$ts" ]] && ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
@@ -35,22 +36,26 @@ sli_build_base_json() {
     --arg ev        "${GITHUB_EVENT_NAME:-}" \
     --arg actor     "${GITHUB_ACTOR:-}" \
     '{
-      source:               "github-actions/sli-tracker",
-      outcome:              $outcome,
-      workflow_run_id:      $run_id,
-      workflow_run_number:  $run_num,
-      workflow_run_attempt: $run_att,
-      repository:           $repo,
-      repository_id:        $repo_id,
-      ref:                  $ref,
-      ref_full:             $ref_full,
-      sha:                  $sha,
-      workflow:             $wf,
-      workflow_ref:         $wf_ref,
-      job:                  $job_id,
-      event_name:           $ev,
-      actor:                $actor,
-      timestamp:            $ts
+      source:    "github-actions/sli-tracker",
+      outcome:   $outcome,
+      timestamp: $ts,
+      workflow: {
+        run_id:      $run_id,
+        run_number:  $run_num,
+        run_attempt: $run_att,
+        name:        $wf,
+        ref:         $wf_ref,
+        job:         $job_id,
+        event_name:  $ev,
+        actor:       $actor
+      },
+      repo: {
+        repository:    $repo,
+        repository_id: $repo_id,
+        ref:           $ref,
+        ref_full:      $ref_full,
+        sha:           $sha
+      }
     }'
 }
 

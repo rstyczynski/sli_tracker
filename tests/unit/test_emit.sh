@@ -137,8 +137,8 @@ export GITHUB_REPOSITORY="o/r" GITHUB_REPOSITORY_ID="42"
 export GITHUB_REF_NAME="main" GITHUB_REF="refs/heads/main" GITHUB_SHA="abc"
 export GITHUB_WORKFLOW="wf" GITHUB_WORKFLOW_REF="o/r/.github/workflows/w.yml@refs/heads/main"
 export GITHUB_JOB="leaf" GITHUB_EVENT_NAME="push" GITHUB_ACTOR="me"
-want='{"source":"github-actions/sli-tracker","outcome":"success","workflow_run_id":"99","workflow_run_number":"7","workflow_run_attempt":"2","repository":"o/r","repository_id":"42","ref":"main","ref_full":"refs/heads/main","sha":"abc","workflow":"wf","workflow_ref":"o/r/.github/workflows/w.yml@refs/heads/main","job":"leaf","event_name":"push","actor":"me","timestamp":"2026-01-01T00:00:00Z"}'
-assert_json_eq "$(sli_build_base_json)" "$want" "base json from env"
+want='{"source":"github-actions/sli-tracker","outcome":"success","timestamp":"2026-01-01T00:00:00Z","workflow":{"run_id":"99","run_number":"7","run_attempt":"2","name":"wf","ref":"o/r/.github/workflows/w.yml@refs/heads/main","job":"leaf","event_name":"push","actor":"me"},"repo":{"repository":"o/r","repository_id":"42","ref":"main","ref_full":"refs/heads/main","sha":"abc"}}'
+assert_json_eq "$(sli_build_base_json)" "$want" "base json from env — nested workflow+repo schema"
 for _v in "${_sli_test_vars[@]}"; do export "$_v=${_sli_test_saved[$_v]}"; done
 unset _sli_test_vars _sli_test_saved _v want
 

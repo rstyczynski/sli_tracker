@@ -266,8 +266,8 @@ FAILURE_CNT=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="stri
 assert_ge "OCI: at least 1 success event" "$SUCCESS_CNT" 1
 assert_ge "OCI: at least 1 failure event" "$FAILURE_CNT" 1
 
-CURL_WF_EVENTS=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select(.workflow != null) | select(.workflow | test("emit_curl"))] | length')
-assert_ge "OCI: events carry correct workflow name (contains 'emit_curl')" "$CURL_WF_EVENTS" 2
+CURL_WF_EVENTS=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select(.workflow.name != null) | select(.workflow.name | test("emit_curl"))] | length')
+assert_ge "OCI: events carry correct workflow.name (contains 'emit_curl')" "$CURL_WF_EVENTS" 2
 
 # ════════════════════════════════════════════════════════════════
 # T7: Failure event carries failure_reasons (IT-5)

@@ -125,7 +125,7 @@ x-security-token: ${SECURITY_TOKEN}"
     KEY_ID="${TENANCY}/${USER_OCID}/${FINGERPRINT}"
     AUTH='Signature version="1",keyId="'"${KEY_ID}"'",algorithm="rsa-sha256",headers="'"${_signed_headers}"'",signature="'"${SIGNATURE}"'"'
 
-    local _curl_args=( -s -f -X POST
+    local _curl_args=( -s -X POST
       "https://${HOST}/20200831/logs/${OCI_LOG_ID}/actions/push"
       -H "Authorization: ${AUTH}"
       -H "Date: ${DATE}"

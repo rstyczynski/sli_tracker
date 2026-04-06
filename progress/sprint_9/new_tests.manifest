@@ -1,0 +1,5 @@
+# Sprint 9 new tests manifest (SLI-12)
+# Format: suite:script_name[:label]  (see tests/run.sh --new-only)
+
+# IT-1 — emit_curl-only workflow E2E (implemented with SLI-12)
+integration:test_sli_emit_curl_workflow.sh

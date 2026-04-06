@@ -2,9 +2,10 @@
 # Operator script: OCI session auth, pack ~/.oci/config + one session dir, upload to GitHub as a repository secret.
 # Requires: oci, gh, jq, tar, base64. Interactive: oci session authenticate (browser).
 #
-# The packed config contains ONE self-contained profile (the session profile).
-# Fields missing in the session section (e.g. tenancy, user) are copied from
-# the base profile so the curl emit backend can sign requests without OCI CLI.
+# The packed tarball contains only the session profile section copied verbatim from
+# ~/.oci/config (no merging from [DEFAULT]). Ensure that section has every field you
+# need (e.g. for API-key signing: tenancy, user, fingerprint; for session token:
+# key_file, region, security_token_file — see emit_curl.sh).
 #
 # Usage: .../setup_oci_github_access.sh [--profile PROFILE] [--repo OWNER/REPO]
 #          [--session-profile-name NAME] [--secret-name NAME] [--dry-run] [--skip-session-auth] [--help]
@@ -188,40 +189,30 @@ if [[ ! -d "${HOME}/${SESSION_REL}" ]]; then
   exit 1
 fi
 
-# ── Build a self-contained single-profile config ──
-# Session profiles created by `oci session authenticate` may omit fields that
-# live in the base profile (tenancy, user).  The curl emit backend needs them
-# for API-key request signing.  Copy any missing field from the base profile
-# so the packed config is fully self-contained.
-
-_oci_cfg_field() {
-  local file="$1" prof="$2" fld="$3"
-  awk -v prof="[$prof]" -v key="$fld" '
-    /^\[/ { in_prof = ($0 == prof) }
-    in_prof && $0 ~ "^" key "[ \t]*=" {
-      sub(/^[^=]*=[ \t]*/, ""); print; exit
-    }
-  ' "$file"
-}
+# ── Single-profile config: copy only [SESSION_PROFILE_NAME] from ~/.oci/config ──
 
 FULL_CFG="${HOME}/.oci/config"
 PACKED_CFG="$(mktemp)"
 
-{
-  echo "[${SESSION_PROFILE_NAME}]"
-  for _fld in tenancy user fingerprint key_file region security_token_file; do
-    _val="$(_oci_cfg_field "$FULL_CFG" "$SESSION_PROFILE_NAME" "$_fld")"
-    if [[ -z "$_val" ]]; then
-      _val="$(_oci_cfg_field "$FULL_CFG" "$PROFILE" "$_fld")"
-    fi
-    if [[ -n "$_val" ]]; then
-      echo "${_fld}=${_val}"
-    fi
-  done
-} > "$PACKED_CFG"
+_prof_line="[${SESSION_PROFILE_NAME}]"
+awk -v want="${_prof_line}" '
+  function strip(s) { sub(/\r$/, "", s); return s }
+  {
+    line = strip($0)
+    if (line == want) { inblk = 1; print $0; next }
+    if (line ~ /^\[/ && inblk) exit
+    if (inblk) print $0
+  }
+' "$FULL_CFG" > "$PACKED_CFG"
+
+if [[ ! -s "$PACKED_CFG" ]]; then
+  echo "ERROR: Profile section ${_prof_line} not found (or empty) in ${FULL_CFG}" >&2
+  rm -f "$PACKED_CFG"
+  exit 1
+fi
 
 echo ""
-echo "Packed config (single-profile, self-contained):"
+echo "Packed config (verbatim session profile only, no [DEFAULT] merge):"
 cat "$PACKED_CFG"
 echo ""
 

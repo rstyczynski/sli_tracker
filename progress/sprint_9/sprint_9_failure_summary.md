@@ -10,7 +10,7 @@
 ## What was accomplished
 
 1. **Workflow created:** `.github/workflows/model-emit-curl.yml` — dispatches via `workflow_dispatch`, uses `oci-profile-setup` with `oci-auth-mode: none` (no OCI CLI), calls `sli-event` with `emit-backend: curl`.
-2. **Self-contained OCI profile packing:** `setup_oci_github_access.sh` updated to build a single-profile tarball where session profile `[SLI_TEST]` includes all fields (`tenancy`, `user`, `fingerprint`, `key_file`, `region`, `security_token_file`) copied from `[DEFAULT]` if missing.
+2. **OCI profile packing:** `setup_oci_github_access.sh` packs the session profile section verbatim from `~/.oci/config` (no field copying from `[DEFAULT]`). Operators must ensure that section is complete for their auth mode.
 3. **Session token support in `emit_curl.sh`:** Added logic to read `security_token_file` and conditionally use it for authentication.
 4. **Integration test:** `tests/integration/test_sli_emit_curl_workflow.sh` — 7 test sections (T1–T7) covering dispatch, completion, conclusions, no OCI CLI install, curl notice, OCI event content, and `failure_reasons`.
 5. **Partial test pass:** 12 of 18 assertions pass (T1–T4 all green).

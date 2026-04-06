@@ -21,7 +21,7 @@ The script exports **`OCI_CLI_PROFILE`** to that value so **oci_scaffold** and b
 | Script | Purpose |
 | ------ | ------- |
 | `test_sli_integration.sh` | Full model-call / model-push pipeline; exercises default **oci-cli** emit backend |
-| `test_sli_emit_curl_local.sh` | **Sprint 8 reopen:** run `emit_curl.sh` locally with real OCI profile — **no** GitHub workflow dispatch. If `[SLI_TEST]` omits `tenancy`/`user` (they live under `[DEFAULT]`), `emit_curl.sh` merges from `DEFAULT` in the same file. |
+| `test_sli_emit_curl_local.sh` | **Sprint 8 reopen:** run `emit_curl.sh` locally with real OCI profile — **no** GitHub workflow dispatch. The named profile must contain all required fields (no `[DEFAULT]` merge). |
 | `test_sli_emit_curl_workflow.sh` | Dispatches `model-emit-curl.yml` (curl backend on the runner); use for SLI-12 / workflow validation, not Sprint 8 local goal |
 
 ## Convention

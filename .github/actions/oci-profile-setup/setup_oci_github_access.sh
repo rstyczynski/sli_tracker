@@ -2,6 +2,10 @@
 # Operator script: OCI session auth, pack ~/.oci/config + one session dir, upload to GitHub as a repository secret.
 # Requires: oci, gh, jq, tar, base64. Interactive: oci session authenticate (browser).
 #
+# The packed config contains ONE self-contained profile (the session profile).
+# Fields missing in the session section (e.g. tenancy, user) are copied from
+# the base profile so the curl emit backend can sign requests without OCI CLI.
+#
 # Usage: .../setup_oci_github_access.sh [--profile PROFILE] [--repo OWNER/REPO]
 #          [--session-profile-name NAME] [--secret-name NAME] [--dry-run] [--skip-session-auth] [--help]
 
@@ -184,40 +188,78 @@ if [[ ! -d "${HOME}/${SESSION_REL}" ]]; then
   exit 1
 fi
 
-# Normalize only paths under ~/.oci/ so the tarball is portable on the runner.
-# Do NOT replace bare $HOME everywhere: base profiles often use key_file under ~/.ssh/;
-# rewriting those to ${{HOME}}/.ssh/... breaks local `oci` (literal ${{HOME}} is not expanded).
-# The runner action replaces ${{HOME}} back to the runner's $HOME after untar.
-if command -v perl >/dev/null 2>&1; then
-  perl -pi -e "s#\\Q$HOME/.oci/#\\$\\{\\{HOME\\}\\}/.oci/#g" "$HOME/.oci/config" || true
-  if compgen -G "$HOME/${SESSION_REL}/*" >/dev/null 2>&1; then
-    perl -pi -e "s#\\Q$HOME/.oci/#\\$\\{\\{HOME\\}\\}/.oci/#g" "$HOME"/${SESSION_REL}/* || true
-  fi
-else
-  sed -i.bak "s#$HOME/.oci/#\${{HOME}}/.oci/#g" "$HOME/.oci/config" || true
-  if compgen -G "$HOME/${SESSION_REL}/*" >/dev/null 2>&1; then
-    sed -i.bak "s#$HOME/.oci/#\${{HOME}}/.oci/#g" "$HOME"/${SESSION_REL}/* || true
-  fi
-fi
+# ── Build a self-contained single-profile config ──
+# Session profiles created by `oci session authenticate` may omit fields that
+# live in the base profile (tenancy, user).  The curl emit backend needs them
+# for API-key request signing.  Copy any missing field from the base profile
+# so the packed config is fully self-contained.
+
+_oci_cfg_field() {
+  local file="$1" prof="$2" fld="$3"
+  awk -v prof="[$prof]" -v key="$fld" '
+    /^\[/ { in_prof = ($0 == prof) }
+    in_prof && $0 ~ "^" key "[ \t]*=" {
+      sub(/^[^=]*=[ \t]*/, ""); print; exit
+    }
+  ' "$file"
+}
+
+FULL_CFG="${HOME}/.oci/config"
+PACKED_CFG="$(mktemp)"
+
+{
+  echo "[${SESSION_PROFILE_NAME}]"
+  for _fld in tenancy user fingerprint key_file region security_token_file; do
+    _val="$(_oci_cfg_field "$FULL_CFG" "$SESSION_PROFILE_NAME" "$_fld")"
+    if [[ -z "$_val" ]]; then
+      _val="$(_oci_cfg_field "$FULL_CFG" "$PROFILE" "$_fld")"
+    fi
+    if [[ -n "$_val" ]]; then
+      echo "${_fld}=${_val}"
+    fi
+  done
+} > "$PACKED_CFG"
+
+echo ""
+echo "Packed config (single-profile, self-contained):"
+cat "$PACKED_CFG"
+echo ""
 
 TMP_TAR="$(mktemp)"
-trap 'rm -f "$TMP_TAR"' EXIT
+TMP_OCI_DIR="$(mktemp -d)"
+trap 'rm -f "$TMP_TAR" "$PACKED_CFG"; rm -rf "$TMP_OCI_DIR"' EXIT
 
-# Pack only what this workflow needs — NOT the whole ~/.oci tree.
-# A full `tar ... .oci` includes every other session profile, caches, and leftovers
-# (easily 300KB+ base64); GitHub secrets are capped at 64KB.
-# Session auth only needs: shared config + this session's directory (keys, token, etc.).
-rm -f "${HOME}/${SESSION_REL}"/*.bak 2>/dev/null || true
+# Assemble the tarball tree from copies (never modify the operator's real ~/.oci).
+mkdir -p "${TMP_OCI_DIR}/.oci"
+cp "$PACKED_CFG" "${TMP_OCI_DIR}/.oci/config"
+mkdir -p "$(dirname "${TMP_OCI_DIR}/${SESSION_REL}")"
+cp -a "${HOME}/${SESSION_REL}" "${TMP_OCI_DIR}/${SESSION_REL}"
+rm -f "${TMP_OCI_DIR}/${SESSION_REL}"/*.bak 2>/dev/null || true
+
+# Normalize ~/.oci/ paths to portable ${{HOME}} placeholder (on the copies only).
+if command -v perl >/dev/null 2>&1; then
+  perl -pi -e "s#\\Q$HOME/.oci/#\\$\\{\\{HOME\\}\\}/.oci/#g" "${TMP_OCI_DIR}/.oci/config" || true
+  if compgen -G "${TMP_OCI_DIR}/${SESSION_REL}/*" >/dev/null 2>&1; then
+    perl -pi -e "s#\\Q$HOME/.oci/#\\$\\{\\{HOME\\}\\}/.oci/#g" "${TMP_OCI_DIR}"/${SESSION_REL}/* || true
+  fi
+else
+  sed -i.bak "s#$HOME/.oci/#\${{HOME}}/.oci/#g" "${TMP_OCI_DIR}/.oci/config" || true
+  if compgen -G "${TMP_OCI_DIR}/${SESSION_REL}/*" >/dev/null 2>&1; then
+    sed -i.bak "s#$HOME/.oci/#\${{HOME}}/.oci/#g" "${TMP_OCI_DIR}"/${SESSION_REL}/* || true
+  fi
+  rm -f "${TMP_OCI_DIR}/${SESSION_REL}"/*.bak 2>/dev/null || true
+fi
 
 echo "Packing into secret (paths relative to HOME):"
-echo "  .oci/config"
+echo "  .oci/config  (single-profile: ${SESSION_PROFILE_NAME})"
 echo "  ${SESSION_REL}/"
 if command -v du >/dev/null 2>&1; then
   echo "  (approx sizes on disk)"
-  du -sh "${HOME}/.oci/config" "${HOME}/${SESSION_REL}" 2>/dev/null || true
+  du -sh "${TMP_OCI_DIR}/.oci/config" "${TMP_OCI_DIR}/${SESSION_REL}" 2>/dev/null || true
 fi
 
-tar -czf "$TMP_TAR" -C "$HOME" .oci/config "${SESSION_REL}"
+tar -czf "$TMP_TAR" -C "$TMP_OCI_DIR" .oci/config "${SESSION_REL}"
+rm -rf "$TMP_OCI_DIR"
 PAYLOAD="$(sli_base64_encode_nowrap <"$TMP_TAR")"
 
 MAX_BYTES=$((64 * 1024))

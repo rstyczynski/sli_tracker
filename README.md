@@ -24,6 +24,81 @@ All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifac
 
 ## Recent updates
 
+### Sprint 10 — Nested `workflow` + `repo` schema in SLI events (YOLO)
+
+**Status:** implemented + tested
+
+**Backlog:**
+
+- **SLI-13:** All GitHub Actions runtime metadata (`run_id`, `run_number`, `run_attempt`, `name`, `ref`, `job`, `event_name`, `actor`) now emitted under a single nested `workflow` object instead of separate top-level fields.
+- **SLI-14:** Repository and git-state attributes (`repository`, `repository_id`, `ref`, `ref_full`, `sha`) now emitted under a nested `repo` object.
+- **SLI-15:** All unit and integration tests updated for the new field paths. Old `workflow_run_id`, `repository`, `ref`, `job`, etc. no longer appear at the top level.
+
+**Breaking change:** OCI Logging queries referencing old top-level paths (`workflow_run_id`, `repository`, `job`, etc.) must be updated to the new nested paths (`workflow.run_id`, `repo.repository`, `workflow.job`, etc.).
+
+**New event shape (excerpt):**
+
+```json
+{
+  "source": "github-actions/sli-tracker",
+  "outcome": "success",
+  "timestamp": "2026-04-06T15:45:03Z",
+  "workflow": { "run_id": "...", "name": "...", "job": "...", "actor": "...", "event_name": "..." },
+  "repo":     { "repository": "...", "ref": "main", "sha": "..." }
+}
+```
+
+**Key changes:**
+
+- `.github/actions/sli-event/emit_common.sh` — `sli_build_base_json()` now produces nested `workflow.*` and `repo.*`
+- `tests/unit/test_emit.sh` — updated `sli_build_base_json` assertion + 3 new Sprint 10 assertions (47 total)
+- `tests/integration/test_sli_integration.sh` — updated 4 jq filters + hardcoded unit count
+- `tests/integration/test_sli_emit_curl_local.sh` — updated jq filter to `.workflow.name`
+- `tests/integration/test_sli_emit_curl_workflow.sh` — updated jq filter to `.workflow.name`
+
+**Quality gates:** Unit 58/58, Integration 67/67. All passed.
+
+**Artifacts:** `progress/sprint_10/`. Traceability: `progress/backlog/SLI-13/`, `progress/backlog/SLI-14/`, `progress/backlog/SLI-15/`.
+
+---
+
+### Sprint 9 — emit_curl workflow and integration test (YOLO)
+
+**Status:** implemented + tested
+
+**Backlog:**
+
+- **SLI-12:** Added `model-emit-curl.yml` GitHub Actions workflow that emits SLI events via the curl backend (no OCI CLI install). Added `tests/integration/test_sli_emit_curl_workflow.sh` end-to-end integration test that dispatches the workflow and verifies events landed in OCI Logging.
+
+**Key changes:**
+
+- `.github/workflows/model-emit-curl.yml` — curl-backend workflow (no `install-oci-cli`)
+- `tests/integration/test_sli_emit_curl_workflow.sh` — workflow dispatch + OCI verification
+
+**Artifacts:** `progress/sprint_9/`. Traceability: `progress/backlog/SLI-12/`.
+
+---
+
+### Sprint 8 — curl backend for emit.sh (YOLO)
+
+**Status:** implemented + tested
+
+**Backlog:**
+
+- **SLI-11:** `emit.sh` split into `emit_oci.sh` (OCI CLI transport), `emit_curl.sh` (pure bash+curl+openssl, zero install), and `emit_common.sh` (shared helpers). `emit.sh` becomes a thin dispatcher via `emit-backend: oci-cli | curl` input.
+
+**Key changes:**
+
+- `.github/actions/sli-event/emit_common.sh` — shared payload helpers
+- `.github/actions/sli-event/emit_oci.sh` — OCI CLI transport
+- `.github/actions/sli-event/emit_curl.sh` — curl transport with self-crafted HTTP request signing
+- `.github/actions/sli-event/emit.sh` — dispatcher
+- `tests/integration/test_sli_emit_curl_local.sh` — local emit_curl.sh validation against live OCI
+
+**Artifacts:** `progress/sprint_8/`. Traceability: `progress/backlog/SLI-11/`.
+
+---
+
 ### Sprint 7 — Test-first quality gates bootstrap (managed)
 
 **Status:** implemented + tested

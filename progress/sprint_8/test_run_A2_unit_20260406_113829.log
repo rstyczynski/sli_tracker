@@ -1,0 +1,31 @@
+[info] --new-only mode: filtering to tests listed in progress/sprint_8/new_tests.manifest
+[info] current implementation filters at script level, not function level
+=== unit tests ===
+[run] unit/test_emit.sh
+== sli_normalize_json_object ==
+== sli_expand_oci_config_path ==
+== sli_merge_flat_context ==
+== sli_extract_oci_json ==
+== sli_failure_reasons_from_steps_json ==
+== sli_merge_failure_reasons ==
+== sli_unescape_json_fields ==
+== sli_build_log_entry ==
+== sli_build_base_json (fake GITHUB_*) ==
+== UT-1: emit_common.sh — all helpers sourced ==
+== UT-2: _oci_config_field — multi-profile config parsing ==
+== UT-3: emit_curl.sh — SLI_SKIP_OCI_PUSH skips curl ==
+== UT-4: emit_curl.sh — Authorization header structure ==
+== UT-5: emit_curl.sh — payload is valid JSON batch ==
+== UT-6: emit.sh dispatcher — EMIT_BACKEND=curl ==
+== UT-7: emit.sh dispatcher — EMIT_BACKEND=oci-cli ==
+== summary ==
+passed: 33  failed: 0
+[PASS] unit/test_emit.sh
+[skip] unit/test_install_oci_cli.sh (not in manifest)
+[skip] unit/test_oci_profile_setup.sh (not in manifest)
+=== unit summary: 1 scripts, 1 passed, 0 failed ===
+
+========================================
+TOTAL: 1 scripts, 1 passed, 0 failed
+========================================
+RESULT: PASS

@@ -39,4 +39,9 @@ Expected: `TOTAL: 3 scripts, 3 passed, 0 failed` / `RESULT: PASS`
 | UT-7 | Dispatcher EMIT_BACKEND=oci-cli | PASS |
 | Regression | 24 prior unit tests + 2 other scripts | PASS |
 
-**Total: 33 passed / 0 failed**
+Total: 33 passed / 0 failed
+
+## Artifacts
+
+- Gate A2 log: `progress/sprint_8/test_run_A2_unit_20260406_113829.log`
+- Gate B2 log: `progress/sprint_8/test_run_B2_unit_20260406_113837.log`

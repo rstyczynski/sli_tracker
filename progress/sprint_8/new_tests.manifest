@@ -1,0 +1,8 @@
+# Sprint 8 new tests manifest
+unit:test_emit.sh:UT-1
+unit:test_emit.sh:UT-2
+unit:test_emit.sh:UT-3
+unit:test_emit.sh:UT-4
+unit:test_emit.sh:UT-5
+unit:test_emit.sh:UT-6
+unit:test_emit.sh:UT-7

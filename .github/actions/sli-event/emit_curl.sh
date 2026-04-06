@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # SLI event emitter — curl + openssl backend (zero install).
-# Sources emit_common.sh for payload assembly; pushes via OCI API-key request signing.
+# Sources emit_common.sh for payload assembly; pushes via OCI request signing.
+# Supports API-key profiles and session-token profiles (x-security-token header).
 # Requires: curl, openssl, jq (all pre-installed on ubuntu-latest).
 
 set -euo pipefail
@@ -67,6 +68,14 @@ sli_emit_main() {
     API_DOMAIN="${_api_domain:-${OCI_API_DOMAIN:-oraclecloud.com}}"
     KEY_FILE="$(sli_expand_oci_config_path "$KEY_FILE")"
 
+    local SECURITY_TOKEN_FILE SECURITY_TOKEN
+    SECURITY_TOKEN_FILE="$(_oci_config_field "$OCI_CONFIG" "$OCI_PROFILE" security_token_file)"
+    SECURITY_TOKEN_FILE="$(sli_expand_oci_config_path "$SECURITY_TOKEN_FILE")"
+    SECURITY_TOKEN=""
+    if [[ -n "$SECURITY_TOKEN_FILE" && -f "$SECURITY_TOKEN_FILE" ]]; then
+      SECURITY_TOKEN="$(cat "$SECURITY_TOKEN_FILE")"
+    fi
+
     if [[ -z "$TENANCY" || -z "$USER_OCID" || -z "$FINGERPRINT" || -z "$KEY_FILE" || -z "$REGION" ]]; then
       echo "::warning::SLI curl push failed — missing fields in profile $OCI_PROFILE (need tenancy/user/fingerprint/key_file/region)"
       return 0
@@ -107,16 +116,22 @@ content-length: ${#BATCH}"
     KEY_ID="${TENANCY}/${USER_OCID}/${FINGERPRINT}"
     AUTH='Signature version="1",keyId="'"${KEY_ID}"'",algorithm="rsa-sha256",headers="(request-target) date host x-content-sha256 content-type content-length",signature="'"${SIGNATURE}"'"'
 
-    curl -s -f -X POST \
-      "https://${HOST}/20200831/logs/${OCI_LOG_ID}/actions/push" \
-      -H "Authorization: ${AUTH}" \
-      -H "Date: ${DATE}" \
-      -H "Host: ${HOST}" \
-      -H "x-content-sha256: ${BODY_HASH}" \
-      -H "Content-Type: application/json" \
-      -H "Content-Length: ${#BATCH}" \
-      -d "$BATCH" \
-    && echo "::notice::SLI log entry pushed to OCI Logging" \
+    local _curl_args=( -s -f -X POST
+      "https://${HOST}/20200831/logs/${OCI_LOG_ID}/actions/push"
+      -H "Authorization: ${AUTH}"
+      -H "Date: ${DATE}"
+      -H "Host: ${HOST}"
+      -H "x-content-sha256: ${BODY_HASH}"
+      -H "Content-Type: application/json"
+      -H "Content-Length: ${#BATCH}"
+    )
+    if [[ -n "$SECURITY_TOKEN" ]]; then
+      _curl_args+=( -H "x-security-token: ${SECURITY_TOKEN}" )
+    fi
+    _curl_args+=( -d "$BATCH" )
+
+    curl "${_curl_args[@]}" \
+    && echo "::notice::SLI log entry pushed to OCI Logging (curl)" \
     || echo "::warning::SLI report failed to push to OCI Logging (non-fatal)"
 
   elif [[ -n "$OCI_LOG_ID" && -n "$(echo "$OCI_JSON" | jq -r '."config-file" // empty')" && ! -f "$OCI_CONFIG" ]]; then

@@ -1,0 +1,54 @@
+name: "MODEL — emit_curl (no OCI CLI)"
+# SLI-12: Dedicated workflow proving emit_curl.sh works without OCI CLI.
+# Uses oci-profile-setup (config + key files) but skips install-oci-cli.
+# The curl backend signs the request with the profile's PEM key and
+# includes x-security-token for session-based profiles.
+
+on:
+  workflow_dispatch:
+    inputs:
+      simulate-failure:
+        description: "Force failure (for SLI testing)"
+        type: boolean
+        default: false
+
+jobs:
+  emit-curl:
+    name: "Emit via curl (zero-install)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Restore OCI profile"
+        uses: ./.github/actions/oci-profile-setup
+        with:
+          oci_config_payload: ${{ secrets.OCI_CONFIG_PAYLOAD }}
+          profile: SLI_TEST
+          oci-auth-mode: none
+
+      - name: "Main step"
+        id: step-main
+        run: |
+          if [[ "${{ inputs.simulate-failure }}" == "true" ]]; then
+            echo "::error::Simulated failure triggered for SLI testing"
+            exit 1
+          fi
+          echo "Main step completed successfully"
+
+      - name: "SLI Report (curl backend)"
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        uses: ./.github/actions/sli-event
+        with:
+          outcome: ${{ job.status }}
+          emit-backend: curl
+          steps-json: ${{ toJSON(steps) }}
+          context-json: |
+            {
+              "oci": {
+                "log-id":      "${{ vars.SLI_OCI_LOG_ID }}",
+                "config-file": "~/.oci/config",
+                "profile":     "SLI_TEST"
+              }
+            }

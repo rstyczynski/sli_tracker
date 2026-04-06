@@ -127,6 +127,14 @@ The current `emit.sh` is a single file mixing payload assembly with OCI CLI tran
 
 Test: unit test for `emit_curl.sh` using a mock `curl` that verifies the signed Authorization header and correct payload.
 
+### SLI-12. Dedicated GitHub Actions workflow for `emit_curl.sh` (no OCI CLI install)
+
+Add a **workflow** whose only purpose is to validate the **curl** transport (`emit-backend: curl` → `emit_curl.sh`) end-to-end on GitHub-hosted runners. The workflow **must not** use the `install-oci-cli` action (or otherwise install the OCI CLI); the emit path must rely on bash, `curl`, and `openssl` only.
+
+The workflow **still needs a normal OCI profile**: use `oci-profile-setup` (or the same secret/config pattern as model workflows) so `~/.oci/config` and the configured profile exist for API-key request signing and log push. Document that this path proves the zero-install backend under real CI conditions.
+
+**Integration test:** extend the centralized test tree with a script (e.g. `tests/integration/test_sli_emit_curl_workflow.sh`) that dispatches this workflow (via `gh workflow run`), waits for completion, checks job logs for a successful curl emit, and queries OCI Logging (same style as `test_sli_integration.sh` T6–T7) to confirm events landed. This is distinct from the existing integration test, which runs model workflows and therefore exercises the default **oci-cli** backend only.
+
 ### SLI-7. Pluggable emit backend for emit.sh
 
 The current emit.sh is tightly coupled to OCI CLI. Add a configurable backend interface so the caller can select the most appropriate transport without changing emit logic.

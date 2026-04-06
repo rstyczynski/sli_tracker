@@ -9,17 +9,30 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/emit_common.sh"
 
 # Read a field value from an OCI config file for a given profile.
+# Falls back to [DEFAULT] when the field is absent in the requested profile
+# (session profiles inherit tenancy/user from DEFAULT).
 # Usage: _oci_config_field <config_file> <profile_name> <field_name>
 _oci_config_field() {
-  local file="$1" profile="$2" field="$3"
-  awk -v prof="[$profile]" -v key="$field" '
+  local file="$1" profile="$2" field="$3" val
+  val=$(awk -v prof="[$profile]" -v key="$field" '
     /^\[/ { in_prof = ($0 == prof) }
     in_prof && $0 ~ "^" key "[ \t]*=" {
       sub(/^[^=]*=[ \t]*/, "")
       print
       exit
     }
-  ' "$file"
+  ' "$file")
+  if [[ -z "$val" && "$profile" != "DEFAULT" ]]; then
+    val=$(awk -v prof="[DEFAULT]" -v key="$field" '
+      /^\[/ { in_prof = ($0 == prof) }
+      in_prof && $0 ~ "^" key "[ \t]*=" {
+        sub(/^[^=]*=[ \t]*/, "")
+        print
+        exit
+      }
+    ' "$file")
+  fi
+  printf '%s' "$val"
 }
 
 sli_emit_main() {

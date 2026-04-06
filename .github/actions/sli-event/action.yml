@@ -28,6 +28,10 @@ inputs:
     description: "Transport backend: oci-cli (default, requires install-oci-cli action) or curl (zero install, uses curl+openssl)"
     required: false
     default: "oci-cli"
+  oci-api-domain:
+    description: "OCI API domain. Override for non-commercial realms (e.g. oraclegovcloud.com). Also readable from api_domain in OCI config profile."
+    required: false
+    default: "oraclecloud.com"
 
 runs:
   using: composite
@@ -40,6 +44,7 @@ runs:
         SLI_CONTEXT_JSON: ${{ inputs.context-json }}
         SLI_OUTCOME: ${{ inputs.outcome }}
         EMIT_BACKEND: ${{ inputs.emit-backend }}
+        OCI_API_DOMAIN: ${{ inputs.oci-api-domain }}
         # SLI_OCI_LOG_ID is read from the environment (set by the calling workflow via vars or env:)
         # or from oci.log-id inside context-json. Do not reference vars here — vars context
         # is not available inside composite action YAML.

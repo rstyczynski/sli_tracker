@@ -62,6 +62,9 @@ sli_emit_main() {
     FINGERPRINT="$(_oci_config_field "$OCI_CONFIG" "$OCI_PROFILE" fingerprint)"
     KEY_FILE="$(_oci_config_field "$OCI_CONFIG" "$OCI_PROFILE" key_file)"
     REGION="$(_oci_config_field "$OCI_CONFIG" "$OCI_PROFILE" region)"
+    local _api_domain
+    _api_domain="$(_oci_config_field "$OCI_CONFIG" "$OCI_PROFILE" api_domain)"
+    API_DOMAIN="${_api_domain:-${OCI_API_DOMAIN:-oraclecloud.com}}"
     KEY_FILE="$(sli_expand_oci_config_path "$KEY_FILE")"
 
     if [[ -z "$TENANCY" || -z "$USER_OCID" || -z "$FINGERPRINT" || -z "$KEY_FILE" || -z "$REGION" ]]; then
@@ -84,7 +87,7 @@ sli_emit_main() {
       }]')
 
     local HOST DATE BODY_HASH REQUEST_TARGET SIGNING_STRING SIGNATURE KEY_ID AUTH
-    HOST="ingestion.logging.${REGION}.oci.oraclecloud.com"
+    HOST="ingestion.logging.${REGION}.oci.${API_DOMAIN}"
     DATE="$(date -u "+%a, %d %b %Y %H:%M:%S GMT")"
     BODY_HASH="$(printf '%s' "$BATCH" | openssl dgst -binary -sha256 | openssl base64 -A)"
     REQUEST_TARGET="put /20200831/logs/${OCI_LOG_ID}/actions/push"

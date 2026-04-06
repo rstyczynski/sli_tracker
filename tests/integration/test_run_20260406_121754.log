@@ -1,0 +1,48 @@
+# Integration test run — Mon Apr  6 12:17:54 UTC 2026
+# Execution log : /Users/rstyczynski/projects/SLI_tracker/tests/integration/test_run_20260406_121754.log
+# Expanded ${{HOME}} in ~/.oci for local oci (same as setup_oci_github_access.sh startup)
+
+=== Operator gate: OCI authentication (mandatory — verified by API) ===
+Profile: SLI_TEST (OCI_CLI_PROFILE=SLI_TEST)
+This script blocks until: oci iam region list --profile "SLI_TEST" succeeds.
+To create/refresh the SLI_TEST session and upload to GitHub (browser + gh):
+  bash "/Users/rstyczynski/projects/SLI_tracker/.github/actions/oci-profile-setup/setup_oci_github_access.sh" --repo "rstyczynski/sli_tracker"
+(Uses DEFAULT only to resolve home region; session profile name defaults to SLI_TEST — see script --help.)
+
+OK: profile 'SLI_TEST' passed oci iam region list — continuing.
+
+# token_based: PATH prepends /Users/rstyczynski/.local/oci-wrapper/bin/oci (real oci: /opt/homebrew/bin/oci)
+
+  [INFO] COMPARTMENT_OCID defaulted to tenancy: ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a
+  [INFO] OCI_REGION defaulted to home region: eu-zurich-1
+  [INFO] STATE_FILE: /Users/rstyczynski/projects/SLI_tracker/state-sli_test_sprint6.json
+  [EXISTING] Log Group 'sli-events': ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq
+  [EXISTING] Log 'github-actions': ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa
+=== T0: repo tooling prerequisites ===
+PASS: gh CLI present
+PASS: OCI CLI present
+PASS: jq present
+
+=== T0a: OCI profile (same as gate) — T7 logging-search uses this profile ===
+PASS: local profile SLI_TEST: API call succeeded (already verified at gate)
+
+=== T0b: OCI resource resolution (oci_scaffold URI-style) ===
+PASS: TENANCY resolved: ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a
+PASS: LOG_GROUP_OCID resolved: ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq
+PASS: SLI_LOG_OCID resolved: ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa
+
+=== T1: unit tests — emit.sh helper functions ===
+PASS: emit.sh unit tests: passed count
+PASS: emit.sh unit tests: failed count
+
+=== T2: model-call — success + failure workflow dispatch ===
+PASS: model-call success run triggered: 24031493283
+PASS: model-call failure run triggered: 24031495464
+
+=== T3: model-push — success + failure workflow dispatch ===
+PASS: model-push success run triggered: 24031497386
+PASS: model-push failure run triggered: 24031499618
+
+=== T4: wait for all four runs to complete ===
+    Runs: 24031493283 24031495464 24031497386 24031499618
+tests/integration/test_sli_integration.sh: line 266: syntax error near unexpected token `('

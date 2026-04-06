@@ -1,0 +1,32 @@
+# Integration test run — Mon Apr  6 12:08:24 UTC 2026
+# Execution log : /Users/rstyczynski/projects/SLI_tracker/tests/integration/test_run_20260406_120824.log
+
+=== Operator gate: OCI manual re-authentication (mandatory) ===
+Before this script uses OCI (scaffold, logging-search), finish a browser-based or device login
+for the OCI CLI profile you use locally (e.g. oci session authenticate --region <your-region>).
+GitHub Actions workflows use the repo secret OCI_CONFIG_PAYLOAD — refresh that separately if pushes fail in CI.
+
+SLI_INTEGRATION_SKIP_AUTH_WAIT=1 — skipping interactive wait (non-TTY).
+  [INFO] COMPARTMENT_OCID defaulted to tenancy: ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a
+  [INFO] OCI_REGION defaulted to home region: eu-zurich-1
+  [INFO] STATE_FILE: /Users/rstyczynski/projects/SLI_tracker/state-sli_test_sprint6.json
+  [EXISTING] Log Group 'sli-events': ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq
+  [EXISTING] Log 'github-actions': ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa
+=== T0: repo tooling prerequisites ===
+PASS: gh CLI present
+PASS: OCI CLI present
+PASS: jq present
+
+=== T0a: local OCI DEFAULT — non-interactive sanity (T7 logging-search) ===
+FAIL: local DEFAULT profile: API call failed — refresh browser/session auth for ~/.oci if you need T7
+
+=== T0b: OCI resource resolution (oci_scaffold URI-style) ===
+PASS: TENANCY resolved: ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a
+PASS: LOG_GROUP_OCID resolved: ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq
+PASS: SLI_LOG_OCID resolved: ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa
+
+=== T1: unit tests — emit.sh helper functions ===
+PASS: emit.sh unit tests: passed count
+PASS: emit.sh unit tests: failed count
+
+=== T2: model-call — success + failure workflow dispatch ===

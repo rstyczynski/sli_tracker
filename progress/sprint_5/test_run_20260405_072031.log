@@ -1,0 +1,77 @@
+# Sprint 5 integration test run — Sun Apr  5 07:20:31 UTC 2026
+# Execution log : /Users/rstyczynski/projects/SLI_tracker/progress/sprint_5/test_run_20260405_072031.log
+  [INFO] COMPARTMENT_OCID defaulted to tenancy: ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a
+  [INFO] OCI_REGION defaulted to home region: eu-zurich-1
+  [INFO] STATE_FILE: /Users/rstyczynski/projects/SLI_tracker/state-sli_test_sprint5.json
+  [EXISTING] Log Group 'sli-events': ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq
+  [EXISTING] Log 'github-actions': ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa
+=== T0: repo tooling prerequisites ===
+PASS: gh CLI present
+PASS: OCI CLI present
+PASS: jq present
+
+=== T0b: OCI resource resolution (oci_scaffold URI-style) ===
+PASS: TENANCY resolved: ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a
+PASS: LOG_GROUP_OCID resolved: ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq
+PASS: SLI_LOG_OCID resolved: ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa
+
+=== T1: unit tests — emit.sh helper functions ===
+PASS: emit.sh unit tests: passed count
+PASS: emit.sh unit tests: failed count
+
+=== T2: model-call — success + failure workflow dispatch ===
+PASS: model-call success run triggered: 23996731181
+PASS: model-call failure run triggered: 23996732264
+
+=== T3: model-push — success + failure workflow dispatch ===
+PASS: model-push success run triggered: 23996733212
+PASS: model-push failure run triggered: 23996734213
+
+=== T4: wait for all four runs to complete ===
+    Runs: 23996731181 23996732264 23996733212 23996734213
+PASS: run 23996731181 completed
+PASS: run 23996732264 completed
+PASS: run 23996733212 completed
+PASS: run 23996734213 completed
+
+=== T5: expected workflow conclusions ===
+PASS: model-call success → conclusion success
+PASS: model-call failure → conclusion failure
+PASS: model-push success → conclusion success
+PASS: model-push failure → conclusion failure
+
+=== T6: sli-event step emitted to OCI (per-job notice) ===
+PASS: run 23996731181 / Delegate to reusable / Init — runner selection → init job (no SLI step expected)
+PASS: run 23996731181 / Delegate to reusable / SLI — init → SLI pushed
+PASS: run 23996731181 / Delegate to reusable / Main — per-env execution [model-env-1] / Leaf execution → SLI pushed
+PASS: run 23996731181 / Delegate to reusable / Main — per-env execution [model-env-2] / Leaf execution → SLI pushed
+PASS: run 23996732264 / Delegate to reusable / Init — runner selection → init job (no SLI step expected)
+PASS: run 23996732264 / Delegate to reusable / SLI — init → SLI pushed
+PASS: run 23996732264 / Delegate to reusable / Main — per-env execution [model-env-1] / Leaf execution → SLI pushed
+PASS: run 23996732264 / Delegate to reusable / Main — per-env execution [model-env-2] / Leaf execution → SLI pushed
+PASS: run 23996733212 / Delegate to reusable / Init — runner selection → init job (no SLI step expected)
+PASS: run 23996733212 / Delegate to reusable / SLI — init → SLI pushed
+PASS: run 23996733212 / Delegate to reusable / Main — per-env execution [model-env-1] / Leaf execution → SLI pushed
+PASS: run 23996733212 / Delegate to reusable / Main — per-env execution [model-env-2] / Leaf execution → SLI pushed
+PASS: run 23996734213 / Delegate to reusable / Init — runner selection → init job (no SLI step expected)
+PASS: run 23996734213 / Delegate to reusable / SLI — init → SLI pushed
+PASS: run 23996734213 / Delegate to reusable / Main — per-env execution [model-env-1] / Leaf execution → SLI pushed
+PASS: run 23996734213 / Delegate to reusable / Main — per-env execution [model-env-2] / Leaf execution → SLI pushed
+
+=== T7: OCI Logging received events — query last 15 min ===
+# OCI log captured: /Users/rstyczynski/projects/SLI_tracker/progress/sprint_5/oci_logs_20260405_072031.json
+PASS: OCI received at least 12 events (4 runs × 3 jobs)
+PASS: OCI: at least 4 success outcome events
+PASS: OCI: at least 4 failure outcome events
+PASS: OCI: model-call events present
+PASS: OCI: model-push events present
+PASS: OCI: at least 4 failure events carry failure_reasons
+PASS: OCI: sli-init job events present
+PASS: OCI: leaf job events present
+
+=== Summary ===
+passed: 44  failed: 0
+
+=== Artifacts ===
+  execution log : /Users/rstyczynski/projects/SLI_tracker/progress/sprint_5/test_run_20260405_072031.log
+  OCI log       : /Users/rstyczynski/projects/SLI_tracker/progress/sprint_5/oci_logs_20260405_072031.json

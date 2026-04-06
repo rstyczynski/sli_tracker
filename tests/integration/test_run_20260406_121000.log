@@ -1,0 +1,12 @@
+# Integration test run — Mon Apr  6 12:10:00 UTC 2026
+# Execution log : /Users/rstyczynski/projects/SLI_tracker/tests/integration/test_run_20260406_121000.log
+
+=== Operator gate: OCI authentication (mandatory — verified by API) ===
+Profile: DEFAULT
+This script blocks until an OCI API call succeeds (no honor-system Enter).
+If the loop repeats, open another terminal and run browser/device login, e.g.:
+  oci session authenticate --region <your-home-region>
+Workflows on GitHub use secret OCI_CONFIG_PAYLOAD — update that separately if CI pushes fail.
+
+OCI session not valid for profile 'DEFAULT' (failed attempt 1).
+Complete authentication in another window, then wait. Retrying in 20 seconds (Ctrl+C to abort)...

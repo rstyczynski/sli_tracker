@@ -1,0 +1,16 @@
+# Integration test run — Mon Apr  6 12:15:35 UTC 2026
+# Execution log : /Users/rstyczynski/projects/SLI_tracker/tests/integration/test_run_20260406_121535.log
+# Expanded ${{HOME}} in ~/.oci for local oci (same as setup_oci_github_access.sh startup)
+
+=== Operator gate: OCI authentication (mandatory — verified by API) ===
+Profile: SLI_TEST (OCI_CLI_PROFILE=SLI_TEST)
+This script blocks until: oci iam region list --profile "SLI_TEST" succeeds.
+To create/refresh the SLI_TEST session and upload to GitHub (browser + gh):
+  bash "/Users/rstyczynski/projects/SLI_tracker/.github/actions/oci-profile-setup/setup_oci_github_access.sh" --repo "rstyczynski/sli_tracker"
+(Uses DEFAULT only to resolve home region; session profile name defaults to SLI_TEST — see script --help.)
+
+OK: profile 'SLI_TEST' passed oci iam region list — continuing.
+
+Usage: oci os ns get-metadata [OPTIONS]
+
+Error: Unable to retrieve namespace internally. Please provide the namespace using the option "--['namespace-name']".

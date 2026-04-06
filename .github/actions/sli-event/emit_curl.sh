@@ -119,13 +119,17 @@ sli_emit_main() {
     BODY_HASH="$(printf '%s' "$BATCH" | openssl dgst -binary -sha256 | openssl base64 -A)"
     REQUEST_TARGET="post /20200831/logs/${OCI_LOG_ID}/actions/push"
 
+    # Byte length of UTF-8 body (${#BATCH} counts characters — wrong for non-ASCII e.g. em dash in workflow name).
+    local _content_len
+    _content_len="$(printf '%s' "$BATCH" | wc -c | tr -d ' ')"
+
     # Header order MUST match oci-python-sdk Signer (AbstractBaseSigner.create_signers):
     # generic: date, (request-target), host — body: content-length, content-type, x-content-sha256
     local _signed_headers="date (request-target) host content-length content-type x-content-sha256"
     SIGNING_STRING="date: ${DATE}
 (request-target): ${REQUEST_TARGET}
 host: ${HOST}
-content-length: ${#BATCH}
+content-length: ${_content_len}
 content-type: application/json
 x-content-sha256: ${BODY_HASH}"
 
@@ -137,7 +141,8 @@ x-content-sha256: ${BODY_HASH}"
     else
       KEY_ID="${TENANCY}/${USER_OCID}/${FINGERPRINT}"
     fi
-    AUTH='Signature version="1",keyId="'"${KEY_ID}"'",algorithm="rsa-sha256",headers="'"${_signed_headers}"'",signature="'"${SIGNATURE}"'"'
+    # Same parameter order as oci.signer._PatchedHeaderSigner.HEADER_SIGNER_TEMPLATE
+    AUTH='Signature algorithm="rsa-sha256",headers="'"${_signed_headers}"'",keyId="'"${KEY_ID}"'",signature="'"${SIGNATURE}"'",version="1"'
 
     local _curl_args=( -s -X POST
       "https://${HOST}/20200831/logs/${OCI_LOG_ID}/actions/push"
@@ -146,7 +151,7 @@ x-content-sha256: ${BODY_HASH}"
       -H "Host: ${HOST}"
       -H "x-content-sha256: ${BODY_HASH}"
       -H "Content-Type: application/json"
-      -H "Content-Length: ${#BATCH}"
+      -H "Content-Length: ${_content_len}"
       -d "$BATCH"
     )
 
@@ -160,8 +165,11 @@ x-content-sha256: ${BODY_HASH}"
       echo "::notice::SLI log entry pushed to OCI Logging (curl)"
     else
       echo "::warning::SLI report failed to push to OCI Logging (non-fatal, HTTP ${_http_code})"
-      [[ -n "${SLI_EMIT_CURL_VERBOSE:-}" ]] && echo "::warning::curl response body: ${_body:0:500}"
+      if [[ -n "${SLI_EMIT_CURL_VERBOSE:-}" ]]; then
+        echo "::warning::curl response body: ${_body:0:500}"
+      fi
     fi
+    return 0
 
   elif [[ -n "$OCI_LOG_ID" && -n "$(echo "$OCI_JSON" | jq -r '."config-file" // empty')" && ! -f "$OCI_CONFIG" ]]; then
     echo "::notice::SLI OCI push skipped — oci.config-file not found after ~ expansion: $OCI_CONFIG"

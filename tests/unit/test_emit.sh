@@ -213,7 +213,8 @@ for arg in "$@"; do
   if $capture; then printf '%s' "$arg" > "$body_file"; capture=false; fi
   [[ "$arg" == "-d" ]] && capture=true
 done
-echo "HTTP 200 OK"
+# Real curl with -w '%{http_code}' writes only the numeric code to stdout
+printf '200'
 MOCKEOF
 chmod +x "$_keydir/bin/curl"
 
@@ -223,7 +224,7 @@ _out4="$(PATH="$_keydir/bin:$PATH" \
   SLI_OUTCOME=success SLI_OCI_LOG_ID="ocid1.log.oc1..test" \
   SLI_CONTEXT_JSON="{\"oci\":{\"config-file\":\"${_keydir}/config\",\"profile\":\"SLI_TEST\"}}" \
   bash "${ACTION_DIR}/emit_curl.sh" 2>&1)"
-if grep -qE 'Signature version="1"' "$_curl_out" 2>/dev/null; then
+if grep -qE 'version="1"' "$_curl_out" 2>/dev/null; then
   pass
 else
   fail "UT-4: Authorization header not found or malformed — output: $_out4"

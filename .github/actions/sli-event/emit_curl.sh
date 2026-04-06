@@ -139,9 +139,16 @@ x-security-token: ${SECURITY_TOKEN}"
     fi
     _curl_args+=( -d "$BATCH" )
 
-    curl "${_curl_args[@]}" \
-    && echo "::notice::SLI log entry pushed to OCI Logging (curl)" \
-    || echo "::warning::SLI report failed to push to OCI Logging (non-fatal)"
+    local _resp _http_code
+    _curl_args=( "${_curl_args[@]/-f/}" )
+    _resp="$(curl "${_curl_args[@]}" -w '\n%{http_code}' 2>&1)" || true
+    _http_code="$(echo "$_resp" | tail -1)"
+    if [[ "$_http_code" =~ ^2[0-9][0-9]$ ]]; then
+      echo "::notice::SLI log entry pushed to OCI Logging (curl)"
+    else
+      echo "::warning::SLI report failed to push to OCI Logging (non-fatal, HTTP ${_http_code})"
+      echo "::debug::curl response: $(echo "$_resp" | head -20)"
+    fi
 
   elif [[ -n "$OCI_LOG_ID" && -n "$(echo "$OCI_JSON" | jq -r '."config-file" // empty')" && ! -f "$OCI_CONFIG" ]]; then
     echo "::notice::SLI OCI push skipped — oci.config-file not found after ~ expansion: $OCI_CONFIG"

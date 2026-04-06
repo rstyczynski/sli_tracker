@@ -9,8 +9,6 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/emit_common.sh"
 
 # Read a field value from an OCI config file for a given profile.
-# Expects a self-contained profile (setup_oci_github_access.sh copies inherited
-# fields like tenancy/user into the session profile before packing).
 # Usage: _oci_config_field <config_file> <profile_name> <field_name>
 _oci_config_field() {
   local file="$1" profile="$2" field="$3"
@@ -22,6 +20,20 @@ _oci_config_field() {
       exit
     }
   ' "$file"
+}
+
+# Read field from named profile; if empty and profile is not DEFAULT, try [DEFAULT].
+# Local ~/.oci often splits session keys under [SLI_TEST] and tenancy/user under [DEFAULT].
+# GitHub-packed single-profile config has no [DEFAULT] — fallback does nothing.
+# Usage: _oci_config_field_merge <config_file> <profile_name> <field_name>
+_oci_config_field_merge() {
+  local file="$1" profile="$2" field="$3"
+  local v
+  v="$(_oci_config_field "$file" "$profile" "$field")"
+  if [[ -z "$v" && "$profile" != "DEFAULT" ]]; then
+    v="$(_oci_config_field "$file" "DEFAULT" "$field")"
+  fi
+  printf '%s' "$v"
 }
 
 sli_emit_main() {
@@ -60,18 +72,18 @@ sli_emit_main() {
 
   if [[ -n "$OCI_LOG_ID" && -n "$OCI_CONFIG" && -f "$OCI_CONFIG" ]]; then
     local TENANCY USER_OCID FINGERPRINT KEY_FILE REGION
-    TENANCY="$(_oci_config_field "$OCI_CONFIG" "$OCI_PROFILE" tenancy)"
-    USER_OCID="$(_oci_config_field "$OCI_CONFIG" "$OCI_PROFILE" user)"
-    FINGERPRINT="$(_oci_config_field "$OCI_CONFIG" "$OCI_PROFILE" fingerprint)"
-    KEY_FILE="$(_oci_config_field "$OCI_CONFIG" "$OCI_PROFILE" key_file)"
-    REGION="$(_oci_config_field "$OCI_CONFIG" "$OCI_PROFILE" region)"
+    TENANCY="$(_oci_config_field_merge "$OCI_CONFIG" "$OCI_PROFILE" tenancy)"
+    USER_OCID="$(_oci_config_field_merge "$OCI_CONFIG" "$OCI_PROFILE" user)"
+    FINGERPRINT="$(_oci_config_field_merge "$OCI_CONFIG" "$OCI_PROFILE" fingerprint)"
+    KEY_FILE="$(_oci_config_field_merge "$OCI_CONFIG" "$OCI_PROFILE" key_file)"
+    REGION="$(_oci_config_field_merge "$OCI_CONFIG" "$OCI_PROFILE" region)"
     local _api_domain
-    _api_domain="$(_oci_config_field "$OCI_CONFIG" "$OCI_PROFILE" api_domain)"
+    _api_domain="$(_oci_config_field_merge "$OCI_CONFIG" "$OCI_PROFILE" api_domain)"
     API_DOMAIN="${_api_domain:-${OCI_API_DOMAIN:-oraclecloud.com}}"
     KEY_FILE="$(sli_expand_oci_config_path "$KEY_FILE")"
 
     local SECURITY_TOKEN_FILE SECURITY_TOKEN
-    SECURITY_TOKEN_FILE="$(_oci_config_field "$OCI_CONFIG" "$OCI_PROFILE" security_token_file)"
+    SECURITY_TOKEN_FILE="$(_oci_config_field_merge "$OCI_CONFIG" "$OCI_PROFILE" security_token_file)"
     SECURITY_TOKEN_FILE="$(sli_expand_oci_config_path "$SECURITY_TOKEN_FILE")"
     SECURITY_TOKEN=""
     if [[ -n "$SECURITY_TOKEN_FILE" && -f "$SECURITY_TOKEN_FILE" ]]; then

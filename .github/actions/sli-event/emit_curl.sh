@@ -139,15 +139,25 @@ x-security-token: ${SECURITY_TOKEN}"
     fi
     _curl_args+=( -d "$BATCH" )
 
-    local _resp _http_code
-    _curl_args=( "${_curl_args[@]/-f/}" )
-    _resp="$(curl "${_curl_args[@]}" -w '\n%{http_code}' 2>&1)" || true
-    _http_code="$(echo "$_resp" | tail -1)"
+    local _resp _http_code _body
+    _resp="$(curl -X POST \
+      "https://${HOST}/20200831/logs/${OCI_LOG_ID}/actions/push" \
+      -H "Authorization: ${AUTH}" \
+      -H "Date: ${DATE}" \
+      -H "Host: ${HOST}" \
+      -H "x-content-sha256: ${BODY_HASH}" \
+      -H "Content-Type: application/json" \
+      -H "Content-Length: ${#BATCH}" \
+      ${SECURITY_TOKEN:+-H "x-security-token: ${SECURITY_TOKEN}"} \
+      -d "$BATCH" \
+      -o /dev/stderr -w '%{http_code}' 2>&1)" || true
+    _http_code="${_resp: -3}"
+    _body="${_resp%???}"
     if [[ "$_http_code" =~ ^2[0-9][0-9]$ ]]; then
       echo "::notice::SLI log entry pushed to OCI Logging (curl)"
     else
       echo "::warning::SLI report failed to push to OCI Logging (non-fatal, HTTP ${_http_code})"
-      echo "::warning::curl response: $(echo "$_resp" | head -20)"
+      echo "::warning::curl response body: ${_body:0:500}"
     fi
 
   elif [[ -n "$OCI_LOG_ID" && -n "$(echo "$OCI_JSON" | jq -r '."config-file" // empty')" && ! -f "$OCI_CONFIG" ]]; then

@@ -86,3 +86,16 @@ Regression: unit
 Backlog Items:
 
 * SLI-11. Split emit.sh into emit_oci.sh and emit_curl.sh
+
+## Sprint 9 - emit_curl workflow and integration test
+
+Status: Progress
+Mode: YOLO
+Test: integration
+Regression: unit
+
+Adds a minimal GitHub Actions workflow that emits SLI events with `emit-backend: curl` without installing OCI CLI, while still using `oci-profile-setup` for the profile. Adds an integration test that dispatches that workflow and verifies OCI Logging.
+
+Backlog Items:
+
+* SLI-12. Dedicated GitHub Actions workflow for `emit_curl.sh` (no OCI CLI install)

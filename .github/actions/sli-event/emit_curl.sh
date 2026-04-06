@@ -107,6 +107,7 @@ sli_emit_main() {
     BODY_HASH="$(printf '%s' "$BATCH" | openssl dgst -binary -sha256 | openssl base64 -A)"
     REQUEST_TARGET="post /20200831/logs/${OCI_LOG_ID}/actions/push"
 
+    local _signed_headers="(request-target) date host x-content-sha256 content-type content-length"
     SIGNING_STRING="(request-target): ${REQUEST_TARGET}
 date: ${DATE}
 host: ${HOST}
@@ -114,9 +115,15 @@ x-content-sha256: ${BODY_HASH}
 content-type: application/json
 content-length: ${#BATCH}"
 
+    if [[ -n "$SECURITY_TOKEN" ]]; then
+      _signed_headers="${_signed_headers} x-security-token"
+      SIGNING_STRING="${SIGNING_STRING}
+x-security-token: ${SECURITY_TOKEN}"
+    fi
+
     SIGNATURE="$(printf '%s' "$SIGNING_STRING" | openssl dgst -sha256 -sign "$KEY_FILE" | openssl base64 -A)"
     KEY_ID="${TENANCY}/${USER_OCID}/${FINGERPRINT}"
-    AUTH='Signature version="1",keyId="'"${KEY_ID}"'",algorithm="rsa-sha256",headers="(request-target) date host x-content-sha256 content-type content-length",signature="'"${SIGNATURE}"'"'
+    AUTH='Signature version="1",keyId="'"${KEY_ID}"'",algorithm="rsa-sha256",headers="'"${_signed_headers}"'",signature="'"${SIGNATURE}"'"'
 
     local _curl_args=( -s -f -X POST
       "https://${HOST}/20200831/logs/${OCI_LOG_ID}/actions/push"

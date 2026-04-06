@@ -78,7 +78,7 @@ Backlog Items:
 
 ## Sprint 8 - curl backend for emit.sh
 
-Status: Progress
+Status: Done
 Mode: YOLO
 Test: unit
 Regression: unit

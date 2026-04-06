@@ -65,6 +65,21 @@ After this change:
 - `context-json` contains only OCI credentials (`config-file` + `profile`); no `log-id`.
 - `action.yml` comment updated to document env var as the primary delivery path.
 
+
+### SLI-7. Pluggable emit backend for emit.sh
+
+The current emit.sh is tightly coupled to OCI CLI. Add a configurable backend interface so the caller can select the most appropriate transport without changing emit logic.
+
+Proposed backends:
+
+- oci_cli_emit   — current approach; requires install-oci-cli action (~2-3 min install)
+- oci_node_emit  — Node.js script using a single OCI npm package; Node 20 pre-installed on ubuntu-latest (~3 MB install)
+- oci_curl_emit  — pure bash with curl + openssl request signing; zero install
+
+Backend selected via input (e.g. emit-backend: oci-cli | node | curl) with oci-cli as default to preserve backward compatibility.
+
+Each backend implements the same contract: accepts log-id, profile, config-file, and the JSON payload; exits 0 on success.
+
 ### SLI-8. Test procedure execution log and OCI log capture
 
 The integration test script `test_sli_integration.sh` currently prints results to stdout but leaves no durable artifact. Two artifacts are required:
@@ -135,16 +150,28 @@ The workflow **still needs a normal OCI profile**: use `oci-profile-setup` (or t
 
 **Integration test:** extend the centralized test tree with a script (e.g. `tests/integration/test_sli_emit_curl_workflow.sh`) that dispatches this workflow (via `gh workflow run`), waits for completion, checks job logs for a successful curl emit, and queries OCI Logging (same style as `test_sli_integration.sh` T6–T7) to confirm events landed. This is distinct from the existing integration test, which runs model workflows and therefore exercises the default **oci-cli** backend only.
 
-### SLI-7. Pluggable emit backend for emit.sh
+### SLI-13. Make workflow metadata a nested map in emitted events
 
-The current emit.sh is tightly coupled to OCI CLI. Add a configurable backend interface so the caller can select the most appropriate transport without changing emit logic.
+The SLI event payload currently emits GitHub Actions metadata as many top-level fields (e.g. `workflow_run_id`, `workflow_run_number`, `workflow_run_attempt`, `workflow`, `workflow_ref`, etc.). This should be changed so **all workflow/GitHub metadata is grouped under a single nested object**:
 
-Proposed backends:
+- New: `workflow: { run_id, run_number, run_attempt, name, ref, job, event_name, actor, repository, repository_id, ref_name, ref_full, sha }`
+- Remove the old top-level `workflow_*` fields and move the remaining GitHub fields into `workflow.*` (breaking schema change).
 
-- oci_cli_emit   — current approach; requires install-oci-cli action (~2-3 min install)
-- oci_node_emit  — Node.js script using a single OCI npm package; Node 20 pre-installed on ubuntu-latest (~3 MB install)
-- oci_curl_emit  — pure bash with curl + openssl request signing; zero install
+Test: update unit tests asserting payload shape (`tests/unit/test_emit.sh`) and update integration queries that filter by workflow name/run id (`tests/integration/test_*.sh`) so all gates remain green.
 
-Backend selected via input (e.g. emit-backend: oci-cli | node | curl) with oci-cli as default to preserve backward compatibility.
+### SLI-14. Move repository-related attributes into `repo` map
 
-Each backend implements the same contract: accepts log-id, profile, config-file, and the JSON payload; exits 0 on success.
+The SLI event payload includes repository identity and git-ref state attributes (e.g. `repository`, `repository_id`, `ref`, `ref_full`, `sha`). These should be grouped under a dedicated nested object:
+
+- New: `repo: { repository, repository_id, ref, ref_full, sha }`
+- Remove these fields from their prior locations and emit them only under `repo.*` (breaking schema change).
+
+Test: update unit and integration tests to use the new nested paths (`repo.repository`, `repo.ref_full`, etc.).
+
+### SLI-15. Update docs/tests/queries for nested `workflow` + `repo` schema
+
+After SLI-13 and SLI-14 restructure the payload, update all repository documentation and tests that reference the old field paths so regressions remain green:
+
+- Update `tests/unit/test_emit.sh` schema assertions.
+- Update integration test jq filters in `tests/integration/test_*.sh`.
+- Update design docs describing the payload shape (`progress/sprint_3/sprint_3_design.md`) and any READMEs/examples that show the old schema.

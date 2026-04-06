@@ -83,3 +83,11 @@ if [[ "$AUTH_MODE" == "token_based" ]]; then
 fi
 
 echo "::notice::OCI profile restored under ${HOME}/.oci (profile ${PROFILE})."
+
+# Expose paths for downstream steps (e.g. sli-event context-json).
+if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
+  {
+    echo "config-file=${HOME}/.oci/config"
+    echo "profile=${PROFILE}"
+  } >> "$GITHUB_OUTPUT"
+fi

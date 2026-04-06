@@ -1,0 +1,98 @@
+# Integration test run — Mon Apr  6 16:31:53 UTC 2026
+# Execution log : /Users/rstyczynski/projects/SLI_tracker/tests/integration/test_run_20260406_163153.log
+# Expanded ${{HOME}} in ~/.oci for local oci (same as setup_oci_github_access.sh startup)
+
+=== Operator gate: OCI authentication (mandatory — verified by API) ===
+Profile: SLI_TEST (OCI_CLI_PROFILE=SLI_TEST)
+This script blocks until: oci iam region list --profile "SLI_TEST" succeeds.
+To create/refresh the SLI_TEST session and upload to GitHub (browser + gh):
+  bash "/Users/rstyczynski/projects/SLI_tracker/.github/actions/oci-profile-setup/setup_oci_github_access.sh" --repo "rstyczynski/sli_tracker"
+(Uses DEFAULT only to resolve home region; session profile name defaults to SLI_TEST — see script --help.)
+
+OK: profile 'SLI_TEST' passed oci iam region list — continuing.
+
+# token_based: PATH prepends /Users/rstyczynski/.local/oci-wrapper/bin/oci (real oci: /opt/homebrew/bin/oci)
+
+  [INFO] COMPARTMENT_OCID defaulted to tenancy: ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a
+  [INFO] OCI_REGION defaulted to home region: eu-zurich-1
+  [INFO] STATE_FILE: /Users/rstyczynski/projects/SLI_tracker/state-sli_test_sprint6.json
+  [EXISTING] Log Group 'sli-events': ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq
+  [EXISTING] Log 'github-actions': ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa
+=== T0: repo tooling prerequisites ===
+PASS: gh CLI present
+PASS: OCI CLI present
+PASS: jq present
+
+=== T0a: OCI profile (same as gate) — T7 logging-search uses this profile ===
+PASS: local profile SLI_TEST: API call succeeded (already verified at gate)
+
+=== T0b: OCI resource resolution (oci_scaffold URI-style) ===
+PASS: TENANCY resolved: ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a
+PASS: LOG_GROUP_OCID resolved: ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq
+PASS: SLI_LOG_OCID resolved: ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa
+
+=== T1: unit tests — emit.sh helper functions ===
+PASS: emit.sh unit tests: passed count
+PASS: emit.sh unit tests: failed count
+
+=== T2: model-call — success + failure workflow dispatch ===
+PASS: model-call success run triggered: 24040320439
+PASS: model-call failure run triggered: 24040322683
+
+=== T3: model-push — success + failure workflow dispatch ===
+PASS: model-push success run triggered: 24040326154
+PASS: model-push failure run triggered: 24040328965
+
+=== T4: wait for all four runs to complete ===
+    Runs: 24040320439 24040322683 24040326154 24040328965
+PASS: run 24040320439 completed
+PASS: run 24040322683 completed
+PASS: run 24040326154 completed
+PASS: run 24040328965 completed
+
+=== T5: expected workflow conclusions ===
+PASS: model-call success → conclusion success
+PASS: model-call failure → conclusion failure
+PASS: model-push success → conclusion success
+PASS: model-push failure → conclusion failure
+
+=== T6: sli-event step emitted to OCI (per-job notice) ===
+PASS: run 24040320439 / Delegate to reusable / Init — runner selection → init job (no SLI step expected)
+PASS: run 24040320439 / Delegate to reusable / SLI — init → SLI pushed
+PASS: run 24040320439 / Delegate to reusable / Main — per-env execution [model-env-2] / Leaf execution → SLI pushed
+PASS: run 24040320439 / Delegate to reusable / Main — per-env execution [model-env-1] / Leaf execution → SLI pushed
+PASS: run 24040322683 / Delegate to reusable / Init — runner selection → init job (no SLI step expected)
+PASS: run 24040322683 / Delegate to reusable / SLI — init → SLI pushed
+PASS: run 24040322683 / Delegate to reusable / Main — per-env execution [model-env-1] / Leaf execution → SLI pushed
+PASS: run 24040322683 / Delegate to reusable / Main — per-env execution [model-env-2] / Leaf execution → SLI pushed
+PASS: run 24040326154 / Delegate to reusable / Init — runner selection → init job (no SLI step expected)
+PASS: run 24040326154 / Delegate to reusable / SLI — init → SLI pushed
+PASS: run 24040326154 / Delegate to reusable / Main — per-env execution [model-env-2] / Leaf execution → SLI pushed
+PASS: run 24040326154 / Delegate to reusable / Main — per-env execution [model-env-1] / Leaf execution → SLI pushed
+PASS: run 24040328965 / Delegate to reusable / Init — runner selection → init job (no SLI step expected)
+PASS: run 24040328965 / Delegate to reusable / SLI — init → SLI pushed
+PASS: run 24040328965 / Delegate to reusable / Main — per-env execution [model-env-2] / Leaf execution → SLI pushed
+PASS: run 24040328965 / Delegate to reusable / Main — per-env execution [model-env-1] / Leaf execution → SLI pushed
+
+=== T7: OCI Logging received events — query last 15 min ===
+# OCI log captured: /Users/rstyczynski/projects/SLI_tracker/tests/integration/oci_logs_20260406_163153.json
+PASS: OCI received at least 12 events (4 runs × 3 jobs)
+PASS: OCI: at least 4 success outcome events
+PASS: OCI: at least 4 failure outcome events
+PASS: OCI: model-call events present
+PASS: OCI: model-push events present
+PASS: OCI: at least 4 failure events carry failure_reasons
+PASS: OCI: sli-init job events present
+PASS: OCI: leaf job events present
+
+=== T8: SLI-9 — environments field is native JSON array (not escaped string) ===
+PASS: OCI: environments field is not an escaped string (count=0)
+PASS: OCI: environments field is native array in at least 4 events
+
+=== Summary ===
+passed: 47  failed: 0
+
+=== Artifacts ===
+  execution log : /Users/rstyczynski/projects/SLI_tracker/tests/integration/test_run_20260406_163153.log
+  OCI log       : /Users/rstyczynski/projects/SLI_tracker/tests/integration/oci_logs_20260406_163153.json
+  progress copy : /Users/rstyczynski/projects/SLI_tracker/progress/integration_runs/20260406_163153 (same files for archive under progress/)

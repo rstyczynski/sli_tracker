@@ -44,6 +44,7 @@ jobs:
         uses: ./.github/actions/install-oci-cli
 
       - name: "Restore OCI profile"
+        id: step-restore-oci
         uses: ./.github/actions/oci-profile-setup
         with:
           oci_config_payload: ${{ secrets.OCI_CONFIG_PAYLOAD }}
@@ -118,8 +119,8 @@ jobs:
 
           echo "Main action completed successfully"
 
-      # ── Technique 6–7: SLI report — ghost step; failure_reasons from steps context ───
-      # Represents: the sli-event step to be added to reusable-020-terrateam.yml
+      # ── Technique 6–7: SLI report — failure_reasons from steps context ─────────────
+      # oci config-file/profile match "Restore OCI profile" (step-restore-oci), not step-auth.
       - name: "SLI Report"
         if: ${{ !cancelled() }}
         continue-on-error: true
@@ -132,7 +133,7 @@ jobs:
             {
               "oci": {
                 "log-id":      "${{ vars.SLI_OCI_LOG_ID }}",
-                "config-file": "${{ steps.step-auth.outputs.config-file }}",
-                "profile":     "${{ steps.step-auth.outputs.profile }}"
+                "config-file": "${{ steps.step-restore-oci.outputs.config-file }}",
+                "profile":     "${{ steps.step-restore-oci.outputs.profile }}"
               }
             }

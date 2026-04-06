@@ -14,10 +14,19 @@ inputs:
     required: false
     default: token_based
 
+outputs:
+  config-file:
+    description: "Absolute path to the restored OCI config file (~/.oci/config on the runner)."
+    value: ${{ steps.restore.outputs.config-file }}
+  profile:
+    description: "OCI profile name verified during restore (same as inputs.profile)."
+    value: ${{ steps.restore.outputs.profile }}
+
 runs:
   using: composite
   steps:
-    - name: "Restore ~/.oci from secret"
+    - id: restore
+      name: "Restore ~/.oci from secret"
       shell: bash
       env:
         OCI_CONFIG_PAYLOAD: ${{ inputs.oci_config_payload }}

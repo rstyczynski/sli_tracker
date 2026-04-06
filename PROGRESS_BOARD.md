@@ -2,15 +2,18 @@
 
 Progress board is a table showing sprint, and backlog items state. It's the only purpose of this file. All potential comments, progress notes, etc. always keep in dedicated files for each phase.
 
-| Sprint   | Sprint Status       | Backlog Item | Item Status         |
-|----------|---------------------|--------------|---------------------|
-| Sprint 1 | implemented         | SLI-1        | tested              |
-| Sprint 2 | implemented         | SLI-2        | tested              |
-| Sprint 3 | implemented         | SLI-3        | tested              |
-| Sprint 3 | implemented         | SLI-4        | tested              |
-| Sprint 4 | implemented         | SLI-5        | tested              |
-| Sprint 5 | implemented         | SLI-8        | tested              |
-| Sprint 6 | implemented         | SLI-9        | tested              |
-| Sprint 7 | implemented         | SLI-10       | tested              |
-| Sprint 8 | implemented         | SLI-11       | tested              |
-| Sprint 9 | implemented         | SLI-12       | tested              |
+| Sprint    | Sprint Status       | Backlog Item | Item Status         |
+|-----------|---------------------|--------------|---------------------|
+| Sprint 1  | implemented         | SLI-1        | tested              |
+| Sprint 2  | implemented         | SLI-2        | tested              |
+| Sprint 3  | implemented         | SLI-3        | tested              |
+| Sprint 3  | implemented         | SLI-4        | tested              |
+| Sprint 4  | implemented         | SLI-5        | tested              |
+| Sprint 5  | implemented         | SLI-8        | tested              |
+| Sprint 6  | implemented         | SLI-9        | tested              |
+| Sprint 7  | implemented         | SLI-10       | tested              |
+| Sprint 8  | implemented         | SLI-11       | tested              |
+| Sprint 9  | implemented         | SLI-12       | tested              |
+| Sprint 10 | analysed            | SLI-13       | analysed            |
+| Sprint 10 | analysed            | SLI-14       | analysed            |
+| Sprint 10 | analysed            | SLI-15       | analysed            |

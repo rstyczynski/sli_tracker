@@ -139,20 +139,12 @@ x-security-token: ${SECURITY_TOKEN}"
     fi
     _curl_args+=( -d "$BATCH" )
 
-    local _resp _http_code _body
-    _resp="$(curl -X POST \
-      "https://${HOST}/20200831/logs/${OCI_LOG_ID}/actions/push" \
-      -H "Authorization: ${AUTH}" \
-      -H "Date: ${DATE}" \
-      -H "Host: ${HOST}" \
-      -H "x-content-sha256: ${BODY_HASH}" \
-      -H "Content-Type: application/json" \
-      -H "Content-Length: ${#BATCH}" \
-      ${SECURITY_TOKEN:+-H "x-security-token: ${SECURITY_TOKEN}"} \
-      -d "$BATCH" \
-      -o /dev/stderr -w '%{http_code}' 2>&1)" || true
-    _http_code="${_resp: -3}"
-    _body="${_resp%???}"
+    local _resp_file _http_code _body
+    _resp_file="$(mktemp)"
+    _http_code="$(curl -s -w '%{http_code}' -o "$_resp_file" \
+      "${_curl_args[@]}" 2>/dev/null)" || true
+    _body="$(cat "$_resp_file" 2>/dev/null || true)"
+    rm -f "$_resp_file"
     if [[ "$_http_code" =~ ^2[0-9][0-9]$ ]]; then
       echo "::notice::SLI log entry pushed to OCI Logging (curl)"
     else

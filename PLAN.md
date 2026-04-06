@@ -103,3 +103,20 @@ Adds a minimal GitHub Actions workflow that emits SLI events with `emit-backend:
 Backlog Items:
 
 * SLI-12. Dedicated GitHub Actions workflow for `emit_curl.sh` (no OCI CLI install)
+
+## Sprint 10 - nest workflow metadata in emitted events
+
+Status: Done
+Mode: YOLO
+Test: unit, integration
+Regression: unit, integration
+
+Change the SLI event payload schema so all GitHub Actions metadata is emitted under a single `workflow` object (no top-level `workflow_*` fields). This is a breaking schema change that requires updating unit and integration tests, and any OCI Logging queries that reference old field paths.
+
+Integration testing need to revalidate all the use cases for emit_oci, emit_curl, and all the workflows. After this change full set uf use cases must be validated.
+
+Backlog Items:
+
+* SLI-13. Make `workflow` metadata a nested map in emitted events
+* SLI-14. Move repository-related attributes into `repo` map
+* SLI-15. Update docs/tests/queries for nested `workflow` + `repo` schema

@@ -1,0 +1,15 @@
+# Sprint 10 new tests manifest
+# Format: suite:script_name[:function_name]
+# Used by: tests/run.sh --new-only progress/sprint_10/new_tests.manifest
+
+# Unit tests: sli_build_base_json nested schema assertions
+# (appended to tests/unit/test_emit.sh — no function isolation, run full file for now)
+unit:test_emit.sh:UT-S10-1
+unit:test_emit.sh:UT-S10-2
+unit:test_emit.sh:UT-S10-3
+
+# Integration tests: updated jq filters for nested schema
+# (test file updated in-place; entire file re-run covers new paths)
+integration:test_sli_integration.sh
+integration:test_sli_emit_curl_local.sh
+integration:test_sli_emit_curl_workflow.sh

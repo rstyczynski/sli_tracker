@@ -259,6 +259,45 @@ else
   fail "UT-7: oci-cli backend not invoked or did not produce skip notice: $_out7"
 fi
 
+# ── Sprint 10 (SLI-13/14/15): nested workflow + repo schema ──
+
+echo "== UT-S10-1: sli_build_base_json — workflow object shape =="
+_sli_test_vars=(SLI_OUTCOME SLI_TIMESTAMP GITHUB_RUN_ID GITHUB_RUN_NUMBER GITHUB_RUN_ATTEMPT
+  GITHUB_REPOSITORY GITHUB_REPOSITORY_ID GITHUB_REF_NAME GITHUB_REF GITHUB_SHA
+  GITHUB_WORKFLOW GITHUB_WORKFLOW_REF GITHUB_JOB GITHUB_EVENT_NAME GITHUB_ACTOR)
+declare -A _sli_test_saved
+for _v in "${_sli_test_vars[@]}"; do _sli_test_saved[$_v]="${!_v:-}"; done
+export SLI_OUTCOME="success" SLI_TIMESTAMP="2026-01-01T00:00:00Z"
+export GITHUB_RUN_ID="99" GITHUB_RUN_NUMBER="7" GITHUB_RUN_ATTEMPT="2"
+export GITHUB_REPOSITORY="o/r" GITHUB_REPOSITORY_ID="42"
+export GITHUB_REF_NAME="main" GITHUB_REF="refs/heads/main" GITHUB_SHA="abc"
+export GITHUB_WORKFLOW="wf" GITHUB_WORKFLOW_REF="o/r/.github/workflows/w.yml@refs/heads/main"
+export GITHUB_JOB="leaf" GITHUB_EVENT_NAME="push" GITHUB_ACTOR="me"
+
+_s10_base="$(sli_build_base_json)"
+
+# UT-S10-1: workflow nested object
+want_wf='{"run_id":"99","run_number":"7","run_attempt":"2","name":"wf","ref":"o/r/.github/workflows/w.yml@refs/heads/main","job":"leaf","event_name":"push","actor":"me"}'
+assert_json_eq "$(echo "$_s10_base" | jq -c '.workflow')" "$want_wf" "UT-S10-1: workflow is nested object"
+
+echo "== UT-S10-2: sli_build_base_json — repo object shape =="
+want_repo='{"repository":"o/r","repository_id":"42","ref":"main","ref_full":"refs/heads/main","sha":"abc"}'
+assert_json_eq "$(echo "$_s10_base" | jq -c '.repo')" "$want_repo" "UT-S10-2: repo is nested object"
+
+echo "== UT-S10-3: sli_build_base_json — old flat fields absent =="
+_old_fields="workflow_run_id workflow_run_number workflow_run_attempt workflow_ref repository repository_id ref ref_full sha job event_name actor"
+for _f in $_old_fields; do
+  _val="$(echo "$_s10_base" | jq -r --arg k "$_f" '.[$k]')"
+  if [[ "$_val" == "null" ]]; then
+    pass
+  else
+    fail "UT-S10-3: old flat field '$_f' still present in payload (value: $_val)"
+  fi
+done
+
+for _v in "${_sli_test_vars[@]}"; do export "$_v=${_sli_test_saved[$_v]}"; done
+unset _sli_test_vars _sli_test_saved _v _s10_base want_wf want_repo _old_fields _f _val
+
 echo "== summary =="
 echo "passed: $passed  failed: $failed"
 if [[ "$failed" -gt 0 ]]; then

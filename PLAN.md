@@ -75,3 +75,14 @@ First sprint using the patched RUP process (`rup_manager_patched.md`). Bootstrap
 Backlog Items:
 
 * SLI-10. Implement test-first quality gates
+
+## Sprint 8 - curl backend for emit.sh
+
+Status: Progress
+Mode: YOLO
+Test: unit
+Regression: unit
+
+Backlog Items:
+
+* SLI-11. Split emit.sh into emit_oci.sh and emit_curl.sh

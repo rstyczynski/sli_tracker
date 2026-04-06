@@ -1,3 +1,10 @@
 state*.json
 .ansible/.lock
 .claude/settings.json
+
+# Ephemeral integration test outputs (operator machine)
+tests/integration/test_run_curl_*.log
+tests/integration/oci_logs_curl_*.json
+tests/integration/test_run_emit_curl_local_*.log
+tests/integration/oci_logs_emit_curl_local_*.json
+progress/integration_runs/curl_*/

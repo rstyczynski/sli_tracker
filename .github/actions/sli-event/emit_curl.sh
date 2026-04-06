@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SLI event emitter — curl + openssl backend (zero install).
 # Sources emit_common.sh for payload assembly; pushes via OCI request signing.
-# Supports API-key profiles and session-token profiles (x-security-token header).
+# Supports API-key profiles and session-token profiles (keyId ST$<token>, same as oci-python-sdk Signer).
 # Requires: curl, openssl, jq (all pre-installed on ubuntu-latest).
 
 set -euo pipefail
@@ -107,13 +107,15 @@ sli_emit_main() {
     BODY_HASH="$(printf '%s' "$BATCH" | openssl dgst -binary -sha256 | openssl base64 -A)"
     REQUEST_TARGET="post /20200831/logs/${OCI_LOG_ID}/actions/push"
 
-    local _signed_headers="(request-target) date host x-content-sha256 content-type content-length"
-    SIGNING_STRING="(request-target): ${REQUEST_TARGET}
-date: ${DATE}
+    # Header order MUST match oci-python-sdk Signer (AbstractBaseSigner.create_signers):
+    # generic: date, (request-target), host — body: content-length, content-type, x-content-sha256
+    local _signed_headers="date (request-target) host content-length content-type x-content-sha256"
+    SIGNING_STRING="date: ${DATE}
+(request-target): ${REQUEST_TARGET}
 host: ${HOST}
-x-content-sha256: ${BODY_HASH}
+content-length: ${#BATCH}
 content-type: application/json
-content-length: ${#BATCH}"
+x-content-sha256: ${BODY_HASH}"
 
     SIGNATURE="$(printf '%s' "$SIGNING_STRING" | openssl dgst -sha256 -sign "$KEY_FILE" | openssl base64 -A)"
 
@@ -146,7 +148,7 @@ content-length: ${#BATCH}"
       echo "::notice::SLI log entry pushed to OCI Logging (curl)"
     else
       echo "::warning::SLI report failed to push to OCI Logging (non-fatal, HTTP ${_http_code})"
-      echo "::warning::curl response body: ${_body:0:500}"
+      [[ -n "${SLI_EMIT_CURL_VERBOSE:-}" ]] && echo "::warning::curl response body: ${_body:0:500}"
     fi
 
   elif [[ -n "$OCI_LOG_ID" && -n "$(echo "$OCI_JSON" | jq -r '."config-file" // empty')" && ! -f "$OCI_CONFIG" ]]; then

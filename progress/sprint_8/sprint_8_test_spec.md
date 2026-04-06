@@ -52,19 +52,25 @@
 
 ## Integration Tests
 
-### IT-1: Full SLI pipeline (existing)
-- **Preconditions:** Authenticated `gh` CLI, OCI CLI with DEFAULT profile, `jq`, `OCI_CONFIG_PAYLOAD` repo secret, `oci_scaffold` submodule
-- **Steps:** oci_scaffold ensure + `gh variable set`; nested unit count check; dispatch model-call / model-push; wait; OCI Logging search; SLI-9 field checks
-- **Expected Outcome:** Script exits 0; artifacts `test_run_*.log` and `oci_logs_*.json` under `tests/integration/`
-- **Target file:** tests/integration/test_sli_integration.sh
+### IT-1: emit_curl local — self-crafted OCI signing (Sprint 8 reopen)
+- **Preconditions:** `oci`, `jq`, `curl`, `openssl`; valid profile in `~/.oci` (e.g. `SLI_TEST`); `oci_scaffold` submodule; **no** `gh` workflow dispatch
+- **Steps:** Set synthetic `GITHUB_*` env; run `emit_curl.sh`; assert curl push notice; `logging-search` for an event whose `workflow` matches the local test label
+- **Expected Outcome:** Script exits 0; artifacts `test_run_emit_curl_local_*.log`, `oci_logs_emit_curl_local_*.json`
+- **Target file:** tests/integration/test_sli_emit_curl_local.sh
 
-**Running all integration tests:** `tests/run.sh` executes every `tests/integration/test_*.sh` (sorted). New domains append new `test_<domain>.sh` files; do not split by sprint.
+### IT-2: emit_curl via GitHub workflow (not Sprint 8)
+- **Note:** `tests/integration/test_sli_emit_curl_workflow.sh` dispatches `model-emit-curl.yml`. Use for SLI-12 / CI validation; **not** a Sprint 8 reopen requirement.
+
+### IT-3: Full SLI pipeline (not Sprint 8)
+- **Note:** `tests/integration/test_sli_integration.sh` — model workflows, oci-cli emit. Not a Sprint 8 reopen gate.
+
+**Running all integration tests:** `tests/run.sh --integration` runs every `tests/integration/test_*.sh` (sorted). For Sprint 8 reopen only, use `--new-only progress/sprint_8/sprint_8_reopen.manifest`.
 
 ## Traceability
 
 | Backlog Item | Unit Tests | Integration Tests |
 | --- | --- | --- |
-| SLI-11 | UT-1 … UT-7 | IT-1 (full pipeline; includes nested unit gate) |
+| SLI-11 | UT-1 … UT-7 | IT-1 (`test_sli_emit_curl_local.sh` only for reopen) |
 
 ## Regression
 

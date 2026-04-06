@@ -28,28 +28,38 @@ Expected: `TOTAL: 3 scripts, 3 passed, 0 failed` / `RESULT: PASS`
 
 **Status:** PASS
 
-### Gate C2: All integration tests (PLAN: Test: integration)
+### Gate C2: Sprint 8 reopen — integration (local emit_curl only, no workflows)
 
-Runs **every** `tests/integration/test_*.sh` script (currently one: `test_sli_integration.sh`). Add new files under `tests/integration/` as new domains appear; `run.sh` picks them up automatically.
+**Not** workflow dispatch (`test_sli_emit_curl_workflow.sh` is out of scope for this sprint). **Not** the full pipeline (`test_sli_integration.sh`).
+
+```bash
+bash tests/run.sh --integration --new-only progress/sprint_8/sprint_8_reopen.manifest 2>&1 | tail -12
+```
+
+Expected: `TOTAL: 1 scripts, 1 passed, 0 failed` for `test_sli_emit_curl_local.sh` / `RESULT: PASS`
+
+**Status:** operator-run (OCI + `~/.oci`; no `gh` workflow)
+
+### Gate C3: Full integration suite (repository regression; optional for Sprint 8)
+
+Runs **every** `tests/integration/test_*.sh` script. Use outside Sprint 8 reopen scope.
 
 ```bash
 bash tests/run.sh --integration 2>&1 | tail -12
 ```
 
-Expected: `TOTAL: 1 scripts, 1 passed, 0 failed` (increment script count when new `test_*.sh` files exist) / `RESULT: PASS`
+### Gate D2: New-code manifest (historical Sprint 8 split)
 
-**Status:** operator-run (requires live infra)
+`progress/sprint_8/new_tests.manifest` — original manifest including `test_sli_integration.sh`.
 
-### Gate D2: New-code manifest (unit + integration listed in sprint manifest)
-
-Uses `progress/sprint_8/new_tests.manifest` so `--new-only` includes both the emit unit script and the integration script.
+### Gate D3: Sprint 8 reopen manifest (unit + emit_curl integration only)
 
 ```bash
-bash tests/run.sh --unit --new-only progress/sprint_8/new_tests.manifest 2>&1 | tail -8
-bash tests/run.sh --integration --new-only progress/sprint_8/new_tests.manifest 2>&1 | tail -8
+bash tests/run.sh --unit --new-only progress/sprint_8/sprint_8_reopen.manifest 2>&1 | tail -8
+bash tests/run.sh --integration --new-only progress/sprint_8/sprint_8_reopen.manifest 2>&1 | tail -8
 ```
 
-Expected: each run lists only scripts present in the manifest; `RESULT: PASS` when those scripts pass.
+Expected: `RESULT: PASS` when listed scripts pass.
 
 ## Test Summary
 
@@ -63,7 +73,9 @@ Expected: each run lists only scripts present in the manifest; `RESULT: PASS` wh
 | UT-6 | Dispatcher EMIT_BACKEND=curl | PASS |
 | UT-7 | Dispatcher EMIT_BACKEND=oci-cli | PASS |
 | Regression unit | 24 prior + 2 other `tests/unit` scripts | PASS |
-| IT-1 | Full pipeline (`test_sli_integration.sh`) | operator-run |
+| IT-1 | emit_curl local (`test_sli_emit_curl_local.sh`) | operator-run |
+| — | Workflow dispatch (`test_sli_emit_curl_workflow.sh`) | not Sprint 8 |
+| — | Full pipeline (`test_sli_integration.sh`) | not Sprint 8 reopen gate |
 
 Total unit: 33 passed / 0 failed (same as Gate A2/B2).
 

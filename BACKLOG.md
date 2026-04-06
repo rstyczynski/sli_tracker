@@ -125,7 +125,7 @@ Regression: none (this is the migration sprint -- no prior tests in `tests/` to 
 
 The current `emit.sh` is a single file mixing payload assembly with OCI CLI transport. Rename it to `emit_oci.sh`, extract shared helpers to `emit_common.sh`, and add `emit_curl.sh` as a zero-install backend (pure bash + curl + openssl) so SLI events can be pushed without the ~2-min OCI CLI install step. `emit.sh` becomes a thin dispatcher selecting the backend via an `emit-backend: oci-cli | curl` input (default `oci-cli`).
 
-Test: unit test for `emit_curl.sh` using a mock `curl` that verifies the signed Authorization header and correct payload.
+Test: unit test for `emit_curl.sh` using a mock `curl` that verifies the signed Authorization header and correct payload. Integration (Sprint 8 reopen): `test_sli_emit_curl_local.sh` (local emit, no workflow dispatch); not `test_sli_integration.sh`.
 
 ### SLI-12. Dedicated GitHub Actions workflow for `emit_curl.sh` (no OCI CLI install)
 

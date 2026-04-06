@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Integration test — emit_curl workflow (Sprint 9, SLI-12)
+# Integration test — emit_curl via GitHub workflow (SLI-12)
 # Dispatches model-emit-curl.yml (no OCI CLI, curl backend) and verifies
 # that SLI events land in OCI Logging.
+#
+# Not used as Sprint 8 reopen gate — for workflow-based validation use this script;
+# for local-only signing validation use test_sli_emit_curl_local.sh.
 #
 # Sections:
 #   T1  Dispatch success + failure runs

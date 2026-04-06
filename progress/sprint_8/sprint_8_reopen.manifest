@@ -1,0 +1,6 @@
+# Sprint 8 reopen — SLI-11 curl validation (local emit only; no gh workflow dispatch)
+# Use with: tests/run.sh --unit --new-only progress/sprint_8/sprint_8_reopen.manifest
+#            tests/run.sh --integration --new-only progress/sprint_8/sprint_8_reopen.manifest
+
+unit:test_emit.sh
+integration:test_sli_emit_curl_local.sh

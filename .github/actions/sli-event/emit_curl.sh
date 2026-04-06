@@ -147,7 +147,7 @@ x-security-token: ${SECURITY_TOKEN}"
       echo "::notice::SLI log entry pushed to OCI Logging (curl)"
     else
       echo "::warning::SLI report failed to push to OCI Logging (non-fatal, HTTP ${_http_code})"
-      echo "::debug::curl response: $(echo "$_resp" | head -20)"
+      echo "::warning::curl response: $(echo "$_resp" | head -20)"
     fi
 
   elif [[ -n "$OCI_LOG_ID" && -n "$(echo "$OCI_JSON" | jq -r '."config-file" // empty')" && ! -f "$OCI_CONFIG" ]]; then

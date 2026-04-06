@@ -1,6 +1,6 @@
 # Sprint 8 — Reopen (integration: curl + self-crafted signing)
 
-**Status:** In progress  
+**Status:** Completed (2026-04-06)  
 **Date:** 2026-04-06
 
 ## Why reopen

@@ -78,12 +78,12 @@ Backlog Items:
 
 ## Sprint 8 - curl backend for emit.sh
 
-Status: Progress
+Status: Done
 Mode: YOLO
 Test: unit, integration
 Regression: unit
 
-**Reopened (2026-04-06):** Prove `emit_curl.sh` against OCI Logging with **self-crafted request signing** on the **operator machine** (`tests/integration/test_sli_emit_curl_local.sh`). **Not in this sprint:** dispatching or depending on GitHub Actions workflows (`gh workflow run`, `model-emit-curl.yml`, or the full model pipeline `test_sli_integration.sh`). Manifest: `progress/sprint_8/sprint_8_reopen.manifest`. Signing matches `oci-python-sdk` `Signer` header order. See `progress/sprint_8/sprint_8_reopen.md`.
+**Reopened and completed (2026-04-06):** `emit_curl.sh` validated against OCI Logging with **self-crafted request signing** on the **operator machine** (`tests/integration/test_sli_emit_curl_local.sh`). **Out of scope for this sprint:** GitHub workflow dispatch gates (`gh workflow run`, `model-emit-curl.yml`) and the full model pipeline (`test_sli_integration.sh`). Signing algorithm and test results: `progress/sprint_8/sprint_8_implementation.md`. Manifest: `progress/sprint_8/sprint_8_reopen.manifest`.
 
 Backlog Items:
 

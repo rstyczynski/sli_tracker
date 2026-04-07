@@ -85,6 +85,21 @@ sli_expand_oci_config_path() {
   esac
 }
 
+# Read a field value from an OCI config file for a given profile (no [DEFAULT] merge).
+# Used by emit_curl.sh (signing) and emit_oci.sh (OCI CLI --auth).
+# Usage: _oci_config_field <config_file> <profile_name> <field_name>
+_oci_config_field() {
+  local file="$1" profile="$2" field="$3"
+  awk -v prof="[$profile]" -v key="$field" '
+    /^\[/ { in_prof = ($0 == prof) }
+    in_prof && $0 ~ "^" key "[ \t]*=" {
+      sub(/^[^=]*=[ \t]*/, "")
+      print
+      exit
+    }
+  ' "$file"
+}
+
 # failure_reasons map from github.steps JSON (failed steps only).
 sli_failure_reasons_from_steps_json() {
   local sj

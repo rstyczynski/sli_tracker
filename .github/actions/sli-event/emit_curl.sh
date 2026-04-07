@@ -8,20 +8,7 @@ set -euo pipefail
 
 source "$(dirname "${BASH_SOURCE[0]}")/emit_common.sh"
 
-# Read a field value from an OCI config file for a given profile (no [DEFAULT] merge).
-# Session token auth: needs key_file, region, security_token_file; API-key auth: tenancy, user, fingerprint, key_file, region.
-# Usage: _oci_config_field <config_file> <profile_name> <field_name>
-_oci_config_field() {
-  local file="$1" profile="$2" field="$3"
-  awk -v prof="[$profile]" -v key="$field" '
-    /^\[/ { in_prof = ($0 == prof) }
-    in_prof && $0 ~ "^" key "[ \t]*=" {
-      sub(/^[^=]*=[ \t]*/, "")
-      print
-      exit
-    }
-  ' "$file"
-}
+# _oci_config_field is defined in emit_common.sh (session vs API-key field parsing).
 
 sli_emit_main() {
   local TIMESTAMP BASE IJ CTX OCI_JSON FLAT LOG_ENTRY

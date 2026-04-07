@@ -4,6 +4,78 @@ GitHub pipeline execution emits events used to compute Service Level Indicators 
 
 Model works on a GitHub repository interacting with OCI tenancy where events are stored.
 
+## Quick start (local `emit.sh`)
+
+1. **Create log group + log with `oci_scaffold` (copy/paste)**  
+   This uses the `oci_scaffold/` submodule and writes a state file at the repo root (`./state-<NAME_PREFIX>.json`).
+
+```bash
+cd "$(git rev-parse --show-toplevel)"
+
+# Pick a unique prefix (state file becomes ./state-${NAME_PREFIX}.json)
+export NAME_PREFIX="sli_quickstart"
+
+# OCI log destination (URI-style: //log-group/log-name)
+export SLI_OCI_LOG_URI="//sli-events/github-actions"
+
+# Load oci_scaffold helpers (defines STATE_FILE from NAME_PREFIX)
+source ./oci_scaffold/do/oci_scaffold.sh
+
+# Compartment path for the log resources (use tenancy root for quickstart)
+_state_set '.inputs.compartment_path' "/"
+
+# Split URI into names
+LOG_NAME="${SLI_OCI_LOG_URI##*/}"
+LOG_GROUP_NAME="${SLI_OCI_LOG_URI%/*}"; LOG_GROUP_NAME="${LOG_GROUP_NAME##*/}"
+
+# Ensure resources exist (uses your current OCI CLI auth/profile)
+_state_set '.inputs.name_prefix'    "$NAME_PREFIX"
+_state_set '.inputs.log_group_name' "$LOG_GROUP_NAME"
+_state_set '.inputs.log_name'       "$LOG_NAME"
+
+bash ./oci_scaffold/resource/ensure-compartment.sh
+
+# Read resolved compartment OCID from state and pass it to subsequent ensure steps
+export COMPARTMENT_OCID="$(_state_get '.compartment.ocid')"
+_state_set '.inputs.oci_compartment' "$COMPARTMENT_OCID"
+
+bash ./oci_scaffold/resource/ensure-log_group.sh
+bash ./oci_scaffold/resource/ensure-log.sh
+
+# Export the created/resolved log OCID for emit.sh (used as SLI_OCI_LOG_ID)
+export SLI_OCI_LOG_ID="$(jq -r '.log.ocid // empty' "$STATE_FILE")"
+echo "SLI_OCI_LOG_ID=$SLI_OCI_LOG_ID"
+```
+
+1. **Authenticate** so `~/.oci/config` has a usable profile (e.g. `SLI_TEST`). Use the packing script to refresh a session token and upload to GitHub if needed:
+
+   ```bash
+   bash .github/actions/oci-profile-setup/setup_oci_github_access.sh --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+   ```
+
+   For a local-only test you only need a valid session/API-key profile on disk matching `profile` below.
+
+1. **Emit a success SLI event** via the dispatcher (**`emit.sh`**). Set **`EMIT_BACKEND=curl`** for bash + curl + openssl only (no OCI CLI). Use **`EMIT_BACKEND=oci-cli`** if the OCI CLI is installed and you want the same path as the default GitHub Action.
+
+   ```bash
+   export EMIT_BACKEND=curl
+   export SLI_OUTCOME=success
+   export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
+   bash .github/actions/sli-event/emit.sh
+   ```
+
+1. **Emit a failure SLI event** (same env as above; set `SLI_OUTCOME=failure`). To populate **`failure_reasons`** like in GitHub Actions, pass a minimal `steps-json` with at least one failed step:
+
+   ```bash
+   export EMIT_BACKEND=oci-cli
+   export SLI_OUTCOME=failure
+   export STEPS_JSON='{"test_script":{"outcome":"failure","outputs":{}}}'
+   export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
+   bash .github/actions/sli-event/emit.sh
+   ```
+
+   `SLI_OCI_LOG_ID` is read from the environment; `oci.log-id` in `SLI_CONTEXT_JSON` is optional if it is set. To build the payload without pushing, set `SLI_SKIP_OCI_PUSH=1`.
+
 ## Process
 
 This repository is developed using the **RUP Strikes Back** AI-driven development process. The process is managed by the `RUPStrikesBack` git submodule located at `./RUPStrikesBack/`.

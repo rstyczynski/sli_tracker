@@ -23,6 +23,10 @@ sli_emit_main() {
   FAILURE_REASONS="$(sli_merge_failure_reasons "$FAILURE_REASONS_STEPS" "$FAILURE_REASONS_ENV")"
   LOG_ENTRY="$(sli_build_log_entry "$BASE" "$FLAT" "$FAILURE_REASONS")"
 
+  echo "::group::Received steps-json"
+  echo "$STEPS_JSON" | jq .
+  echo "::endgroup::"
+
   echo "::group::SLI Report payload"
   echo "$LOG_ENTRY" | jq .
   echo "::endgroup::"
@@ -50,8 +54,16 @@ sli_emit_main() {
         "entries": [{ "data": ($entry | tostring), "id": ($ts + "-sli"), "time": $ts }]
       }]')
 
+    local _stf OCI_CLI_AUTH=()
+    _stf="$(_oci_config_field "$OCI_CONFIG" "$OCI_PROFILE" security_token_file)"
+    _stf="$(sli_expand_oci_config_path "$_stf")"
+    if [[ -n "$_stf" ]]; then
+      OCI_CLI_AUTH=(--auth security_token)
+    fi
+
     OCI_CONFIG_FILE="$OCI_CONFIG" \
     oci logging-ingestion put-logs \
+      "${OCI_CLI_AUTH[@]}" \
       --log-id "$OCI_LOG_ID" \
       --log-entry-batches "$BATCH" \
       --specversion "1.0" \

@@ -123,7 +123,7 @@ Backlog Items:
 
 ## Sprint 11 - JavaScript action with pre/post hooks
 
-Status: Progress
+Status: Done
 Mode: YOLO
 Test: integration
 Regression: none
@@ -131,6 +131,8 @@ Regression: none
 Replace the current composite action with a JavaScript GitHub Action that supports native `pre` / `post` hooks. The `pre` hook handles optional OCI authentication setup; the `post` hook emits the SLI event via curl. Callers gain automatic teardown without spelling out setup/report steps in every workflow.
 
 Do not modify other files; just create new workflow. Add integration test for this workflow and execute it. Skip regression as no other files are touched.
+
+**Delivered note:** GitHub does not run `pre` hooks for actions referenced with `./` (local actions). The shipped design uses an explicit `oci-profile-setup` step in `model-emit-js.yml` plus `sli-event-js` (`main` no-op, `post` SLI emit).
 
 Backlog Items:
 

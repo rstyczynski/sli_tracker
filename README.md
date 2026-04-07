@@ -103,6 +103,27 @@ All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifac
 
 ## Recent updates
 
+### Sprint 11 — JavaScript `sli-event-js` action + `model-emit-js` workflow (YOLO)
+
+**Status:** implemented + tested
+
+**Backlog:**
+
+- **SLI-16:** Added `.github/actions/sli-event-js/` (Node 20): `main` is a no-op; `post` runs `emit.sh` with `EMIT_BACKEND=curl` so SLI events reach OCI Logging without installing the OCI CLI on the runner. GitHub does not execute `pre` hooks for local actions (`./.github/actions/...`), so optional OCI config restore is modeled as an explicit **`oci-profile-setup`** step at the start of `.github/workflows/model-emit-js.yml` (`oci-auth-mode: none` for curl signing).
+
+**Key changes:**
+
+- `.github/workflows/model-emit-js.yml` — checkout → `oci-profile-setup` → main work → `sli-event-js`
+- `tests/integration/test_sli_emit_js_workflow.sh` — dispatches the workflow and asserts GitHub logs + OCI Logging
+
+**Documentation:** `progress/sprint_11/sprint_11_implementation.md`, `progress/sprint_11/sprint_11_tests.md`, `progress/sprint_11/sprint_11_design.md`
+
+**Quality gate:** Integration (new-code manifest) PASS — see `progress/sprint_11/sprint_11_tests.md`.
+
+**Traceability:** `progress/backlog/SLI-16/`
+
+---
+
 ### Sprint 10 — Nested `workflow` + `repo` schema in SLI events (YOLO)
 
 **Status:** implemented + tested

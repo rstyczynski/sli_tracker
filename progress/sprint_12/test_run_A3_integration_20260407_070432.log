@@ -1,0 +1,73 @@
+[info] --new-only mode: filtering to tests listed in progress/sprint_12/new_tests.manifest
+[info] current implementation filters at script level, not function level
+=== integration tests ===
+[skip] integration/test_sli_emit_curl_local.sh (not in manifest)
+[skip] integration/test_sli_emit_curl_workflow.sh (not in manifest)
+[skip] integration/test_sli_emit_js_workflow.sh (not in manifest)
+[run] integration/test_sli_emit_metric.sh
+# emit_metric integration test — Tue Apr  7 07:04:33 UTC 2026
+# Log: /Users/rstyczynski/projects/SLI_tracker/tests/integration/test_run_emit_metric_20260407_070433.log
+
+=== Auth gate: OCI profile SLI_TEST ===
+OCI session not valid (attempt 1).
+Retrying in 20s...
+OCI session not valid (attempt 2).
+Retrying in 20s...
+OK: OCI profile valid.
+
+# Tenancy (compartmentId): ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a
+
+=== IT-1: EMIT_TARGET=metric — metric-only push ===
+::group::Received steps-json
+{
+  "step-main": {
+    "outputs": {},
+    "outcome": "success",
+    "conclusion": "success"
+  }
+}
+::endgroup::
+::group::SLI Report payload
+{
+  "source": "github-actions/sli-tracker",
+  "outcome": "success",
+  "timestamp": "2026-04-07T07:05:19Z",
+  "workflow": {
+    "run_id": "metric-test-1775545518",
+    "run_number": "1",
+    "run_attempt": "1",
+    "name": "LOCAL — metric test",
+    "ref": "local/test_sli_emit_metric",
+    "job": "emit-metric-local",
+    "event_name": "workflow_dispatch",
+    "actor": "rstyczynski"
+  },
+  "repo": {
+    "repository": "rstyczynski/sli_tracker",
+    "repository_id": "1200217885",
+    "ref": "main",
+    "ref_full": "refs/heads/main",
+    "sha": "7d3beee4ac9ec44b5d17142fc8334a4875c43c42"
+  },
+  "failure_reasons": {}
+}
+::endgroup::
+::warning::SLI metric push failed (non-fatal, HTTP 400)
+FAIL: IT-1: no metric push success notice in output
+PASS: IT-1: log push correctly skipped
+
+=== IT-1b: OCI Monitoring — verify datapoint (waiting 90s for ingestion) ===
+# OCI metric sample: /Users/rstyczynski/projects/SLI_tracker/tests/integration/oci_metric_20260407_070433.json
+FAIL: IT-1b: OCI Monitoring has no datapoints (got=0, namespace=sli_tracker)
+
+=== IT-2: EMIT_TARGET=log,metric — dual push ===
+Usage: oci os ns get-metadata [OPTIONS]
+
+Error: Unable to retrieve namespace internally. Please provide the namespace using the option "--['namespace-name']".
+[FAIL] integration/test_sli_emit_metric.sh (exit code 1)
+=== integration summary: 1 scripts, 0 passed, 1 failed ===
+
+========================================
+TOTAL: 1 scripts, 0 passed, 1 failed
+========================================
+RESULT: FAIL

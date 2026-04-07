@@ -204,12 +204,16 @@ sli_emit_metric() {
       "namespace":     $ns,
       "name":          "outcome",
       "compartmentId": $comp,
-      "dimensions": {
-        "workflow_name":   ($entry.workflow.name     // ""),
-        "workflow_job":    ($entry.workflow.job      // ""),
-        "repo_repository": ($entry.repo.repository   // ""),
-        "repo_ref":        ($entry.repo.ref          // "")
-      },
+      "dimensions": (
+        {
+          "workflow_name":   ($entry.workflow.name     // ""),
+          "workflow_job":    ($entry.workflow.job      // ""),
+          "repo_repository": ($entry.repo.repository   // ""),
+          "repo_ref":        ($entry.repo.ref          // "")
+        }
+        | with_entries(select(.value != null and .value != ""))
+        | if (length == 0) then {"emit_env":"local"} else . end
+      ),
       "datapoints": [{"timestamp": $ts, "value": ($val | tonumber)}]
     }]}')"
 

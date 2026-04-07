@@ -1,0 +1,28 @@
+{
+  "data": [
+    {
+      "aggregated-datapoints": [
+        {
+          "timestamp": "2026-04-07T07:10:00+00:00",
+          "value": 1.0
+        },
+        {
+          "timestamp": "2026-04-07T07:15:00+00:00",
+          "value": 1.0
+        }
+      ],
+      "compartment-id": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+      "dimensions": {
+        "repo_ref": "main",
+        "repo_repository": "rstyczynski/sli_tracker",
+        "workflow_job": "emit-metric-local",
+        "workflow_name": "LOCAL — metric test"
+      },
+      "metadata": {},
+      "name": "outcome",
+      "namespace": "sli_tracker",
+      "resolution": null,
+      "resource-group": null
+    }
+  ]
+}

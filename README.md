@@ -59,11 +59,14 @@ echo "SLI_OCI_LOG_ID=$SLI_OCI_LOG_ID"
 
    By default `EMIT_TARGET=log,metric` — both an OCI Logging entry and an OCI Monitoring `outcome` metric are pushed. Set `EMIT_TARGET=log` for log only, `EMIT_TARGET=metric` for metric only.
 
+   If you run locally (not inside GitHub Actions), the workflow/repo fields are empty. The metric emitter will fall back to a single dimension `emit_env=local` to satisfy OCI Monitoring validation.
+
    ```bash
    export EMIT_BACKEND=curl
-   export EMIT_TARGET=log,metric          # default; explicit here for clarity
+   export EMIT_TARGET=log,metric
    export SLI_OUTCOME=success
-   export SLI_OCI_LOG_ID="<log-ocid>"    # from step 1; omit or leave empty for metric-only
+   export SLI_METRIC_COMPARTMENT=$COMPARTMENT_OCID
+   export SLI_OCI_LOG_ID=$SLI_OCI_LOG_ID
    export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
    bash .github/actions/sli-event/emit.sh
    ```
@@ -74,8 +77,8 @@ echo "SLI_OCI_LOG_ID=$SLI_OCI_LOG_ID"
    export EMIT_BACKEND=oci-cli
    export EMIT_TARGET=log,metric
    export SLI_OUTCOME=failure
-   export SLI_METRIC_COMPARTMENT=xxx
-   export SLI_OCI_LOG_ID="<log-ocid>"    # from step 1
+   export SLI_METRIC_COMPARTMENT=$COMPARTMENT_OCID
+   export SLI_OCI_LOG_ID=$SLI_OCI_LOG_ID
    export STEPS_JSON='{"test_script":{"outcome":"failure","outputs":{}}}'
    export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
    bash .github/actions/sli-event/emit.sh

@@ -137,3 +137,16 @@ Do not modify other files; just create new workflow. Add integration test for th
 Backlog Items:
 
 * SLI-16. JavaScript GitHub Action with pre/post hooks for optional auth and SLI reporting
+
+## Sprint 12 - OCI Monitoring metric output
+
+Status: Progress
+Mode: YOLO
+Test: integration
+Regression: unit
+
+Extend emit scripts to post an `outcome` metric to OCI Monitoring alongside (or instead of) the existing OCI Logging entry. No workflow YAML files are modified.
+
+Backlog Items:
+
+* SLI-17. emit.sh: send an OCI Monitoring metric in addition to (or instead of) the OCI Logging entry

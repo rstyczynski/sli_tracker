@@ -1,0 +1,101 @@
+# emit_metric integration test — Tue Apr  7 07:08:35 UTC 2026
+# Log: /Users/rstyczynski/projects/SLI_tracker/tests/integration/test_run_emit_metric_20260407_070835.log
+
+=== Auth gate: OCI profile SLI_TEST ===
+OK: OCI profile valid.
+
+# Tenancy (compartmentId): ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a
+
+=== IT-1: EMIT_TARGET=metric — metric-only push ===
+::group::Received steps-json
+{
+  "step-main": {
+    "outputs": {},
+    "outcome": "success",
+    "conclusion": "success"
+  }
+}
+::endgroup::
+::group::SLI Report payload
+{
+  "source": "github-actions/sli-tracker",
+  "outcome": "success",
+  "timestamp": "2026-04-07T07:08:37Z",
+  "workflow": {
+    "run_id": "metric-test-1775545717",
+    "run_number": "1",
+    "run_attempt": "1",
+    "name": "LOCAL — metric test",
+    "ref": "local/test_sli_emit_metric",
+    "job": "emit-metric-local",
+    "event_name": "workflow_dispatch",
+    "actor": "rstyczynski"
+  },
+  "repo": {
+    "repository": "rstyczynski/sli_tracker",
+    "repository_id": "1200217885",
+    "ref": "main",
+    "ref_full": "refs/heads/main",
+    "sha": "7d3beee4ac9ec44b5d17142fc8334a4875c43c42"
+  },
+  "failure_reasons": {}
+}
+::endgroup::
+::notice::SLI metric pushed to OCI Monitoring (namespace: sli_tracker, outcome: success, value: 1)
+PASS: IT-1: metric push reported success
+PASS: IT-1: log push correctly skipped
+
+=== IT-1b: OCI Monitoring — verify datapoint (waiting 90s for ingestion) ===
+# OCI metric sample: /Users/rstyczynski/projects/SLI_tracker/tests/integration/oci_metric_20260407_070835.json
+FAIL: IT-1b: OCI Monitoring has no datapoints (got=0, namespace=sli_tracker)
+
+=== IT-2: EMIT_TARGET=log,metric — dual push ===
+# Log OCID:   [INFO] COMPARTMENT_OCID defaulted to tenancy: 
+  [INFO] OCI_REGION defaulted to home region: 
+  [INFO] STATE_FILE: /Users/rstyczynski/projects/SLI_tracker/state-sli_test_sprint6.json
+ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa
+::group::Received steps-json
+{
+  "step-main": {
+    "outputs": {},
+    "outcome": "success",
+    "conclusion": "success"
+  }
+}
+::endgroup::
+::group::SLI Report payload
+{
+  "source": "github-actions/sli-tracker",
+  "outcome": "success",
+  "timestamp": "2026-04-07T07:10:12Z",
+  "workflow": {
+    "run_id": "metric-test-1775545717",
+    "run_number": "1",
+    "run_attempt": "1",
+    "name": "LOCAL — metric test",
+    "ref": "local/test_sli_emit_metric",
+    "job": "emit-metric-local",
+    "event_name": "workflow_dispatch",
+    "actor": "rstyczynski"
+  },
+  "repo": {
+    "repository": "rstyczynski/sli_tracker",
+    "repository_id": "1200217885",
+    "ref": "main",
+    "ref_full": "refs/heads/main",
+    "sha": "7d3beee4ac9ec44b5d17142fc8334a4875c43c42"
+  },
+  "failure_reasons": {}
+}
+::endgroup::
+::warning::SLI report failed to push to OCI Logging (non-fatal, HTTP )
+::notice::SLI metric pushed to OCI Monitoring (namespace: sli_tracker, outcome: success, value: 1)
+PASS: IT-2: metric push reported success
+FAIL: IT-2: no log push success notice in output
+
+=== Summary ===
+passed: 3  failed: 2
+
+Artifacts:
+  /Users/rstyczynski/projects/SLI_tracker/tests/integration/test_run_emit_metric_20260407_070835.log
+  /Users/rstyczynski/projects/SLI_tracker/tests/integration/oci_metric_20260407_070835.json

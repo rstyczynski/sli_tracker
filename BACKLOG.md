@@ -181,3 +181,9 @@ After SLI-13 and SLI-14 restructure the payload, update all repository documenta
 Composite actions cannot use GitHub’s `runs.pre` / `runs.post` hooks; only JavaScript (and Docker) actions can. We need a small JS action so a job can run **optional** OCI setup at the start and **SLI emit at the end** in the real post phase—same product goal as today’s `model-emit-curl.yml` flow, without spelling every setup/report step in each workflow. When the pipeline already provides credentials, the pre hook must do nothing.
 
 Test: a workflow using the new action proves SLI events reach OCI Logging the same way the existing curl workflow integration test does.
+
+### SLI-17. emit.sh: send an OCI Monitoring metric in addition to (or instead of) the OCI Logging entry
+
+`emit.sh` only pushes log entries; SLI ratios (successes/failures over a window) cannot be computed natively in OCI Monitoring without a companion metric. Add a configurable `EMIT_TARGET` (values: `log`, `metric` or combination; default `log,metric`) that posts an `outcome` metric (1=success, 0=failure) to OCI Monitoring with namespace `sli_tracker` (overridable via `SLI_METRIC_NAMESPACE`) and dimensions derived from the workflow/repo fields. Changes are limited to the emit scripts; no workflow YAML files are touched.
+
+Test: integration test runs the emit scripts directly (no workflow dispatch) with `EMIT_TARGET=metric` and `EMIT_TARGET=log,metric` and queries OCI Monitoring to confirm datapoints arrived; regression unit tests cover `EMIT_TARGET` defaulting and outcome→value mapping.

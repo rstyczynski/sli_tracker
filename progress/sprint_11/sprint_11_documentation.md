@@ -13,7 +13,7 @@
 
 ## Compliance (inline)
 
-- Sprint artifacts present: setup, design, implementation, tests, gate logs listed in `sprint_11_tests.md`
+- Sprint artifacts present: setup, design, implementation, tests, gate logs listed in `sprint_11_tests.md` (log files and OCI JSON captures committed under `tests/integration/` and `progress/integration_runs/`)
 - Backlog traceability: `progress/backlog/SLI-16/` symlinks to sprint 11 documents
 - README updated: Recent Updates — Sprint 11
 

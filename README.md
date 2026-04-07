@@ -76,6 +76,13 @@ echo "SLI_OCI_LOG_ID=$SLI_OCI_LOG_ID"
 
    `SLI_OCI_LOG_ID` is read from the environment; `oci.log-id` in `SLI_CONTEXT_JSON` is optional if it is set. To build the payload without pushing, set `SLI_SKIP_OCI_PUSH=1`.
 
+1. ***Run GitHub workflow** 
+
+```bash
+./.github/actions/oci-profile-setup/setup_oci_github_access.sh
+./tests/integration/test_sli_integration.sh
+```
+
 ## Process
 
 This repository is developed using the **RUP Strikes Back** AI-driven development process. The process is managed by the `RUPStrikesBack` git submodule located at `./RUPStrikesBack/`.

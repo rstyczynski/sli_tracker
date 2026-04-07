@@ -28,6 +28,10 @@ sli_emit_main() {
   FAILURE_REASONS="$(sli_merge_failure_reasons "$FAILURE_REASONS_STEPS" "$FAILURE_REASONS_ENV")"
   LOG_ENTRY="$(sli_build_log_entry "$BASE" "$FLAT" "$FAILURE_REASONS")"
 
+  echo "::group::Received steps-json"
+  echo "$STEPS_JSON" | jq .
+  echo "::endgroup::"
+  
   echo "::group::SLI Report payload"
   echo "$LOG_ENTRY" | jq .
   echo "::endgroup::"

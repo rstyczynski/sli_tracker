@@ -1,0 +1,39 @@
+# sli-event-js workflow integration test — Tue Apr  7 02:16:20 UTC 2026
+# Log: /Users/rstyczynski/projects/SLI_tracker/tests/integration/test_run_js_20260407_021620.log
+
+=== Auth gate: OCI profile SLI_TEST ===
+OK: OCI profile valid.
+
+# token_based wrapper installed for local oci
+
+  [INFO] COMPARTMENT_OCID defaulted to tenancy: ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a
+  [INFO] OCI_REGION defaulted to home region: eu-zurich-1
+  [INFO] STATE_FILE: /Users/rstyczynski/projects/SLI_tracker/state-sli_test_sprint6.json
+  [EXISTING] Log Group 'sli-events': ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq
+  [EXISTING] Log 'github-actions': ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa
+
+=== T1: Dispatch model-emit-js — success + failure ===
+Dispatching success run...
+Dispatching failure run...
+PASS: emit-js success triggered: 24060979694
+PASS: emit-js failure triggered: 24060981183
+
+=== T2: Wait for runs to complete ===
+    Runs: 24060979694 24060981183
+PASS: run 24060979694 completed
+PASS: run 24060981183 completed
+
+=== T3: Expected workflow conclusions ===
+PASS: emit-js success → conclusion success
+PASS: emit-js failure → conclusion failure
+
+=== T4: Verify no OCI CLI install step ran ===
+PASS: run 24060979694 — no OCI CLI install in job logs
+PASS: run 24060981183 — no OCI CLI install in job logs
+
+=== T5: Verify OCI profile setup step ran in workflow logs ===
+FAIL: run 24060979694 — OCI profile restore notice not found
+FAIL: run 24060981183 — OCI profile restore notice not found
+
+=== T6: OCI Logging — verify JS action events ===
+jq: parse error: Invalid numeric literal at line 1, column 6

@@ -32,9 +32,29 @@ Not run (`Regression: none` in `PLAN.md`).
 
 **Flaky tests deferred:** None
 
-## Artifacts
+## Artifacts (committed)
+
+**Canonical PASS (gate A3):**
 
 - `tests/integration/test_run_js_20260407_021941.log`
 - `tests/integration/oci_logs_js_20260407_021941.json`
 - `progress/integration_runs/js_20260407_021941/integration_test_run.log`
 - `progress/integration_runs/js_20260407_021941/oci_logs.json`
+
+**Earlier integration attempts / diagnostics (same suite, pre-fix or exploratory):**
+
+- `tests/integration/test_run_js_20260407_015657.log` — auth / early attempt  
+- `tests/integration/oci_logs_js_20260407_015657.json`  
+- `tests/integration/test_run_js_20260407_020001.log`  
+- `tests/integration/oci_logs_js_20260407_020001.json`  
+- `progress/sprint_11/test_run_A3_integration_20260407_020001.log`  
+- `progress/integration_runs/js_20260407_020001/integration_test_run.log`  
+- `progress/integration_runs/js_20260407_020001/oci_logs.json`  
+- `tests/integration/test_run_js_20260407_020556.log`  
+- `progress/sprint_11/test_run_A3_integration_20260407_020556.log`  
+- `tests/integration/test_run_js_20260407_020656.log`  
+- `tests/integration/oci_logs_js_20260407_020656.json`  
+- `progress/sprint_11/test_run_A3_integration_20260407_020656.log`  
+- `progress/integration_runs/js_20260407_020656/integration_test_run.log`  
+- `progress/integration_runs/js_20260407_020656/oci_logs.json`  
+- `tests/integration/test_run_js_20260407_021620.log` — run before push (remote workflow not updated)

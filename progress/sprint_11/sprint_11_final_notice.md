@@ -1,8 +1,14 @@
 # Sprint 11 — Final notice (post-implementation conclusions)
 
+## TL;DR
+
+**GitHub does not run `pre` on local actions (`./`), so the “one action does OCI then emit” story breaks.** We ship **explicit `oci-profile-setup`** plus a final reporting step. **`post.js` is optional:** for a last step only, **composite `sli-event` or `run: emit.sh`** is usually simpler than a JS action with an empty `main`. Use **`if: always()`** on the reporting step when SLI must run after a failed build.
+
+---
+
 **Sprint:** 11 (SLI-16) · **Topic:** JavaScript `sli-event-js` vs explicit workflow steps
 
-These points were clarified after delivery; they refine the original “pre/main/post in one action” story.
+Elaboration below refines the original “pre/main/post in one action” plan.
 
 ## 1. Local actions and `pre` hooks
 

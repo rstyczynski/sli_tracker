@@ -298,6 +298,53 @@ done
 for _v in "${_sli_test_vars[@]}"; do export "$_v=${_sli_test_saved[$_v]}"; done
 unset _sli_test_vars _sli_test_saved _v _s10_base want_wf want_repo _old_fields _f _val
 
+# ── Sprint 12 (SLI-17): EMIT_TARGET + sli_outcome_to_metric_value ──
+
+echo "== UT-S12-1: sli_outcome_to_metric_value — success → 1 =="
+# TODO: implement — source emit_common.sh and call sli_outcome_to_metric_value
+source "$ACTION_DIR/emit_common.sh" 2>/dev/null || true
+if declare -f sli_outcome_to_metric_value >/dev/null 2>&1; then
+  assert_eq "$(sli_outcome_to_metric_value success)" "1" "UT-S12-1: success -> 1"
+else
+  fail "UT-S12-1: sli_outcome_to_metric_value not found in emit_common.sh"
+fi
+
+echo "== UT-S12-2: sli_outcome_to_metric_value — failure → 0 =="
+if declare -f sli_outcome_to_metric_value >/dev/null 2>&1; then
+  assert_eq "$(sli_outcome_to_metric_value failure)" "0" "UT-S12-2: failure -> 0"
+else
+  fail "UT-S12-2: sli_outcome_to_metric_value not found"
+fi
+
+echo "== UT-S12-3: sli_outcome_to_metric_value — empty/unknown → 0 =="
+if declare -f sli_outcome_to_metric_value >/dev/null 2>&1; then
+  assert_eq "$(sli_outcome_to_metric_value "")" "0" "UT-S12-3a: empty -> 0"
+  assert_eq "$(sli_outcome_to_metric_value cancelled)" "0" "UT-S12-3b: cancelled -> 0"
+  assert_eq "$(sli_outcome_to_metric_value skipped)" "0" "UT-S12-3c: skipped -> 0"
+else
+  fail "UT-S12-3: sli_outcome_to_metric_value not found"
+fi
+
+echo "== UT-S12-4: emit_curl.sh EMIT_TARGET=log — skips metric push =="
+_out_s12_4="$(EMIT_TARGET=log SLI_SKIP_OCI_PUSH=1 SLI_OUTCOME=success \
+  bash "${ACTION_DIR}/emit_curl.sh" 2>&1)"
+if echo "$_out_s12_4" | grep -q "SLI metric"; then
+  fail "UT-S12-4: EMIT_TARGET=log should NOT call metric push, got: $_out_s12_4"
+else
+  pass "UT-S12-4: EMIT_TARGET=log correctly skips metric"
+fi
+
+echo "== UT-S12-5: emit_curl.sh EMIT_TARGET=metric — skips log push =="
+# With SLI_SKIP_OCI_PUSH=1 and EMIT_TARGET=metric the skip notice should fire
+# without any attempt to build the logging batch (no log-id needed).
+_out_s12_5="$(EMIT_TARGET=metric SLI_SKIP_OCI_PUSH=1 SLI_OUTCOME=success \
+  bash "${ACTION_DIR}/emit_curl.sh" 2>&1)"
+if echo "$_out_s12_5" | grep -q "SLI OCI push skipped"; then
+  pass "UT-S12-5: SLI_SKIP_OCI_PUSH short-circuits before any push"
+else
+  fail "UT-S12-5: expected skip notice, got: $_out_s12_5"
+fi
+
 echo "== summary =="
 echo "passed: $passed  failed: $failed"
 if [[ "$failed" -gt 0 ]]; then

@@ -1,0 +1,5 @@
+# Sprint 12 — new-tests manifest
+# Used by: tests/run.sh --integration --new-only progress/sprint_12/new_tests.manifest
+# Gate A3 (integration): the new test_sli_emit_metric.sh script
+
+integration:test_sli_emit_metric.sh

@@ -22,13 +22,6 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v4
 
-      - name: "SLI auto-report (pre: OCI setup / post: SLI emit)"
-        uses: ./.github/actions/sli-event-js
-        with:
-          oci-config-payload: ${{ secrets.OCI_CONFIG_PAYLOAD }}
-          profile: SLI_TEST
-          log-id: ${{ vars.SLI_OCI_LOG_ID }}
-
       - name: "Main step"
         id: step-main
         run: |
@@ -37,3 +30,12 @@ jobs:
             exit 1
           fi
           echo "Main step completed successfully"
+
+      - name: "SLI auto-report (main: OCI setup / post: SLI emit)"
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/sli-event-js
+        with:
+          oci-config-payload: ${{ secrets.OCI_CONFIG_PAYLOAD }}
+          profile: SLI_TEST
+          log-id: ${{ vars.SLI_OCI_LOG_ID }}
+          outcome: ${{ job.status }}

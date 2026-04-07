@@ -17,4 +17,4 @@ Progress board is a table showing sprint, and backlog items state. It's the only
 | Sprint 10 | implemented         | SLI-13       | tested              |
 | Sprint 10 | implemented         | SLI-14       | tested              |
 | Sprint 10 | implemented         | SLI-15       | tested              |
-| Sprint 11 | under_analysis      | SLI-16       | test_specified      |
+| Sprint 11 | under_construction  | SLI-16       | under_construction  |

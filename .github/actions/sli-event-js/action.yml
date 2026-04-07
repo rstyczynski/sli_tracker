@@ -1,0 +1,35 @@
+name: "SLI Event (JS)"
+description: |
+  JavaScript action with pre/post hooks. pre: restores OCI profile from secret (optional).
+  post: emits SLI event to OCI Logging via curl. No OCI CLI install needed.
+  Single action declaration replaces separate oci-profile-setup + sli-event steps.
+
+inputs:
+  oci-config-payload:
+    description: "Base64 OCI config payload (from OCI_CONFIG_PAYLOAD secret). If empty, pre hook is a no-op."
+    required: false
+    default: ""
+  profile:
+    description: "OCI profile name."
+    required: false
+    default: "SLI_TEST"
+  log-id:
+    description: "OCI log OCID. Falls back to SLI_OCI_LOG_ID environment variable."
+    required: false
+    default: ""
+  outcome:
+    description: "SLI outcome override (success|failure|cancelled|skipped). Falls back to GITHUB_JOB_STATUS env var, then 'success'."
+    required: false
+    default: ""
+  oci-api-domain:
+    description: "OCI API domain. Override for non-commercial realms (e.g. oraclegovcloud.com)."
+    required: false
+    default: "oraclecloud.com"
+
+runs:
+  using: node20
+  pre: pre.js
+  pre-if: always()
+  main: index.js
+  post: post.js
+  post-if: always()

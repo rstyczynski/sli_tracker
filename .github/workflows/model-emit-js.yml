@@ -1,0 +1,39 @@
+name: "MODEL — emit_js (JS action pre/post hooks)"
+# SLI-16: Proves the sli-event-js JavaScript action wires OCI setup (pre hook)
+# and SLI emit (post hook) from a single action declaration.
+# No separate oci-profile-setup step or sli-event step needed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      simulate-failure:
+        description: "Force failure (for SLI testing)"
+        type: boolean
+        default: false
+
+env:
+  SLI_OCI_LOG_ID: ${{ vars.SLI_OCI_LOG_ID }}
+
+jobs:
+  emit-js:
+    name: "Emit via JS action (pre/post hooks)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: "SLI auto-report (pre: OCI setup / post: SLI emit)"
+        uses: ./.github/actions/sli-event-js
+        with:
+          oci-config-payload: ${{ secrets.OCI_CONFIG_PAYLOAD }}
+          profile: SLI_TEST
+          log-id: ${{ vars.SLI_OCI_LOG_ID }}
+
+      - name: "Main step"
+        id: step-main
+        run: |
+          if [[ "${{ inputs.simulate-failure }}" == "true" ]]; then
+            echo "::error::Simulated failure triggered for SLI testing"
+            exit 1
+          fi
+          echo "Main step completed successfully"

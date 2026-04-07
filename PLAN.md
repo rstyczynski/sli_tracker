@@ -120,3 +120,18 @@ Backlog Items:
 * SLI-13. Make `workflow` metadata a nested map in emitted events
 * SLI-14. Move repository-related attributes into `repo` map
 * SLI-15. Update docs/tests/queries for nested `workflow` + `repo` schema
+
+## Sprint 11 - JavaScript action with pre/post hooks
+
+Status: Progress
+Mode: YOLO
+Test: integration
+Regression: none
+
+Replace the current composite action with a JavaScript GitHub Action that supports native `pre` / `post` hooks. The `pre` hook handles optional OCI authentication setup; the `post` hook emits the SLI event via curl. Callers gain automatic teardown without spelling out setup/report steps in every workflow.
+
+Do not modify other files; just create new workflow. Add integration test for this workflow and execute it. Skip regression as no other files are touched.
+
+Backlog Items:
+
+* SLI-16. JavaScript GitHub Action with pre/post hooks for optional auth and SLI reporting

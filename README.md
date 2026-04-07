@@ -57,9 +57,13 @@ echo "SLI_OCI_LOG_ID=$SLI_OCI_LOG_ID"
 
 1. **Emit a success SLI event** via the dispatcher (**`emit.sh`**). Set **`EMIT_BACKEND=curl`** for bash + curl + openssl only (no OCI CLI). Use **`EMIT_BACKEND=oci-cli`** if the OCI CLI is installed and you want the same path as the default GitHub Action.
 
+   By default `EMIT_TARGET=log,metric` — both an OCI Logging entry and an OCI Monitoring `outcome` metric are pushed. Set `EMIT_TARGET=log` for log only, `EMIT_TARGET=metric` for metric only.
+
    ```bash
    export EMIT_BACKEND=curl
+   export EMIT_TARGET=log,metric          # default; explicit here for clarity
    export SLI_OUTCOME=success
+   export SLI_OCI_LOG_ID="<log-ocid>"    # from step 1; omit or leave empty for metric-only
    export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
    bash .github/actions/sli-event/emit.sh
    ```
@@ -68,7 +72,9 @@ echo "SLI_OCI_LOG_ID=$SLI_OCI_LOG_ID"
 
    ```bash
    export EMIT_BACKEND=oci-cli
+   export EMIT_TARGET=log,metric
    export SLI_OUTCOME=failure
+   export SLI_OCI_LOG_ID="<log-ocid>"    # from step 1
    export STEPS_JSON='{"test_script":{"outcome":"failure","outputs":{}}}'
    export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
    bash .github/actions/sli-event/emit.sh

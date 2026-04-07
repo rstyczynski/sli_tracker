@@ -103,6 +103,35 @@ All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifac
 
 ## Recent updates
 
+### Sprint 12 — OCI Monitoring metric output via `EMIT_TARGET` (YOLO)
+
+**Status:** implemented_partially + tested
+
+Extends `emit_curl.sh` and `emit_oci.sh` with an `EMIT_TARGET` env var (values: `log`, `metric`, `log,metric`; default `log,metric`). When `metric` is included, an `outcome` datapoint (1=success, 0=other) is posted to OCI Monitoring namespace `sli_tracker` (overridable via `SLI_METRIC_NAMESPACE`) using the same RSA-SHA256 request signing already in place for logging. No workflow YAML files were modified.
+
+New helpers in `emit_common.sh`: `sli_outcome_to_metric_value()` and `sli_emit_metric(log_entry, config, profile)`.
+
+Example — metric-only push:
+
+```bash
+EMIT_TARGET=metric \
+SLI_OUTCOME=success \
+SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}' \
+bash .github/actions/sli-event/emit_curl.sh
+```
+
+Example — dual push (log + metric):
+
+```bash
+EMIT_TARGET=log,metric \
+SLI_OUTCOME=success \
+SLI_OCI_LOG_ID="<log-ocid>" \
+SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}' \
+bash .github/actions/sli-event/emit_curl.sh
+```
+
+---
+
 ### Sprint 11 — JavaScript `sli-event-js` action + `model-emit-js` workflow (YOLO)
 
 **Status:** implemented + tested

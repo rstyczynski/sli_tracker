@@ -175,3 +175,9 @@ After SLI-13 and SLI-14 restructure the payload, update all repository documenta
 - Update `tests/unit/test_emit.sh` schema assertions.
 - Update integration test jq filters in `tests/integration/test_*.sh`.
 - Update design docs describing the payload shape (`progress/sprint_3/sprint_3_design.md`) and any READMEs/examples that show the old schema.
+
+### SLI-16. JavaScript GitHub Action with pre/post hooks for optional auth and SLI reporting
+
+Composite actions cannot use GitHub’s `runs.pre` / `runs.post` hooks; only JavaScript (and Docker) actions can. We need a small JS action so a job can run **optional** OCI setup at the start and **SLI emit at the end** in the real post phase—same product goal as today’s `model-emit-curl.yml` flow, without spelling every setup/report step in each workflow. When the pipeline already provides credentials, the pre hook must do nothing.
+
+Test: a workflow using the new action proves SLI events reach OCI Logging the same way the existing curl workflow integration test does.

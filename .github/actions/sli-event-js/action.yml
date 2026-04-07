@@ -1,14 +1,10 @@
 name: "SLI Event (JS)"
 description: |
-  JavaScript action with pre/post hooks. pre: restores OCI profile from secret (optional).
-  post: emits SLI event to OCI Logging via curl. No OCI CLI install needed.
-  Single action declaration replaces separate oci-profile-setup + sli-event steps.
+  JavaScript action: main is a no-op; post emits SLI event to OCI Logging via curl.
+  OCI profile must be restored earlier in the job (e.g. ./.github/actions/oci-profile-setup).
+  GitHub does not run pre hooks for actions referenced with ./ (local actions), so callers use oci-profile-setup first.
 
 inputs:
-  oci-config-payload:
-    description: "Base64 OCI config payload (from OCI_CONFIG_PAYLOAD secret). If empty, pre hook is a no-op."
-    required: false
-    default: ""
   profile:
     description: "OCI profile name."
     required: false
@@ -28,8 +24,6 @@ inputs:
 
 runs:
   using: node20
-  pre: pre.js
-  pre-if: always()
   main: index.js
   post: post.js
   post-if: always()

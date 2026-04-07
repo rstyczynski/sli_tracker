@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Integration test — sli-event-js action via GitHub workflow (SLI-16)
-# Dispatches model-emit-js.yml (JS action with pre/post hooks, no OCI CLI) and
+# Dispatches model-emit-js.yml (oci-profile-setup + JS action post hook, no OCI CLI) and
 # verifies that SLI events land in OCI Logging.
 #
 # Sections:
@@ -8,7 +8,7 @@
 #   T2  Wait for completion
 #   T3  Assert expected conclusions
 #   T4  Verify no OCI CLI install (IT-JS-4)
-#   T5  Verify pre hook notice in logs (IT-JS-5)
+#   T5  Verify OCI profile restore notice in logs (IT-JS-5)
 #   T6  OCI Logging events with correct content (IT-JS-6)
 #   T7  Events carry correct workflow.name (IT-JS-7)
 #
@@ -233,9 +233,9 @@ done
 # T5: Pre hook notice (IT-JS-5)
 # ════════════════════════════════════════════════════════════════
 echo ""
-echo "=== T5: Verify pre hook ran and restored OCI profile ==="
+echo "=== T5: Verify OCI profile setup step ran in workflow logs ==="
 
-# TODO: implement — check job logs contain OCI profile restore notice from pre hook
+# Job logs must contain oci-profile-setup notice (e.g. "OCI profile restored under ...")
 for RUN_ID in $ALL_RUNS; do
   [[ -z "$RUN_ID" ]] && continue
   _found_pre=false
@@ -246,8 +246,8 @@ for RUN_ID in $ALL_RUNS; do
       break
     fi
   done
-  $_found_pre && pass "run $RUN_ID — pre hook OCI profile notice found" \
-              || fail "run $RUN_ID — pre hook OCI profile notice not found"
+  $_found_pre && pass "run $RUN_ID — OCI profile restore notice found" \
+              || fail "run $RUN_ID — OCI profile restore notice not found"
 done
 
 # ════════════════════════════════════════════════════════════════

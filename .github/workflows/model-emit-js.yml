@@ -1,7 +1,6 @@
-name: "MODEL — emit_js (JS action pre/post hooks)"
-# SLI-16: Proves the sli-event-js JavaScript action wires OCI setup (pre hook)
-# and SLI emit (post hook) from a single action declaration.
-# No separate oci-profile-setup step or sli-event step needed.
+name: "MODEL — emit_js (JS action post hook + oci-profile-setup)"
+# SLI-16: sli-event-js emits SLI via post hook (curl). OCI config is restored by an explicit
+# oci-profile-setup step — pre hooks are not supported for local actions.
 
 on:
   workflow_dispatch:
@@ -16,11 +15,18 @@ env:
 
 jobs:
   emit-js:
-    name: "Emit via JS action (pre/post hooks)"
+    name: "Emit via JS action (oci-profile-setup + post hook)"
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout"
         uses: actions/checkout@v4
+
+      - name: "OCI profile setup"
+        uses: ./.github/actions/oci-profile-setup
+        with:
+          oci_config_payload: ${{ secrets.OCI_CONFIG_PAYLOAD }}
+          profile: SLI_TEST
+          oci-auth-mode: none
 
       - name: "Main step"
         id: step-main
@@ -31,11 +37,10 @@ jobs:
           fi
           echo "Main step completed successfully"
 
-      - name: "SLI auto-report (main: OCI setup / post: SLI emit)"
+      - name: "SLI auto-report (post: SLI emit)"
         if: ${{ !cancelled() }}
         uses: ./.github/actions/sli-event-js
         with:
-          oci-config-payload: ${{ secrets.OCI_CONFIG_PAYLOAD }}
           profile: SLI_TEST
           log-id: ${{ vars.SLI_OCI_LOG_ID }}
           outcome: ${{ job.status }}

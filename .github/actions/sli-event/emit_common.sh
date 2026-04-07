@@ -177,9 +177,14 @@ sli_emit_metric() {
     echo "::warning::SLI metric push skipped — missing region or key_file in profile $oci_profile"
     return 0
   fi
+  # tenancy is always required: used as compartmentId in the metric payload regardless of auth type.
+  if [[ -z "$tenancy" ]]; then
+    echo "::warning::SLI metric push skipped — missing tenancy in profile $oci_profile (needed for compartmentId)"
+    return 0
+  fi
   if [[ -z "$security_token" ]]; then
-    if [[ -z "$tenancy" || -z "$user_ocid" || -z "$fingerprint" ]]; then
-      echo "::warning::SLI metric push skipped — missing tenancy/user/fingerprint in profile $oci_profile"
+    if [[ -z "$user_ocid" || -z "$fingerprint" ]]; then
+      echo "::warning::SLI metric push skipped — missing user/fingerprint in profile $oci_profile"
       return 0
     fi
   fi

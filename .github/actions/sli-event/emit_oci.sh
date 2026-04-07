@@ -24,7 +24,7 @@ sli_emit_main() {
   LOG_ENTRY="$(sli_build_log_entry "$BASE" "$FLAT" "$FAILURE_REASONS")"
 
   echo "::group::Received steps-json"
-  echo "$STEPS_JSON" | jq .
+  echo "${STEPS_JSON:-}" | jq .
   echo "::endgroup::"
 
   echo "::group::SLI Report payload"

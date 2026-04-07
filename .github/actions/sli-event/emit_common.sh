@@ -79,9 +79,9 @@ sli_expand_oci_config_path() {
   local p="${1:-}"
   [[ -z "$p" ]] && { echo ""; return; }
   case "$p" in
-    "~")    echo "$HOME" ;;
-    "~/"*)  echo "${HOME}${p:1}" ;;
-    *)      echo "$p" ;;
+    "~")  echo "$HOME" ;;
+    ~/*)  echo "${HOME}${p:1}" ;;
+    *)    echo "$p" ;;
   esac
 }
 
@@ -139,6 +139,121 @@ sli_unescape_json_fields() {
       then .value |= (. as $orig | try fromjson catch $orig)
       else . end
     )'
+}
+
+# Map SLI outcome string to OCI Monitoring metric value (1=success, 0=anything else).
+sli_outcome_to_metric_value() {
+  local outcome="${1:-}"
+  if [[ "$outcome" == "success" ]]; then
+    echo 1
+  else
+    echo 0
+  fi
+}
+
+# Post an 'outcome' metric to OCI Monitoring via curl + OCI request signing.
+# Usage: sli_emit_metric <log_entry_json> <oci_config_file> <oci_profile>
+# Reads: SLI_METRIC_NAMESPACE (default: sli_tracker), OCI_API_DOMAIN, SLI_EMIT_CURL_VERBOSE.
+sli_emit_metric() {
+  local log_entry="$1" oci_config="$2" oci_profile="$3"
+
+  local region tenancy user_ocid fingerprint key_file security_token_file security_token
+  region="$(_oci_config_field "$oci_config" "$oci_profile" region)"
+  tenancy="$(_oci_config_field "$oci_config" "$oci_profile" tenancy)"
+  user_ocid="$(_oci_config_field "$oci_config" "$oci_profile" user)"
+  fingerprint="$(_oci_config_field "$oci_config" "$oci_profile" fingerprint)"
+  key_file="$(_oci_config_field "$oci_config" "$oci_profile" key_file)"
+  key_file="$(sli_expand_oci_config_path "$key_file")"
+  security_token_file="$(_oci_config_field "$oci_config" "$oci_profile" security_token_file)"
+  security_token_file="$(sli_expand_oci_config_path "$security_token_file")"
+  security_token=""
+  if [[ -n "$security_token_file" && -f "$security_token_file" ]]; then
+    security_token="$(cat "$security_token_file")"
+  fi
+
+  if [[ -z "$region" || -z "$key_file" || ! -f "$key_file" ]]; then
+    echo "::warning::SLI metric push skipped — missing region or key_file in profile $oci_profile"
+    return 0
+  fi
+  if [[ -z "$security_token" ]]; then
+    if [[ -z "$tenancy" || -z "$user_ocid" || -z "$fingerprint" ]]; then
+      echo "::warning::SLI metric push skipped — missing tenancy/user/fingerprint in profile $oci_profile"
+      return 0
+    fi
+  fi
+
+  local outcome metric_val ns ts
+  outcome="$(echo "$log_entry" | jq -r '.outcome // "unknown"')"
+  metric_val=$(sli_outcome_to_metric_value "$outcome")
+  ns="${SLI_METRIC_NAMESPACE:-sli_tracker}"
+  ts="$(echo "$log_entry" | jq -r '.timestamp')"
+
+  local payload
+  payload="$(jq -nc \
+    --arg  ns    "$ns" \
+    --arg  comp  "$tenancy" \
+    --argjson val "$metric_val" \
+    --arg  ts    "$ts" \
+    --argjson entry "$log_entry" \
+    '[{
+      "namespace":     $ns,
+      "name":          "outcome",
+      "compartmentId": $comp,
+      "dimensions": {
+        "workflow_name":   ($entry.workflow.name     // ""),
+        "workflow_job":    ($entry.workflow.job      // ""),
+        "repo_repository": ($entry.repo.repository   // ""),
+        "repo_ref":        ($entry.repo.ref          // "")
+      },
+      "datapoints": [{"timestamp": $ts, "value": $val}]
+    }]')"
+
+  local _api_domain host date content_len body_hash request_target signed_headers signing_string signature key_id auth
+  _api_domain="${OCI_API_DOMAIN:-oraclecloud.com}"
+  host="telemetry-ingestion.${region}.oci.${_api_domain}"
+  date="$(date -u "+%a, %d %b %Y %H:%M:%S GMT")"
+  content_len="$(printf '%s' "$payload" | wc -c | tr -d ' ')"
+  body_hash="$(printf '%s' "$payload" | openssl dgst -binary -sha256 | openssl base64 -A)"
+  request_target="post /20180401/metrics"
+  signed_headers="date (request-target) host content-length content-type x-content-sha256"
+  signing_string="date: ${date}
+(request-target): ${request_target}
+host: ${host}
+content-length: ${content_len}
+content-type: application/json
+x-content-sha256: ${body_hash}"
+
+  signature="$(printf '%s' "$signing_string" | openssl dgst -sha256 -sign "$key_file" | openssl base64 -A)"
+  if [[ -n "$security_token" ]]; then
+    key_id="ST\$${security_token}"
+  else
+    key_id="${tenancy}/${user_ocid}/${fingerprint}"
+  fi
+  auth='Signature algorithm="rsa-sha256",headers="'"${signed_headers}"'",keyId="'"${key_id}"'",signature="'"${signature}"'",version="1"'
+
+  local _resp_file _http_code _body
+  _resp_file="$(mktemp)"
+  _http_code="$(curl -s -w '%{http_code}' -o "$_resp_file" \
+    -X POST \
+    "https://${host}/20180401/metrics" \
+    -H "Authorization: ${auth}" \
+    -H "Date: ${date}" \
+    -H "Host: ${host}" \
+    -H "x-content-sha256: ${body_hash}" \
+    -H "Content-Type: application/json" \
+    -H "Content-Length: ${content_len}" \
+    -d "$payload" 2>/dev/null)" || true
+  _body="$(cat "$_resp_file" 2>/dev/null || true)"
+  rm -f "$_resp_file"
+
+  if [[ "$_http_code" =~ ^2[0-9][0-9]$ ]]; then
+    echo "::notice::SLI metric pushed to OCI Monitoring (namespace: $ns, outcome: $outcome, value: $metric_val)"
+  else
+    echo "::warning::SLI metric push failed (non-fatal, HTTP ${_http_code})"
+    if [[ -n "${SLI_EMIT_CURL_VERBOSE:-}" ]]; then
+      echo "::warning::metric response: ${_body:0:500}"
+    fi
+  fi
 }
 
 # Combine base + flat + failure_reasons into final log entry JSON.

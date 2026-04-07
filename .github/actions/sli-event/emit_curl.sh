@@ -43,12 +43,14 @@ sli_emit_main() {
   OCI_CONFIG="$(sli_expand_oci_config_path "$OCI_CONFIG")"
   OCI_PROFILE="$(echo "$OCI_JSON" | jq -r '."profile" // "DEFAULT"')"
 
+  local EMIT_TARGET="${EMIT_TARGET:-log,metric}"
+
   if [[ -n "${SLI_SKIP_OCI_PUSH:-}" ]]; then
     echo "::notice::SLI OCI push skipped (SLI_SKIP_OCI_PUSH set)"
     return 0
   fi
 
-  if [[ -n "$OCI_LOG_ID" && -n "$OCI_CONFIG" && -f "$OCI_CONFIG" ]]; then
+  if [[ -n "$OCI_CONFIG" && -f "$OCI_CONFIG" ]]; then
     local TENANCY USER_OCID FINGERPRINT KEY_FILE REGION
     TENANCY="$(_oci_config_field "$OCI_CONFIG" "$OCI_PROFILE" tenancy)"
     USER_OCID="$(_oci_config_field "$OCI_CONFIG" "$OCI_PROFILE" user)"
@@ -68,98 +70,103 @@ sli_emit_main() {
       SECURITY_TOKEN="$(cat "$SECURITY_TOKEN_FILE")"
     fi
 
-    if [[ -n "$SECURITY_TOKEN" ]]; then
-      if [[ -z "$KEY_FILE" || -z "$REGION" ]]; then
-        echo "::warning::SLI curl push failed — session token profile $OCI_PROFILE needs key_file and region"
-        return 0
-      fi
-    else
-      if [[ -z "$TENANCY" || -z "$USER_OCID" || -z "$FINGERPRINT" || -z "$KEY_FILE" || -z "$REGION" ]]; then
-        echo "::warning::SLI curl push failed — missing fields in profile $OCI_PROFILE (need tenancy/user/fingerprint/key_file/region)"
-        return 0
-      fi
-    fi
-    if [[ ! -f "$KEY_FILE" ]]; then
-      echo "::warning::SLI curl push failed — key_file not found: $KEY_FILE"
-      return 0
-    fi
+    # ── Log push (EMIT_TARGET includes "log") ──
+    if [[ "$EMIT_TARGET" == *log* ]]; then
+      if [[ -n "$OCI_LOG_ID" ]]; then
+        if [[ -n "$SECURITY_TOKEN" ]]; then
+          if [[ -z "$KEY_FILE" || -z "$REGION" ]]; then
+            echo "::warning::SLI curl log push failed — session token profile $OCI_PROFILE needs key_file and region"
+          fi
+        else
+          if [[ -z "$TENANCY" || -z "$USER_OCID" || -z "$FINGERPRINT" || -z "$KEY_FILE" || -z "$REGION" ]]; then
+            echo "::warning::SLI curl log push failed — missing fields in profile $OCI_PROFILE (need tenancy/user/fingerprint/key_file/region)"
+          fi
+        fi
+        if [[ ! -f "$KEY_FILE" ]]; then
+          echo "::warning::SLI curl log push failed — key_file not found: $KEY_FILE"
+        else
+          # Same wire format as `oci logging-ingestion put-logs`: POST body with specversion + logEntryBatches.
+          local BATCH
+          BATCH=$(jq -nc \
+            --arg ts "$TIMESTAMP" \
+            --argjson entry "$LOG_ENTRY" \
+            '{
+              specversion: "1.0",
+              logEntryBatches: [{
+                defaultlogentrytime: $ts,
+                source: "github-actions/sli-tracker",
+                type: "sli-event",
+                entries: [{ data: ($entry | tostring), id: ($ts + "-sli"), time: $ts }]
+              }]
+            }')
 
-    # Same wire format as `oci logging-ingestion put-logs`: POST body with specversion + logEntryBatches.
-    BATCH=$(jq -nc \
-      --arg ts "$TIMESTAMP" \
-      --argjson entry "$LOG_ENTRY" \
-      '{
-        specversion: "1.0",
-        logEntryBatches: [{
-          defaultlogentrytime: $ts,
-          source: "github-actions/sli-tracker",
-          type: "sli-event",
-          entries: [{ data: ($entry | tostring), id: ($ts + "-sli"), time: $ts }]
-        }]
-      }')
+          local HOST DATE BODY_HASH REQUEST_TARGET SIGNING_STRING SIGNATURE KEY_ID AUTH
+          HOST="ingestion.logging.${REGION}.oci.${API_DOMAIN}"
+          DATE="$(date -u "+%a, %d %b %Y %H:%M:%S GMT")"
+          BODY_HASH="$(printf '%s' "$BATCH" | openssl dgst -binary -sha256 | openssl base64 -A)"
+          REQUEST_TARGET="post /20200831/logs/${OCI_LOG_ID}/actions/push"
 
-    local HOST DATE BODY_HASH REQUEST_TARGET SIGNING_STRING SIGNATURE KEY_ID AUTH
-    HOST="ingestion.logging.${REGION}.oci.${API_DOMAIN}"
-    DATE="$(date -u "+%a, %d %b %Y %H:%M:%S GMT")"
-    BODY_HASH="$(printf '%s' "$BATCH" | openssl dgst -binary -sha256 | openssl base64 -A)"
-    REQUEST_TARGET="post /20200831/logs/${OCI_LOG_ID}/actions/push"
+          # Byte length of UTF-8 body (${#BATCH} counts characters — wrong for non-ASCII).
+          local _content_len
+          _content_len="$(printf '%s' "$BATCH" | wc -c | tr -d ' ')"
 
-    # Byte length of UTF-8 body (${#BATCH} counts characters — wrong for non-ASCII e.g. em dash in workflow name).
-    local _content_len
-    _content_len="$(printf '%s' "$BATCH" | wc -c | tr -d ' ')"
-
-    # Header order MUST match oci-python-sdk Signer (AbstractBaseSigner.create_signers):
-    # generic: date, (request-target), host — body: content-length, content-type, x-content-sha256
-    local _signed_headers="date (request-target) host content-length content-type x-content-sha256"
-    SIGNING_STRING="date: ${DATE}
+          # Header order MUST match oci-python-sdk Signer (AbstractBaseSigner.create_signers):
+          # generic: date, (request-target), host — body: content-length, content-type, x-content-sha256
+          local _signed_headers="date (request-target) host content-length content-type x-content-sha256"
+          SIGNING_STRING="date: ${DATE}
 (request-target): ${REQUEST_TARGET}
 host: ${HOST}
 content-length: ${_content_len}
 content-type: application/json
 x-content-sha256: ${BODY_HASH}"
 
-    SIGNATURE="$(printf '%s' "$SIGNING_STRING" | openssl dgst -sha256 -sign "$KEY_FILE" | openssl base64 -A)"
+          SIGNATURE="$(printf '%s' "$SIGNING_STRING" | openssl dgst -sha256 -sign "$KEY_FILE" | openssl base64 -A)"
 
-    local KEY_ID
-    if [[ -n "$SECURITY_TOKEN" ]]; then
-      KEY_ID="ST\$${SECURITY_TOKEN}"
-    else
-      KEY_ID="${TENANCY}/${USER_OCID}/${FINGERPRINT}"
-    fi
-    # Same parameter order as oci.signer._PatchedHeaderSigner.HEADER_SIGNER_TEMPLATE
-    AUTH='Signature algorithm="rsa-sha256",headers="'"${_signed_headers}"'",keyId="'"${KEY_ID}"'",signature="'"${SIGNATURE}"'",version="1"'
+          if [[ -n "$SECURITY_TOKEN" ]]; then
+            KEY_ID="ST\$${SECURITY_TOKEN}"
+          else
+            KEY_ID="${TENANCY}/${USER_OCID}/${FINGERPRINT}"
+          fi
+          # Same parameter order as oci.signer._PatchedHeaderSigner.HEADER_SIGNER_TEMPLATE
+          AUTH='Signature algorithm="rsa-sha256",headers="'"${_signed_headers}"'",keyId="'"${KEY_ID}"'",signature="'"${SIGNATURE}"'",version="1"'
 
-    local _curl_args=( -s -X POST
-      "https://${HOST}/20200831/logs/${OCI_LOG_ID}/actions/push"
-      -H "Authorization: ${AUTH}"
-      -H "Date: ${DATE}"
-      -H "Host: ${HOST}"
-      -H "x-content-sha256: ${BODY_HASH}"
-      -H "Content-Type: application/json"
-      -H "Content-Length: ${_content_len}"
-      -d "$BATCH"
-    )
-
-    local _resp_file _http_code _body
-    _resp_file="$(mktemp)"
-    _http_code="$(curl -s -w '%{http_code}' -o "$_resp_file" \
-      "${_curl_args[@]}" 2>/dev/null)" || true
-    _body="$(cat "$_resp_file" 2>/dev/null || true)"
-    rm -f "$_resp_file"
-    if [[ "$_http_code" =~ ^2[0-9][0-9]$ ]]; then
-      echo "::notice::SLI log entry pushed to OCI Logging (curl)"
-    else
-      echo "::warning::SLI report failed to push to OCI Logging (non-fatal, HTTP ${_http_code})"
-      if [[ -n "${SLI_EMIT_CURL_VERBOSE:-}" ]]; then
-        echo "::warning::curl response body: ${_body:0:500}"
+          local _resp_file _http_code _body
+          _resp_file="$(mktemp)"
+          _http_code="$(curl -s -w '%{http_code}' -o "$_resp_file" \
+            -s -X POST \
+            "https://${HOST}/20200831/logs/${OCI_LOG_ID}/actions/push" \
+            -H "Authorization: ${AUTH}" \
+            -H "Date: ${DATE}" \
+            -H "Host: ${HOST}" \
+            -H "x-content-sha256: ${BODY_HASH}" \
+            -H "Content-Type: application/json" \
+            -H "Content-Length: ${_content_len}" \
+            -d "$BATCH" 2>/dev/null)" || true
+          _body="$(cat "$_resp_file" 2>/dev/null || true)"
+          rm -f "$_resp_file"
+          if [[ "$_http_code" =~ ^2[0-9][0-9]$ ]]; then
+            echo "::notice::SLI log entry pushed to OCI Logging (curl)"
+          else
+            echo "::warning::SLI report failed to push to OCI Logging (non-fatal, HTTP ${_http_code})"
+            if [[ -n "${SLI_EMIT_CURL_VERBOSE:-}" ]]; then
+              echo "::warning::curl response body: ${_body:0:500}"
+            fi
+          fi
+        fi
+      else
+        echo "::notice::SLI log push skipped — OCI_LOG_ID not set (EMIT_TARGET=$EMIT_TARGET)"
       fi
     fi
-    return 0
 
-  elif [[ -n "$OCI_LOG_ID" && -n "$(echo "$OCI_JSON" | jq -r '."config-file" // empty')" && ! -f "$OCI_CONFIG" ]]; then
+    # ── Metric push (EMIT_TARGET includes "metric") ──
+    if [[ "$EMIT_TARGET" == *metric* ]]; then
+      sli_emit_metric "$LOG_ENTRY" "$OCI_CONFIG" "$OCI_PROFILE"
+    fi
+
+  elif [[ -n "$OCI_CONFIG" && ! -f "$OCI_CONFIG" ]]; then
     echo "::notice::SLI OCI push skipped — oci.config-file not found after ~ expansion: $OCI_CONFIG"
   else
-    echo "::notice::SLI OCI push skipped — oci.log-id or oci.config-file not set"
+    echo "::notice::SLI OCI push skipped — oci.config-file not set"
   fi
 }
 

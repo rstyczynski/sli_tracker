@@ -38,42 +38,58 @@ sli_emit_main() {
   OCI_CONFIG="$(sli_expand_oci_config_path "$OCI_CONFIG")"
   OCI_PROFILE=$(echo "$OCI_JSON" | jq -r '."profile" // "DEFAULT"')
 
+  local EMIT_TARGET="${EMIT_TARGET:-log,metric}"
+
   if [[ -n "${SLI_SKIP_OCI_PUSH:-}" ]]; then
     echo "::notice::SLI OCI push skipped (SLI_SKIP_OCI_PUSH set)"
     return 0
   fi
 
-  if [[ -n "$OCI_LOG_ID" && -n "$OCI_CONFIG" && -f "$OCI_CONFIG" ]]; then
-    BATCH=$(jq -nc \
-      --arg ts "$TIMESTAMP" \
-      --argjson entry "$LOG_ENTRY" \
-      '[{
-        "defaultlogentrytime": $ts,
-        "source": "github-actions/sli-tracker",
-        "type":   "sli-event",
-        "entries": [{ "data": ($entry | tostring), "id": ($ts + "-sli"), "time": $ts }]
-      }]')
+  if [[ -n "$OCI_CONFIG" && -f "$OCI_CONFIG" ]]; then
+    # ── Log push via OCI CLI (EMIT_TARGET includes "log") ──
+    if [[ "$EMIT_TARGET" == *log* ]]; then
+      if [[ -n "$OCI_LOG_ID" ]]; then
+        local BATCH
+        BATCH=$(jq -nc \
+          --arg ts "$TIMESTAMP" \
+          --argjson entry "$LOG_ENTRY" \
+          '[{
+            "defaultlogentrytime": $ts,
+            "source": "github-actions/sli-tracker",
+            "type":   "sli-event",
+            "entries": [{ "data": ($entry | tostring), "id": ($ts + "-sli"), "time": $ts }]
+          }]')
 
-    local _stf OCI_CLI_AUTH=()
-    _stf="$(_oci_config_field "$OCI_CONFIG" "$OCI_PROFILE" security_token_file)"
-    _stf="$(sli_expand_oci_config_path "$_stf")"
-    if [[ -n "$_stf" ]]; then
-      OCI_CLI_AUTH=(--auth security_token)
+        local _stf OCI_CLI_AUTH=()
+        _stf="$(_oci_config_field "$OCI_CONFIG" "$OCI_PROFILE" security_token_file)"
+        _stf="$(sli_expand_oci_config_path "$_stf")"
+        if [[ -n "$_stf" ]]; then
+          OCI_CLI_AUTH=(--auth security_token)
+        fi
+
+        OCI_CONFIG_FILE="$OCI_CONFIG" \
+        oci logging-ingestion put-logs \
+          "${OCI_CLI_AUTH[@]}" \
+          --log-id "$OCI_LOG_ID" \
+          --log-entry-batches "$BATCH" \
+          --specversion "1.0" \
+          --profile "$OCI_PROFILE" \
+        && echo "::notice::SLI log entry pushed to OCI Logging" \
+        || echo "::warning::SLI report failed to push to OCI Logging (non-fatal)"
+      else
+        echo "::notice::SLI log push skipped — OCI_LOG_ID not set (EMIT_TARGET=$EMIT_TARGET)"
+      fi
     fi
 
-    OCI_CONFIG_FILE="$OCI_CONFIG" \
-    oci logging-ingestion put-logs \
-      "${OCI_CLI_AUTH[@]}" \
-      --log-id "$OCI_LOG_ID" \
-      --log-entry-batches "$BATCH" \
-      --specversion "1.0" \
-      --profile "$OCI_PROFILE" \
-    && echo "::notice::SLI log entry pushed to OCI Logging" \
-    || echo "::warning::SLI report failed to push to OCI Logging (non-fatal)"
-  elif [[ -n "$OCI_LOG_ID" && -n "$(echo "$OCI_JSON" | jq -r '."config-file" // empty')" && ! -f "$OCI_CONFIG" ]]; then
+    # ── Metric push via curl (EMIT_TARGET includes "metric") ──
+    if [[ "$EMIT_TARGET" == *metric* ]]; then
+      sli_emit_metric "$LOG_ENTRY" "$OCI_CONFIG" "$OCI_PROFILE"
+    fi
+
+  elif [[ -n "$OCI_CONFIG" && ! -f "$OCI_CONFIG" ]]; then
     echo "::notice::SLI OCI push skipped — oci.config-file not found after ~ expansion: $OCI_CONFIG"
   else
-    echo "::notice::SLI OCI push skipped — oci.log-id or oci.config-file not set"
+    echo "::notice::SLI OCI push skipped — oci.config-file not set"
   fi
 }
 

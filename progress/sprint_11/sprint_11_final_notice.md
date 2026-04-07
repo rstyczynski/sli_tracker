@@ -4,6 +4,8 @@
 
 **GitHub does not run `pre` on local actions (`./`), so the “one action does OCI then emit” story breaks.** We ship **explicit `oci-profile-setup`** plus a final reporting step. **`post.js` is optional:** for a last step only, **composite `sli-event` or `run: emit.sh`** is usually simpler than a JS action with an empty `main`. Use **`if: always()`** on the reporting step when SLI must run after a failed build.
 
+**`${{ job.status }}` in `with.outcome`:** evaluated when the **step starts** and fixed for both `main` and `post` (`INPUT_OUTCOME`) — **not** re-interpolated inside `post.js`. Place the reporting step **after** the work you care about (or use `steps.<id>.conclusion` / API only if you need something else). Getting this wrong breaks SLI outcome.
+
 ---
 
 **Sprint:** 11 (SLI-16) · **Topic:** JavaScript `sli-event-js` vs explicit workflow steps

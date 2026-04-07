@@ -1,0 +1,8 @@
+{
+  "buckets": [
+    { "sum": 8, "count": 10 },
+    { "sum": 9, "count": 10 },
+    { "sum": 10, "count": 10 }
+  ]
+}
+

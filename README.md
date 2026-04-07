@@ -86,7 +86,32 @@ echo "SLI_OCI_LOG_ID=$SLI_OCI_LOG_ID"
 
    `SLI_OCI_LOG_ID` is read from the environment; `oci.log-id` in `SLI_CONTEXT_JSON` is optional if it is set. To build the payload without pushing, set `SLI_SKIP_OCI_PUSH=1`.
 
-1. ***Run GitHub workflow** 
+1. ***Load simulator***
+
+Reauthenticate and generate test load over 45 minutes.
+
+```bash
+bash .github/actions/oci-profile-setup/setup_oci_github_access.sh --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+
+export EMIT_BACKEND=curl
+export EMIT_TARGET=log,metric
+export SLI_METRIC_NAMESPACE="sli_tracker"
+export SLI_METRIC_COMPARTMENT=$COMPARTMENT_OCID
+export SLI_OCI_LOG_ID=$SLI_OCI_LOG_ID
+export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
+
+tools/sli_ratio_simulator.sh \
+  --target-failure-rate 0.95 \
+  --ramp-seconds 900 \
+  --hold-seconds 300 \
+  --teardown-seconds 900 \
+  --interval-seconds 5 \
+  --ramp-curve logarithmic \
+  --teardown-curve exponential \
+  --seed 42
+```
+
+1. ***Run GitHub workflow**
 
 ```bash
 ./.github/actions/oci-profile-setup/setup_oci_github_access.sh
@@ -112,6 +137,37 @@ To start or continue a development cycle, invoke the RUP Manager:
 All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifacts are stored under `progress/sprint_<N>/`.
 
 ## Recent updates
+
+### Sprint 14 — Rolling-window SLI from OCI Monitoring (Node.js) (YOLO)
+
+**Status:** implemented + tested
+
+Adds a Node.js CLI (`tools/sli_compute_sli_metrics.js`) to compute SLI over a configurable rolling window (default 30 days) from OCI Monitoring `outcome` metrics, with dimension filtering and audit-friendly counts. The tool supports fixture mode for tests and live query mode via OCI config file + profile, and can optionally persist computed snapshots to OCI Logging and/or OCI Monitoring.
+
+Auth modes supported by `tools/sli_compute_sli_metrics.js`:
+
+- **Config-file auth**: `--oci-auth config` (default) — works with regular API-key profiles and session-token profiles in `~/.oci/config`.
+- **Instance Principal**: `--oci-auth instance_principal` — for running on OCI Compute instances with dynamic group + IAM policy (no config file needed).
+
+**Quality gates:** Unit (new-code manifest) PASS, Integration (new-code manifest) PASS, Regression Unit PASS — see `progress/sprint_14/sprint_14_tests.md`.
+
+**Traceability:** `progress/backlog/SLI-20/`
+
+---
+
+### Sprint 13 — Controlled success/failure ratio simulator (YOLO)
+
+**Status:** implemented + tested
+
+Adds `tools/sli_ratio_simulator.sh`, a script that can simulate a controlled failure ratio over time (ramp-up → hold → teardown) using selectable curve shapes (linear, exponential, logarithmic, quadratic). It supports a dry-run mode for deterministic testing without OCI credentials and can invoke the existing `sli-event` `emit.sh` for live emission when configured.
+
+**How to run:** `progress/sprint_13/sprint_13_implementation.md` → “Operator usage (how to run the simulator)”.
+
+**Quality gates:** Unit (new-code manifest) PASS, Integration (new-code manifest) PASS, Regression Unit PASS — see `progress/sprint_13/sprint_13_tests.md`.
+
+**Traceability:** `progress/backlog/SLI-18/`
+
+---
 
 ### Sprint 12 — OCI Monitoring metric output via `EMIT_TARGET` (YOLO)
 

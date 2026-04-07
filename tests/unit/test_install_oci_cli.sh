@@ -19,6 +19,11 @@ TESTS_PASSED=0
 pass() { echo "  PASS: $*"; TESTS_PASSED=$((TESTS_PASSED + 1)); }
 fail() { echo "  FAIL: $*" >&2; exit 1; }
 
+ensure_container_absent() {
+    local name="$1"
+    podman rm -f "$name" >/dev/null 2>&1 || true
+}
+
 pull_image() {
     local image="$1"
     if podman image exists "$image" 2>/dev/null; then
@@ -55,6 +60,7 @@ version_arg=""
 [[ -n "$OCI_CLI_VERSION" ]] && version_arg="--oci-cli-version $OCI_CLI_VERSION"
 
 pull_image "$UBUNTU_IMAGE"
+ensure_container_absent test-install-oci-cli-ubuntu
 if ! podman run --rm --name test-install-oci-cli-ubuntu \
     -v "$INSTALL_SCRIPT:/opt/install_oci_cli.sh:ro" \
     "$UBUNTU_IMAGE" \
@@ -73,6 +79,7 @@ echo "=== Test: VENV_PATH='~/.venv/oci-cli' expansion ==="
 TESTS_RUN=$((TESTS_RUN + 1))
 
 pull_image "$UBUNTU_IMAGE"
+ensure_container_absent test-install-oci-cli-ubuntu-venv-tilde
 if ! podman run --rm --name test-install-oci-cli-ubuntu-venv-tilde \
     -v "$INSTALL_SCRIPT:/opt/install_oci_cli.sh:ro" \
     "$UBUNTU_IMAGE" \
@@ -92,6 +99,7 @@ echo "=== Test: rejected on Alpine (non-GNU toolchain) ==="
 TESTS_RUN=$((TESTS_RUN + 1))
 
 pull_image "alpine:latest"
+ensure_container_absent test-install-oci-cli-alpine
 alpine_output=$(podman run --rm --name test-install-oci-cli-alpine \
     -v "$INSTALL_SCRIPT:/opt/install_oci_cli.sh:ro" \
     alpine:latest \
@@ -109,6 +117,7 @@ echo "=== Test: rejected on Fedora (no apt-get) ==="
 TESTS_RUN=$((TESTS_RUN + 1))
 
 pull_image "fedora:latest"
+ensure_container_absent test-install-oci-cli-fedora
 fedora_output=$(podman run --rm --name test-install-oci-cli-fedora \
     -v "$INSTALL_SCRIPT:/opt/install_oci_cli.sh:ro" \
     fedora:latest \
@@ -127,6 +136,7 @@ if [[ -n "$OCI_CLI_VERSION" ]]; then
     TESTS_RUN=$((TESTS_RUN + 1))
 
     pull_image "$UBUNTU_IMAGE"
+    ensure_container_absent test-install-oci-cli-pinned
     if ! podman run --rm --name test-install-oci-cli-pinned \
         -v "$INSTALL_SCRIPT:/opt/install_oci_cli.sh:ro" \
         "$UBUNTU_IMAGE" \

@@ -1,0 +1,3 @@
+unit:test_sli_compute_sli_metrics.sh
+integration:test_sli_compute_sli_metrics.sh
+

@@ -1,0 +1,14 @@
+{
+  "name": "sli-tracker-tools",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Local tools for SLI Tracker (Node.js).",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "dependencies": {
+    "oci-common": "^2.126.2",
+    "oci-loggingingestion": "^2.126.2",
+    "oci-monitoring": "^2.126.2"
+  }
+}
+

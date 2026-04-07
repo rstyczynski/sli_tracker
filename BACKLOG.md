@@ -187,3 +187,29 @@ Test: a workflow using the new action proves SLI events reach OCI Logging the sa
 `emit.sh` only pushes log entries; SLI ratios (successes/failures over a window) cannot be computed natively in OCI Monitoring without a companion metric. Add a configurable `EMIT_TARGET` (values: `log`, `metric` or combination; default `log,metric`) that posts an `outcome` metric (1=success, 0=failure) to OCI Monitoring with namespace `sli_tracker` (overridable via `SLI_METRIC_NAMESPACE`) and dimensions derived from the workflow/repo fields. Changes are limited to the emit scripts; no workflow YAML files are touched.
 
 Test: integration test runs the emit scripts directly (no workflow dispatch) with `EMIT_TARGET=metric` and `EMIT_TARGET=log,metric` and queries OCI Monitoring to confirm datapoints arrived; regression unit tests cover `EMIT_TARGET` defaulting and outcome→value mapping.
+
+### SLI-18. Controlled success/failure ratio simulator script
+
+We need a script that emits SLI events with a configurable success/failure ratio that changes over time in a controlled way so dashboards and alerts can be validated. It must support ramping from 0 to a target failure rate over a configured duration using a selectable curve (linear, exponential, logarithmic, quadratic), holding the achieved level for a configured duration, then tearing down back to baseline using a selectable curve over a configured duration. This provides deterministic “failure budget burn” scenarios without relying on real pipeline instability. Cycle repeats number of time. 
+
+Script uses defined method to emit SLI events: emit.sh. On this stage does not trigger workflows; just emit.sh
+
+Test: running the script with a known configuration produces event outcomes whose observed failure ratio over time matches the configured ramp/hold/teardown behavior within an acceptable tolerance.
+
+### SLI-19. GitHub `workflow_run` webhook ingestion via OCI Functions queue batching
+
+We need an OCI-hosted ingestion path for GitHub `workflow_run` events that accepts public webhooks and reliably emits SLI data to OCI Logging and OCI Monitoring. A public API Gateway endpoint should invoke an ingress Function that validates the GitHub webhook signature and writes a normalized event to a queue/stream, and a separate consumer Function should batch and retry emissions to Logging/Monitoring ingestion APIs. This decouples webhook delivery from OCI ingestion latency and improves resilience during spikes.
+
+Test: posting a signed sample `workflow_run` payload to the public endpoint results in a corresponding log entry and metric datapoint being ingested into OCI.
+
+### SLI-20. Compute rolling-window SLI from OCI Monitoring metrics by dimensions
+
+We need a Node.js tool that queries OCI Monitoring for the emitted `outcome` metric over a configurable rolling time window (default 30 days) and computes SLI as a success ratio, parameterized by selected metric dimensions (for example repository/workflow/job) so operators can compute SLI per slice. The tool must support choosing namespace, compartment, and window length and return the computed ratio plus supporting counts (success/total) for auditability. The computed value must optionally be persisted to OCI Logging and/or OCI Monitoring as configurable outputs so operators can record SLI snapshots for dashboards and audits. This enables fast SLI computation without scanning raw logs.
+
+Test: running the tool against a known test stream returns an SLI value matching the expected ratio and prints the counts and the exact dimension filter used; when persistence is enabled, a corresponding log entry and/or metric datapoint appears in OCI.
+
+### SLI-21. Compute rolling-window SLI from OCI Logging search by dimensions
+
+We need a Node.js tool that queries OCI Logging for SLI event entries over a configurable rolling time window (default 30 days) and computes SLI as a success ratio, parameterized by selected dimensions so operators can compute SLI per slice even when metrics are unavailable. The tool must support choosing log group/log, window length, and time range and return the computed ratio plus supporting counts (success/total) for auditability. The computed value must optionally be persisted to OCI Logging and/or OCI Monitoring as configurable outputs so operators can record SLI snapshots for dashboards and audits. This provides a fallback computation path using the raw event source of truth.
+
+Test: running the tool against a known log stream returns an SLI value matching the expected ratio and prints the counts and the exact dimension filter used; when persistence is enabled, a corresponding log entry and/or metric datapoint appears in OCI.

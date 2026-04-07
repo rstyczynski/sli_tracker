@@ -140,7 +140,7 @@ Backlog Items:
 
 ## Sprint 12 - OCI Monitoring metric output
 
-Status: Progress
+Status: Done
 Mode: YOLO
 Test: integration
 Regression: unit
@@ -150,3 +150,29 @@ Extend emit scripts to post an `outcome` metric to OCI Monitoring alongside (or 
 Backlog Items:
 
 * SLI-17. emit.sh: send an OCI Monitoring metric in addition to (or instead of) the OCI Logging entry
+
+## Sprint 13 - Controlled success/failure ratio simulator
+
+Status: Done
+Mode: YOLO
+Test: unit, integration
+Regression: unit
+
+Add a script that can emit SLI events with a configurable success/failure ratio that changes over time in a controlled, repeatable way (ramp-up → hold → teardown) so SLI dashboards and alerting can be validated.
+
+Backlog Items:
+
+* SLI-18. Controlled success/failure ratio simulator script
+
+## Sprint 14 - Rolling-window SLI from OCI Monitoring (Node.js)
+
+Status: Done
+Mode: YOLO
+Test: unit, integration
+Regression: unit
+
+Implement a Node.js tool that computes SLI from the `outcome` metric over a configurable rolling window (default 30 days), parameterized by dimensions, with optional persistence of the computed value to OCI Logging and/or OCI Monitoring.
+
+Backlog Items:
+
+* SLI-20. Compute rolling-window SLI from OCI Monitoring metrics by dimensions

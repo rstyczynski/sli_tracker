@@ -12,20 +12,9 @@ Added `EMIT_TARGET` env var (default `log,metric`) to both emit backends. When `
 included a signed POST is sent to the OCI Monitoring telemetry-ingestion endpoint using the
 same RSA-SHA256 signing already proven in `emit_curl.sh`.
 
-### Bug (Sprint 12): Local runs failed with HTTP 400 from OCI Monitoring
+### Bugs
 
-**Symptom:** Running `emit.sh` locally (outside GitHub Actions) with `EMIT_TARGET=metric` or `EMIT_TARGET=log,metric`
-returned HTTP 400 from OCI Monitoring:
-
-- `InvalidParameter ... dimensions.value cannot be empty or null`
-- after filtering empty values: `InvalidParameter ... dimensions can not be null or empty`
-
-**Root cause:** In a local shell, the GitHub Actions environment variables are not set, so `workflow.*` and `repo.*`
-fields are empty. The metric payload was emitting dimensions with empty strings (invalid) and after filtering, an empty
-dimensions object (also invalid).
-
-**Fix:** In `sli_emit_metric()` (in `emit_common.sh`), drop dimensions whose values are empty and ensure `dimensions` is
-never empty by falling back to `{"emit_env":"local"}`.
+See `progress/sprint_12/sprint_12_bugs.md`.
 
 ### Code Artifacts
 

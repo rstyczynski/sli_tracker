@@ -125,6 +125,10 @@ Commit: `test: (sprint-${no}) quality gates — [pass/fail summary]` · Push.
 
 ---
 
+## Bug Handling policy
+
+See `rup_bug_policy.md`.
+
 ## Phase 5: Wrap-up
 
 1. **Update `README.md`** — add `### Sprint N — [title]` to the Recent Updates section

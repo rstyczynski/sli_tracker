@@ -1,0 +1,15 @@
+[info] --new-only mode: filtering to tests listed in progress/sprint_13/new_tests.manifest
+[info] current implementation filters at script level, not function level
+=== unit tests ===
+[skip] unit/test_emit.sh (not in manifest)
+[skip] unit/test_install_oci_cli.sh (not in manifest)
+[skip] unit/test_oci_profile_setup.sh (not in manifest)
+[run] unit/test_sli_ratio_simulator.sh
+[PASS] unit sli_ratio_simulator dry-run curve + determinism
+[PASS] unit/test_sli_ratio_simulator.sh
+=== unit summary: 1 scripts, 1 passed, 0 failed ===
+
+========================================
+TOTAL: 1 scripts, 1 passed, 0 failed
+========================================
+RESULT: PASS

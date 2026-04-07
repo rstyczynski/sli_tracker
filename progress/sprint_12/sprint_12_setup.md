@@ -57,3 +57,6 @@ Add `EMIT_TARGET` env var (values: `log`, `metric`, `log,metric`; default `log,m
 (empty-string values, or an empty object after filtering).
 
 **Fix:** Filter out empty dimension values and ensure `dimensions` is never empty (fallback `emit_env=local`).
+
+**Verification:** Local re-run with `SLI_EMIT_CURL_VERBOSE=1` returned HTTP 2xx and printed
+`::notice::SLI metric pushed to OCI Monitoring ...`.

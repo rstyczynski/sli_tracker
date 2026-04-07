@@ -1,0 +1,106 @@
+[info] --new-only mode: filtering to tests listed in progress/sprint_14/new_tests.manifest
+[info] current implementation filters at script level, not function level
+=== integration tests ===
+[run] integration/test_sli_compute_sli_metrics_live.sh
+=== Auth gate: OCI profile SLI_TEST ===
+OK: OCI profile valid (security_token).
+=== Emit: success ===
+=== Emit: failure ===
+=== Poll live SLI compute (up to 5 min) ===
+Request cannot be retried. Not Retrying. Exception occurred : Error: The required information to complete authentication was not provided or was incorrect.
+Error: The required information to complete authentication was not provided or was incorrect.
+    at Object.handleErrorResponse (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/helper.js:34:16)
+    at GenericRetrier.<anonymous> (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/retrier.js:145:54)
+    at Generator.next (<anonymous>)
+    at fulfilled (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/retrier.js:9:58)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+# not ready yet (total_count=), attempt 1/10
+Request cannot be retried. Not Retrying. Exception occurred : Error: The required information to complete authentication was not provided or was incorrect.
+Error: The required information to complete authentication was not provided or was incorrect.
+    at Object.handleErrorResponse (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/helper.js:34:16)
+    at GenericRetrier.<anonymous> (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/retrier.js:145:54)
+    at Generator.next (<anonymous>)
+    at fulfilled (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/retrier.js:9:58)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+# not ready yet (total_count=), attempt 2/10
+Request cannot be retried. Not Retrying. Exception occurred : Error: The required information to complete authentication was not provided or was incorrect.
+Error: The required information to complete authentication was not provided or was incorrect.
+    at Object.handleErrorResponse (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/helper.js:34:16)
+    at GenericRetrier.<anonymous> (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/retrier.js:145:54)
+    at Generator.next (<anonymous>)
+    at fulfilled (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/retrier.js:9:58)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+# not ready yet (total_count=), attempt 3/10
+Request cannot be retried. Not Retrying. Exception occurred : Error: The required information to complete authentication was not provided or was incorrect.
+Error: The required information to complete authentication was not provided or was incorrect.
+    at Object.handleErrorResponse (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/helper.js:34:16)
+    at GenericRetrier.<anonymous> (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/retrier.js:145:54)
+    at Generator.next (<anonymous>)
+    at fulfilled (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/retrier.js:9:58)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+# not ready yet (total_count=), attempt 4/10
+Request cannot be retried. Not Retrying. Exception occurred : Error: The required information to complete authentication was not provided or was incorrect.
+Error: The required information to complete authentication was not provided or was incorrect.
+    at Object.handleErrorResponse (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/helper.js:34:16)
+    at GenericRetrier.<anonymous> (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/retrier.js:145:54)
+    at Generator.next (<anonymous>)
+    at fulfilled (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/retrier.js:9:58)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+# not ready yet (total_count=), attempt 5/10
+Request cannot be retried. Not Retrying. Exception occurred : Error: The required information to complete authentication was not provided or was incorrect.
+Error: The required information to complete authentication was not provided or was incorrect.
+    at Object.handleErrorResponse (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/helper.js:34:16)
+    at GenericRetrier.<anonymous> (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/retrier.js:145:54)
+    at Generator.next (<anonymous>)
+    at fulfilled (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/retrier.js:9:58)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+# not ready yet (total_count=), attempt 6/10
+Request cannot be retried. Not Retrying. Exception occurred : Error: The required information to complete authentication was not provided or was incorrect.
+Error: The required information to complete authentication was not provided or was incorrect.
+    at Object.handleErrorResponse (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/helper.js:34:16)
+    at GenericRetrier.<anonymous> (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/retrier.js:145:54)
+    at Generator.next (<anonymous>)
+    at fulfilled (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/retrier.js:9:58)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+# not ready yet (total_count=), attempt 7/10
+Request cannot be retried. Not Retrying. Exception occurred : Error: The required information to complete authentication was not provided or was incorrect.
+Error: The required information to complete authentication was not provided or was incorrect.
+    at Object.handleErrorResponse (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/helper.js:34:16)
+    at GenericRetrier.<anonymous> (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/retrier.js:145:54)
+    at Generator.next (<anonymous>)
+    at fulfilled (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/retrier.js:9:58)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+# not ready yet (total_count=), attempt 8/10
+Request cannot be retried. Not Retrying. Exception occurred : Error: The required information to complete authentication was not provided or was incorrect.
+Error: The required information to complete authentication was not provided or was incorrect.
+    at Object.handleErrorResponse (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/helper.js:34:16)
+    at GenericRetrier.<anonymous> (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/retrier.js:145:54)
+    at Generator.next (<anonymous>)
+    at fulfilled (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/retrier.js:9:58)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+# not ready yet (total_count=), attempt 9/10
+Request cannot be retried. Not Retrying. Exception occurred : Error: The required information to complete authentication was not provided or was incorrect.
+Error: The required information to complete authentication was not provided or was incorrect.
+    at Object.handleErrorResponse (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/helper.js:34:16)
+    at GenericRetrier.<anonymous> (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/retrier.js:145:54)
+    at Generator.next (<anonymous>)
+    at fulfilled (/Users/rstyczynski/projects/SLI_tracker/node_modules/oci-common/lib/retrier.js:9:58)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+# not ready yet (total_count=), attempt 10/10
+FAIL: live SLI query did not observe 2 datapoints within polling window
+[FAIL] integration/test_sli_compute_sli_metrics_live.sh (exit code 1)
+[run] integration/test_sli_compute_sli_metrics.sh
+[PASS] integration sli_compute_sli_metrics text output
+[PASS] integration/test_sli_compute_sli_metrics.sh
+[skip] integration/test_sli_emit_curl_local.sh (not in manifest)
+[skip] integration/test_sli_emit_curl_workflow.sh (not in manifest)
+[skip] integration/test_sli_emit_js_workflow.sh (not in manifest)
+[skip] integration/test_sli_emit_metric.sh (not in manifest)
+[skip] integration/test_sli_integration.sh (not in manifest)
+[skip] integration/test_sli_ratio_simulator.sh (not in manifest)
+=== integration summary: 2 scripts, 1 passed, 1 failed ===
+
+========================================
+TOTAL: 2 scripts, 1 passed, 1 failed
+========================================
+RESULT: FAIL

@@ -78,11 +78,13 @@ sli_extract_oci_json() {
 sli_expand_oci_config_path() {
   local p="${1:-}"
   [[ -z "$p" ]] && { echo ""; return; }
-  case "$p" in
-    "~")  echo "$HOME" ;;
-    ~/*)  echo "${HOME}${p:1}" ;;
-    *)    echo "$p" ;;
-  esac
+  if [[ "$p" == "~" ]]; then
+    echo "$HOME"
+  elif [[ "${p:0:1}" == "~" && "${p:1:1}" == "/" ]]; then
+    echo "${HOME}${p:1}"
+  else
+    echo "$p"
+  fi
 }
 
 # Read a field value from an OCI config file for a given profile (no [DEFAULT] merge).
@@ -195,7 +197,7 @@ sli_emit_metric() {
     --argjson val "$metric_val" \
     --arg  ts    "$ts" \
     --argjson entry "$log_entry" \
-    '[{
+    '{"metricData": [{
       "namespace":     $ns,
       "name":          "outcome",
       "compartmentId": $comp,
@@ -205,8 +207,8 @@ sli_emit_metric() {
         "repo_repository": ($entry.repo.repository   // ""),
         "repo_ref":        ($entry.repo.ref          // "")
       },
-      "datapoints": [{"timestamp": $ts, "value": $val}]
-    }]')"
+      "datapoints": [{"timestamp": $ts, "value": ($val | tonumber)}]
+    }]}')"
 
   local _api_domain host date content_len body_hash request_target signed_headers signing_string signature key_id auth
   _api_domain="${OCI_API_DOMAIN:-oraclecloud.com}"

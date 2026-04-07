@@ -221,6 +221,7 @@ chmod +x "$_keydir/bin/curl"
 _out4="$(PATH="$_keydir/bin:$PATH" \
   _MOCK_CURL_ARGS="$_curl_out" \
   _MOCK_CURL_BODY="$_curl_body" \
+  EMIT_TARGET=log \
   SLI_OUTCOME=success SLI_OCI_LOG_ID="ocid1.log.oc1..test" \
   SLI_CONTEXT_JSON="{\"oci\":{\"config-file\":\"${_keydir}/config\",\"profile\":\"SLI_TEST\"}}" \
   bash "${ACTION_DIR}/emit_curl.sh" 2>&1)"

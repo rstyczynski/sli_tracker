@@ -48,3 +48,18 @@ Issue fixed during retry: UT-4 and UT-5 mock curl was capturing metric payload (
 ## Deferred
 
 - `test_install_oci_cli.sh` VENV_PATH tilde expansion inside Ubuntu container — pre-existing defect, tracked for a future sprint.
+
+## Post-merge Bugs Fixed
+
+### BUG-S12-1: `STEPS_JSON: unbound variable` in debug print
+
+- **Symptom:** `emit_curl.sh: line 32: STEPS_JSON: unbound variable` when `STEPS_JSON` is not exported (e.g. local quick-start runs)
+- **Root cause:** `echo "$STEPS_JSON" | jq .` in both `emit_curl.sh` and `emit_oci.sh` uses bare variable reference; `set -u` fails when `STEPS_JSON` is not set
+- **Fix:** Changed to `echo "${STEPS_JSON:-}" | jq .` in both backends (commit 42d9425)
+
+### BUG-S12-2: `compartmentId` hardcoded to `tenancy`; blocked metric push when tenancy absent
+
+- **Symptom:** `SLI metric push failed (non-fatal, HTTP 400)` when session-token profiles don't carry `tenancy` field; or earlier guard blocked push entirely
+- **Root cause:** Sprint 12 introduced `compartmentId` derived only from `tenancy` field in OCI profile; no override; guard blocked push when tenancy missing
+- **Fix:** Added `SLI_METRIC_COMPARTMENT` env var (defaults to `tenancy` from profile); removed preemptive tenancy guard — OCI 400 is non-fatal warning. `compartmentId` is still required by OCI Monitoring API (confirmed: POST without it returns 400)
+- **Commit:** see fix after 42d9425

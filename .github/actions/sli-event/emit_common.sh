@@ -177,17 +177,15 @@ sli_emit_metric() {
     echo "::warning::SLI metric push skipped — missing region or key_file in profile $oci_profile"
     return 0
   fi
-  # tenancy is always required: used as compartmentId in the metric payload regardless of auth type.
-  if [[ -z "$tenancy" ]]; then
-    echo "::warning::SLI metric push skipped — missing tenancy in profile $oci_profile (needed for compartmentId)"
-    return 0
-  fi
   if [[ -z "$security_token" ]]; then
     if [[ -z "$user_ocid" || -z "$fingerprint" ]]; then
       echo "::warning::SLI metric push skipped — missing user/fingerprint in profile $oci_profile"
       return 0
     fi
   fi
+  # compartmentId required by OCI Monitoring. Use SLI_METRIC_COMPARTMENT if set,
+  # else fall back to tenancy from the OCI profile (root compartment).
+  local _compartment="${SLI_METRIC_COMPARTMENT:-$tenancy}"
 
   local outcome metric_val ns ts
   outcome="$(echo "$log_entry" | jq -r '.outcome // "unknown"')"
@@ -198,7 +196,7 @@ sli_emit_metric() {
   local payload
   payload="$(jq -nc \
     --arg  ns    "$ns" \
-    --arg  comp  "$tenancy" \
+    --arg  comp  "$_compartment" \
     --argjson val "$metric_val" \
     --arg  ts    "$ts" \
     --argjson entry "$log_entry" \

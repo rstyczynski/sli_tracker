@@ -10,6 +10,7 @@
 - `sprint_11_design.md` — design + test specification
 - `sprint_11_implementation.md` — delivered artifacts
 - `sprint_11_tests.md` — quality gate logs and artifacts
+- `sprint_11_final_notice.md` — post-delivery conclusions (local `pre`, `post` value, `outcome` / API)
 
 ## Compliance (inline)
 

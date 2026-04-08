@@ -41,6 +41,8 @@ Alternatively use the packing script to upload a regular profile with an API key
   --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
 ```
 
+After a **successful** secret upload (not `--dry-run`), if your `~/.oci/config` has **`[DEFAULT]`** but no **`[SLI_TEST]`**, the script **appends** **`[SLI_TEST]`** as a mirror of **`[DEFAULT]`** (same `key_file` paths) so local README commands that use **`profile":"SLI_TEST"`** keep working alongside CI.
+
 For a local-only test you only need a valid session/API-key profile on disk matching `profile` below.
 
 1. **Emit a success SLI event** via the dispatcher (**`emit.sh`**). Set **`EMIT_BACKEND=curl`** for bash + curl + openssl only (no OCI CLI). Use **`EMIT_BACKEND=oci-cli`** if the OCI CLI is installed and you want the same path as the default GitHub Action.

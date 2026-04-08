@@ -39,5 +39,9 @@ fi
 grep -qE '^\[SLI_TEST\]' /tmp/sli_config_profile_dry.log || fail "packed config should list [SLI_TEST] as destination section"
 grep -q 'packed \[DEFAULT\] as \[SLI_TEST\]' /tmp/sli_config_profile_dry.log || fail "expected rename notice (DEFAULT→SLI_TEST)"
 
+if grep -q '^\[SLI_TEST\]' "${OP_HOME}/.oci/config"; then
+  fail "dry-run must not append [SLI_TEST] to local ~/.oci/config"
+fi
+
 pass "config_profile dry-run completed (DEFAULT→SLI_TEST)"
 

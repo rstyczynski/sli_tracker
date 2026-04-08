@@ -93,7 +93,7 @@ jobs:
               "oci": {
                 "log-id":      "${{ vars.SLI_OCI_LOG_ID }}",
                 "config-file": "~/.oci/config",
-                "profile":     "${{ steps.oci_profile.outputs.profile }}"
+                "profile":     "${{ steps.oci_profile.outputs.profile || 'SLI_TEST' }}"
               }
             }
 

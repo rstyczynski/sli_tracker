@@ -138,6 +138,16 @@ function expandHome(p) {
   return p;
 }
 
+/** Resolve profile for OCI SDK: empty string from shell must not silently become DEFAULT if env sets OCI_CLI_PROFILE. */
+function effectiveOciProfile(args) {
+  const raw = args.ociProfile;
+  const fromEnv = String(process.env.OCI_CLI_PROFILE || process.env.OCI_PROFILE || "").trim();
+  if (raw === undefined || raw === null) return fromEnv || "DEFAULT";
+  const s = String(raw).trim();
+  if (s === "") return fromEnv || "DEFAULT";
+  return s;
+}
+
 function prepareConfigFileForSdk(configFilePath) {
   const p = expandHome(configFilePath);
   const raw = fs.readFileSync(p, "utf8");
@@ -189,7 +199,7 @@ async function createAuthProvider(common, args) {
   }
 
   const configFile = prepareConfigFileForSdk(args.ociConfigFile);
-  const profile = args.ociProfile || "DEFAULT";
+  const profile = effectiveOciProfile(args);
   const stf = readProfileField(configFile, profile, "security_token_file");
   if (stf) {
     const p = new common.SessionAuthDetailProvider(configFile, profile);
@@ -254,7 +264,7 @@ async function liveQueryBuckets(args) {
   // Avoid subtle Region object incompatibilities across SDK packages by forcing regionId explicitly.
   const regionId =
     args.regionId ||
-    (configFile ? readProfileField(configFile, args.ociProfile || "DEFAULT", "region") : "") ||
+    (configFile ? readProfileField(configFile, effectiveOciProfile(args), "region") : "") ||
     regionIdFromProvider(provider) ||
     process.env.OCI_REGION;
   if (regionId) client.regionId = regionId;
@@ -347,7 +357,7 @@ async function persistSnapshot(args, result) {
   const { provider, configFile } = await createAuthProvider(common, args);
   const regionId =
     args.regionId ||
-    (configFile ? readProfileField(configFile, args.ociProfile || "DEFAULT", "region") : "") ||
+    (configFile ? readProfileField(configFile, effectiveOciProfile(args), "region") : "") ||
     regionIdFromProvider(provider) ||
     process.env.OCI_REGION;
 

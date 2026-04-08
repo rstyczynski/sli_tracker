@@ -38,7 +38,8 @@ jobs:
           SLI_OCI_LOG_ID: ${{ vars.SLI_OCI_LOG_ID }}
           SLI_METRIC_COMPARTMENT: ${{ vars.SLI_OCI_COMPARTMENT_ID }}
           SLI_METRIC_NAMESPACE: ${{ vars.SLI_METRIC_NAMESPACE || 'sli_tracker' }}
-          OCI_PROFILE_RESTORED: ${{ steps.oci_profile.outputs.profile }}
+          OCI_PROFILE_RESTORED: ${{ steps.oci_profile.outputs.profile || 'SLI_TEST' }}
+          OCI_CLI_PROFILE: ${{ steps.oci_profile.outputs.profile || 'SLI_TEST' }}
         run: |
           set -euo pipefail
           export SLI_METRIC_NAMESPACE="${SLI_METRIC_NAMESPACE:-sli_tracker}"

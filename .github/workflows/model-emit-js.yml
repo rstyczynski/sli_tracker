@@ -42,6 +42,6 @@ jobs:
         if: ${{ !cancelled() }}
         uses: ./.github/actions/sli-event-js
         with:
-          profile: ${{ steps.oci_profile.outputs.profile }}
+          profile: ${{ steps.oci_profile.outputs.profile || 'SLI_TEST' }}
           log-id: ${{ vars.SLI_OCI_LOG_ID }}
           outcome: ${{ job.status }}

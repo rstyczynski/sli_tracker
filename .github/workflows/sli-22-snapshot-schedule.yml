@@ -32,7 +32,7 @@ jobs:
         env:
           COMPARTMENT_OCID: ${{ vars.SLI_OCI_COMPARTMENT_ID }}
           SLI_OCI_LOG_ID: ${{ vars.SLI_OCI_LOG_ID }}
-          SLI_METRIC_NAMESPACE: ${{ vars.SLI_METRIC_NAMESPACE }}
+          SLI_METRIC_NAMESPACE: ${{ vars.SLI_METRIC_NAMESPACE || 'sli_tracker' }}
         run: |
           set -euo pipefail
           metric_ns="${SLI_METRIC_NAMESPACE:-sli_tracker}"

@@ -34,7 +34,7 @@ jobs:
           EMIT_TARGET: log,metric
           SLI_OCI_LOG_ID: ${{ vars.SLI_OCI_LOG_ID }}
           SLI_METRIC_COMPARTMENT: ${{ vars.SLI_OCI_COMPARTMENT_ID }}
-          SLI_METRIC_NAMESPACE: ${{ vars.SLI_METRIC_NAMESPACE }}
+          SLI_METRIC_NAMESPACE: ${{ vars.SLI_METRIC_NAMESPACE || 'sli_tracker' }}
           SLI_CONTEXT_JSON: '{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
         run: |
           set -euo pipefail

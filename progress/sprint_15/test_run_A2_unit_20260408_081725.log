@@ -1,0 +1,21 @@
+[info] --new-only mode: filtering to tests listed in progress/sprint_15/new_tests.manifest
+[info] current implementation filters at script level, not function level
+=== unit tests ===
+[skip] unit/test_emit.sh (not in manifest)
+[skip] unit/test_install_oci_cli.sh (not in manifest)
+[skip] unit/test_oci_profile_setup.sh (not in manifest)
+[skip] unit/test_sli_compute_sli_metrics.sh (not in manifest)
+[skip] unit/test_sli_ratio_simulator.sh (not in manifest)
+[run] unit/test_sli_scheduled_workflows.sh
+[PASS] workflow files exist
+[PASS] SLI-22 schedule + dispatch ok
+[PASS] SLI-23 schedule + dispatch ok
+[PASS] token-based profile wiring ok
+[PASS] repo vars wiring ok
+[PASS] unit/test_sli_scheduled_workflows.sh
+=== unit summary: 1 scripts, 1 passed, 0 failed ===
+
+========================================
+TOTAL: 1 scripts, 1 passed, 0 failed
+========================================
+RESULT: PASS

@@ -20,7 +20,6 @@ Both use the token-based `SLI_TEST` profile restored from `secrets.OCI_CONFIG_PA
 ## Code artifacts
 
 | File | Purpose |
-|---|---|
+| --- | --- |
 | `.github/workflows/sli-22-snapshot-schedule.yml` | 5-minute snapshot workflow (persist log+metric) |
 | `.github/workflows/sli-23-synthetic-emitter-schedule.yml` | Hourly synthetic emitter workflow |
-

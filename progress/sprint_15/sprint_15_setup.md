@@ -26,4 +26,3 @@ Sprint: 15 | Mode: YOLO | Backlog: SLI-22, SLI-23
 - Risks:
   - Schedule cadence: GitHub cron is best-effort and may drift; acceptance should tolerate delays.
   - Token expiration: `OCI_CONFIG_PAYLOAD` must be refreshed before it expires; workflows should fail clearly when auth is invalid.
-

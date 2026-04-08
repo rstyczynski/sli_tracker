@@ -190,3 +190,16 @@ Backlog Items:
 
 * SLI-22. Scheduled SLI snapshot every 5 minutes (GitHub Actions)
 * SLI-23. Hourly scheduled synthetic SLI emitter (GitHub Actions)
+
+## Sprint 16 - Dedicated OCI ingestion user for CI (API key + minimal policies)
+
+Status: Planned
+Mode: YOLO
+Test: unit, integration
+Regression: unit
+
+Add support for a dedicated OCI IAM user authenticated via API key with minimal policies needed to ingest into OCI Logging and OCI Monitoring used by this project. Ensure all client code paths that emit to OCI (workflows and tools) are compatible with this auth mode, and extend the OCI bootstrap tooling so the user/policies follow an ensure/teardown lifecycle consistent with `oci_scaffold`.
+
+Backlog Items:
+
+* SLI-24. Dedicated OCI ingestion user for CI (API key + minimal policies)

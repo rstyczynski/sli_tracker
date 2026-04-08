@@ -141,6 +141,12 @@ tools/sli_compute_sli_metrics.js \
 
 1. ***Run GitHub workflow**
 
+Trigger GitHub workflows to simulate synthetic successes and failures. First line prepares session profile to store it in GitHub repository secrets; the second one trigger workflows. Test procedure fetches logs and metrics to validate 
+
+Open [Repository Actions](https://github.com/rstyczynski/sli_tracker/actions) to observe execution.
+
+Open OCI Console to observe pushed logs and metrics.
+
 ```bash
 ./.github/actions/oci-profile-setup/setup_oci_github_access.sh
 ./tests/integration/test_sli_integration.sh

@@ -6,7 +6,7 @@ Sprint: 15 | Mode: YOLO | Backlog: SLI-22, SLI-23
 
 Implement two scheduled GitHub Actions workflows that operate unattended using the token-based `SLI_TEST` OCI profile restored from `secrets.OCI_CONFIG_PAYLOAD`:
 
-- **SLI-22 (every 5 minutes)**: compute rolling-window SLI from OCI Monitoring `outcome` metrics and persist a snapshot to OCI Logging + OCI Monitoring (`sli_ratio` datapoint).
+- **SLI-22 (every 30 minutes)**: compute rolling-window SLI from OCI Monitoring `outcome` metrics and persist a snapshot to OCI Logging + OCI Monitoring (`sli_ratio` datapoint).
 - **SLI-23 (hourly)**: generate synthetic success/failure traffic by running `tools/sli_ratio_simulator.sh`, using the same env variables as the local operator flow in `README.md`.
 
 Both workflows should support `workflow_dispatch` in addition to cron scheduling.
@@ -60,7 +60,7 @@ We will use fast, non-flaky tests that validate workflow wiring without requirin
 
 - **Traceability**: SLI-22, SLI-23
 - **Method**: parse `.github/workflows/*.yml` and assert:
-  - SLI-22 has `schedule` with `*/5` minutes
+  - SLI-22 has `schedule` with `*/30` minutes
   - SLI-23 has hourly `schedule`
   - both expose `workflow_dispatch`
 

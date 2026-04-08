@@ -9,8 +9,8 @@ fail() { echo "[FAIL] $*" >&2; exit 1; }
 require() { command -v "$1" >/dev/null 2>&1 || fail "missing required command: $1"; }
 require rg
 
-W1="${REPO_ROOT}/.github/workflows/sli-22-snapshot-schedule.yml"
-W2="${REPO_ROOT}/.github/workflows/sli-23-synthetic-emitter-schedule.yml"
+W1="${REPO_ROOT}/.github/workflows/sli_compute_sli_metrics.yml"
+W2="${REPO_ROOT}/.github/workflows/sli_ratio_simulator.yml"
 
 [[ -f "$W1" ]] || fail "missing workflow: $W1"
 [[ -f "$W2" ]] || fail "missing workflow: $W2"

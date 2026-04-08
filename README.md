@@ -39,8 +39,7 @@ If you run locally (not inside GitHub Actions), the workflow/repo fields are emp
 
 ```bash
 repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
-export COMPARTMENT_OCID="$(gh variable get SLI_OCI_COMPARTMENT_ID -R "$repo")"
-export SLI_METRIC_COMPARTMENT="$COMPARTMENT_OCID"
+export SLI_METRIC_COMPARTMENT="$(gh variable get SLI_OCI_COMPARTMENT_ID -R "$repo")"
 export SLI_OCI_LOG_ID="$(gh variable get SLI_OCI_LOG_ID -R "$repo")"
 export EMIT_BACKEND=curl
 export EMIT_TARGET=log,metric
@@ -53,8 +52,7 @@ bash .github/actions/sli-event/emit.sh
 
 ```bash
 repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
-export COMPARTMENT_OCID="$(gh variable get SLI_OCI_COMPARTMENT_ID -R "$repo")"
-export SLI_METRIC_COMPARTMENT="$COMPARTMENT_OCID"
+export SLI_METRIC_COMPARTMENT="$(gh variable get SLI_OCI_COMPARTMENT_ID -R "$repo")"
 export SLI_OCI_LOG_ID="$(gh variable get SLI_OCI_LOG_ID -R "$repo")"
 export EMIT_BACKEND=oci-cli
 export EMIT_TARGET=log,metric
@@ -74,8 +72,7 @@ Reauthenticate and generate test load over 45 minutes. Note that OCI code to cre
 bash .github/actions/oci-profile-setup/setup_oci_github_access.sh --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
 
 repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
-export COMPARTMENT_OCID="$(gh variable get SLI_OCI_COMPARTMENT_ID -R "$repo")"
-export SLI_METRIC_COMPARTMENT="$COMPARTMENT_OCID"
+export SLI_METRIC_COMPARTMENT="$(gh variable get SLI_OCI_COMPARTMENT_ID -R "$repo")"
 export SLI_OCI_LOG_ID="$(gh variable get SLI_OCI_LOG_ID -R "$repo")"
 export EMIT_BACKEND=curl
 export EMIT_TARGET=log,metric

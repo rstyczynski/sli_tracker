@@ -206,7 +206,7 @@ Backlog Items:
 
 ## Sprint 17 - Upload existing OCI config profile to GitHub (SLI-25)
 
-Status: Progress
+Status: Done
 Mode: YOLO
 Test: unit, integration
 Regression: unit

@@ -169,6 +169,18 @@ All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifac
 
 ## Recent updates
 
+### Sprint 17 — Upload existing OCI config profile to GitHub (SLI-25) (YOLO)
+
+**Status:** implemented + tested
+
+Adds **`--account-type config_profile`** to `setup_oci_github_access.sh` so an operator can pack an existing API-key profile from `~/.oci/config` (default section `DEFAULT`, overridable with `--profile`), include the existing `key_file` on disk in the tarball, and upload it as `OCI_CONFIG_PAYLOAD`—with no session-token flow, no new API key, and no IAM policy changes. Workflows should use `oci-profile-setup` with `OCI_AUTH_MODE=none` and the same profile name as packed.
+
+**Quality gates:** Unit (new-code manifest) PASS, Integration (new-code manifest) PASS, Regression Unit PASS, Regression Integration PASS — see `progress/sprint_17/sprint_17_tests.md`.
+
+**Traceability:** `progress/backlog/SLI-25/`
+
+---
+
 ### Sprint 16 — Dedicated OCI ingestion user for CI (API key + minimal policies) (YOLO)
 
 **Status:** failed (blocked)

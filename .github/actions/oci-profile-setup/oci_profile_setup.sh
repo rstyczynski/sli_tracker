@@ -38,6 +38,39 @@ sli_resolve_key_path() {
   printf '%s' "$raw"
 }
 
+# oci-common (Node SDK) ConfigFileReader logs console.info when ~/.oci/config has no [DEFAULT]
+# section, even if the app uses another profile. Single-profile packs (e.g. only [SLI_TEST]) trigger
+# that noise. Duplicate the verified profile block as [DEFAULT] when missing.
+sli_ensure_default_profile_in_config() {
+  local cfg="$1" prof="$2"
+  [[ -z "$prof" ]] && return 0
+  if grep -q '^\[DEFAULT\]' "$cfg" 2>/dev/null; then
+    return 0
+  fi
+  local tmp
+  tmp="$(mktemp)"
+  awk -v want="[${prof}]" '
+    function strip(s) { sub(/\r$/, "", s); return s }
+    BEGIN { inblk = 0 }
+    {
+      line = strip($0)
+      if (line == want) { inblk = 1; next }
+      if (line ~ /^\[/ && inblk) exit
+      if (inblk) print $0
+    }
+  ' "$cfg" > "$tmp"
+  if [[ ! -s "$tmp" ]]; then
+    rm -f "$tmp"
+    return 0
+  fi
+  {
+    printf '\n# oci-profile-setup: [DEFAULT] mirrors [%s] (oci-common SDK expects a DEFAULT section)\n' "$prof"
+    printf '[DEFAULT]\n'
+    cat "$tmp"
+  } >> "$cfg"
+  rm -f "$tmp"
+}
+
 if [[ -z "${OCI_CONFIG_PAYLOAD:-}" ]]; then
   echo "::error::OCI_CONFIG_PAYLOAD is empty. Pass the repository secret into the action input oci_config_payload (e.g. secrets.OCI_CONFIG_PAYLOAD)." >&2
   exit 1
@@ -72,6 +105,8 @@ if [[ ! -r "${HOME}/.oci/config" ]]; then
   echo "::error::~/.oci/config missing or not readable after extract." >&2
   exit 1
 fi
+
+sli_ensure_default_profile_in_config "${HOME}/.oci/config" "$PROFILE"
 
 SESSION_DIR="${HOME}/.oci/sessions/${PROFILE}"
 

@@ -35,4 +35,6 @@ bash "$RESTORE"
 [[ -r "${RUN_HOME}/.oci/config" ]] || fail "config not restored"
 [[ -r "${RUN_HOME}/.oci/keys/ci.pem" ]] || fail "key file not restored"
 grep -q 'key_file=' "${RUN_HOME}/.oci/config" || fail "key_file missing in restored config"
+grep -q '^\[DEFAULT\]' "${RUN_HOME}/.oci/config" \
+  || fail "expected [DEFAULT] stanza (oci-common SDK noise fix; mirrors SLI_TEST when missing)"
 pass "config_profile-style payload restore round-trip"

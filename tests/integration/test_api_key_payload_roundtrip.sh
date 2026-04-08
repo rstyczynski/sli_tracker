@@ -6,7 +6,6 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 pass() { echo "[PASS] $*"; }
 fail() { echo "[FAIL] $*" >&2; exit 1; }
 
-PACKER="${REPO_ROOT}/.github/actions/oci-profile-setup/setup_oci_github_access.sh"
 RESTORE="${REPO_ROOT}/.github/actions/oci-profile-setup/oci_profile_setup.sh"
 
 OP_HOME="$(mktemp -d)"

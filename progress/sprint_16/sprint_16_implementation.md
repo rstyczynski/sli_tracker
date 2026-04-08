@@ -27,4 +27,3 @@ This enables scheduled workflows and tools to run with config-file authenticatio
 | --- | --- |
 | `.github/actions/oci-profile-setup/setup_oci_github_access.sh` | Add `api_key` packing mode + secret OCID metadata |
 | `.github/actions/oci-profile-setup/oci_profile_setup.sh` | Allow `oci-auth-mode: none` payloads without sessions |
-

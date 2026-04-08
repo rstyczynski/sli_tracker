@@ -78,4 +78,3 @@ Test: run with `--help` and with `--dry-run` + `--account-type api_key` using a 
 Traceability: SLI-24
 
 Test: create a temporary HOME with a minimal single-profile `.oci/config` + Secret OCID metadata, unpack via `oci_profile_setup.sh`, and assert restored files exist and `${{HOME}}` placeholders expand.
-

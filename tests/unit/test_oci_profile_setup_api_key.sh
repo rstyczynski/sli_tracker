@@ -26,7 +26,8 @@ payload="$(tar -czf - -C "$TMP_HOME" .oci/config .oci/meta/sli_api_key_secret_oc
 
 # UT-1: api-key payload should restore without sessions when OCI_AUTH_MODE=none.
 (
-  export HOME="$(mktemp -d)"
+  HOME_TMP="$(mktemp -d)"
+  export HOME="$HOME_TMP"
   trap 'rm -rf "$HOME"' EXIT
   export OCI_CONFIG_PAYLOAD="$payload"
   export OCI_PROFILE_VERIFY="SLI_TEST"
@@ -40,7 +41,8 @@ pass "api-key payload restore works without sessions"
 
 # UT-2: token_based should still require sessions dir.
 (
-  export HOME="$(mktemp -d)"
+  HOME_TMP="$(mktemp -d)"
+  export HOME="$HOME_TMP"
   trap 'rm -rf "$HOME"' EXIT
   export OCI_CONFIG_PAYLOAD="$payload"
   export OCI_PROFILE_VERIFY="SLI_TEST"

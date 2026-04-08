@@ -25,4 +25,3 @@ Constraints:
   - an API key attached to that user (private key stored in OCI Vault Secret; GitHub stores only Secret OCID)
   - a tenancy policy granting only ingestion permissions for the target compartment/log/metrics
 - Compatibility impact: scheduled workflows can switch to `oci-auth-mode: none` (or `api_key`) and keep using the restored `~/.oci/config`; tools that use the Node SDK already support config-file auth, so they should work unchanged once config/profile exists.
-

@@ -82,7 +82,9 @@ sli_config_profile_copy_key_into_tree() {
   mkdir -p "${tmp_root}/.oci/keys"
   cp "$key_abs" "${tmp_root}/.oci/keys/${bn}"
   if command -v perl >/dev/null 2>&1; then
-    perl -pi -e 's#^[[:space:]]*key_file[[:space:]]*=.*#key_file=\$\{\{HOME\}\}/.oci/keys/'"${bn}"'#' "${tmp_root}/.oci/config" || true
+    # Do NOT interpolate $bn inside the perl replacement string directly: filenames can contain '@'
+    # which perl would treat as an array sigil (e.g. "@gmail") and drop. Pass via env instead.
+    NEW="key_file=${{HOME}}/.oci/keys/${bn}" perl -pi -e 's#^[[:space:]]*key_file[[:space:]]*=.*#$ENV{NEW}#' "${tmp_root}/.oci/config" || true
   else
     sed -i.bak -E "s#^[[:space:]]*key_file[[:space:]]*=.*#key_file=\${{HOME}}/.oci/keys/${bn}#" "${tmp_root}/.oci/config" || true
     rm -f "${tmp_root}/.oci/config.bak" 2>/dev/null || true

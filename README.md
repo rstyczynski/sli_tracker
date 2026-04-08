@@ -114,7 +114,7 @@ tools/sli_compute_sli_metrics.js \
 tools/sli_compute_sli_metrics.js \
   --oci-auth config \
   --window-days 30 \
-  --mql-resolution 1d \
+  --mql-resolution 5m \
   --namespace sli_tracker \
   --metric-name outcome \
   --compartment-id "$COMPARTMENT_OCID" \

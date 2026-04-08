@@ -176,3 +176,17 @@ Implement a Node.js tool that computes SLI from the `outcome` metric over a conf
 Backlog Items:
 
 * SLI-20. Compute rolling-window SLI from OCI Monitoring metrics by dimensions
+
+## Sprint 15 - Scheduled SLI snapshot every 5 minutes (GitHub Actions)
+
+Status: Progress
+Mode: YOLO
+Test: unit, integration
+Regression: unit
+
+Add a scheduled GitHub Actions workflow that computes rolling-window SLI from OCI Monitoring and persists periodic snapshots to OCI Logging and OCI Monitoring.
+
+Backlog Items:
+
+* SLI-22. Scheduled SLI snapshot every 5 minutes (GitHub Actions)
+* SLI-23. Hourly scheduled synthetic SLI emitter (GitHub Actions)

@@ -213,3 +213,15 @@ Test: running the tool against a known test stream returns an SLI value matching
 We need a Node.js tool that queries OCI Logging for SLI event entries over a configurable rolling time window (default 30 days) and computes SLI as a success ratio, parameterized by selected dimensions so operators can compute SLI per slice even when metrics are unavailable. The tool must support choosing log group/log, window length, and time range and return the computed ratio plus supporting counts (success/total) for auditability. The computed value must optionally be persisted to OCI Logging and/or OCI Monitoring as configurable outputs so operators can record SLI snapshots for dashboards and audits. This provides a fallback computation path using the raw event source of truth.
 
 Test: running the tool against a known log stream returns an SLI value matching the expected ratio and prints the counts and the exact dimension filter used; when persistence is enabled, a corresponding log entry and/or metric datapoint appears in OCI.
+
+### SLI-22. Scheduled SLI snapshot every 5 minutes (GitHub Actions)
+
+We need a scheduled GitHub Actions workflow (cron every 5 minutes) that computes the current rolling-window SLI from OCI Monitoring and persists the computed snapshot to both OCI Logging and OCI Monitoring for dashboards/audits. The workflow must reuse the existing auth and resource references already stored at the repo level, so it can run unattended. Reuses `tools/sli_compute_sli_metrics.js` which is repackaged to an action.
+
+Test: after enabling the schedule, within 10 minutes there is at least one new snapshot entry in the configured OCI Log and at least one new `sli_ratio` datapoint in OCI Monitoring.
+
+### SLI-23. Hourly scheduled synthetic SLI emitter (GitHub Actions)
+
+We need a scheduled GitHub Actions workflow (cron hourly) that runs the existing local-style synthetic emitter flow (`tools/sli_ratio_simulator.sh`) to generate test SLI traffic to OCI Logging and Monitoring for dashboards. It must use the token-based `SLI_TEST` OCI profile restored from `secrets.OCI_CONFIG_PAYLOAD` and use repo variables for the OCI log and compartment IDs.
+
+Test: after enabling the schedule, within 2 hours the workflow has run at least once successfully and new `outcome` datapoints and log events are visible in OCI for that run.

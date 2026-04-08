@@ -169,6 +169,18 @@ All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifac
 
 ## Recent updates
 
+### Sprint 16 — Dedicated OCI ingestion user for CI (API key + minimal policies) (YOLO)
+
+**Status:** implemented + tested
+
+Adds support for restoring OCI config payloads that do not contain session-token state, enabling CI usage with API-key profiles while keeping private key material out of GitHub secrets. The OCI GitHub access setup script now supports an `api_key` packing mode that stores only the OCI Vault Secret OCID for the private key, and the restore action no longer requires `~/.oci/sessions/<profile>` when `oci-auth-mode` is non-token.
+
+**Quality gates:** Unit (new-code manifest) PASS, Integration (new-code manifest) PASS, Regression Unit PASS — see `progress/sprint_16/sprint_16_tests.md`.
+
+**Traceability:** `progress/backlog/SLI-24/`
+
+---
+
 ### Sprint 14 — Rolling-window SLI from OCI Monitoring (Node.js) (YOLO)
 
 **Status:** implemented + tested

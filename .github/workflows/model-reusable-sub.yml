@@ -49,7 +49,6 @@ jobs:
         with:
           oci_config_payload: ${{ secrets.OCI_CONFIG_PAYLOAD }}
           profile: SLI_TEST
-          oci-auth-mode: token_based
 
       # ── Technique 1: uses: external action with outputs consumed downstream ──────────
       # Represents: oci-auth step (simulated avaloq/avaloq-oci-action/authentication)

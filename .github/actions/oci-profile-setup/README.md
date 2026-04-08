@@ -5,8 +5,10 @@ Composite action that restores `~/.oci` from a single repository secret produced
 ## Prerequisites
 
 - Run [`install-oci-cli`](../install-oci-cli/) in the same job **before** this action.
-- On your laptop or jump host, prepare an OCI CLI profile in `~/.oci/config` and log in with `oci session authenticate`.
-- Create secret `OCI_CONFIG_PAYLOAD` (or your chosen name) using the local setup script; session tokens expire—refresh the secret when workflows start failing to authenticate.
+- On your laptop or jump host, prepare an OCI CLI profile in `~/.oci/config`. Use either **session** login (`oci session authenticate`) or an **API-key** profile (`--account-type config_profile` when packing).
+- Create secret `OCI_CONFIG_PAYLOAD` (or your chosen name) using the local setup script. Session tokens expire—refresh the secret when workflows start failing to authenticate.
+
+The action’s **`profile`** input must match the **packed profile name**: the `[SECTION]` you packed (e.g. `SLI_TEST` from `--session-profile-name` / session flow, or `[DEFAULT]` from `--profile DEFAULT` with `config_profile`). Mismatch causes restore or OCI calls to fail.
 
 ### Creating the GitHub secret with the bundled setup script
 
@@ -53,20 +55,27 @@ jobs:
         uses: ./.github/actions/oci-profile-setup
         with:
           oci_config_payload: ${{ secrets.OCI_CONFIG_PAYLOAD }}
-          # Must match the --session-profile-name you used when running setup_oci_github_access.sh
+          # Must match the packed profile (see table below)
           profile: SLI_TEST
-          # token_based installs an `oci` wrapper that injects --auth security_token
-          oci-auth-mode: token_based
+          # Optional: default is auto (session dir → token wrapper; else API key on disk → none)
 ```
+
+### Packing modes vs `profile` in workflows
+
+| How you built the secret | What to set as `profile` |
+|--------------------------|---------------------------|
+| Session flow: `--session-profile-name SLI_TEST` | `SLI_TEST` |
+| `config_profile` / API key: `--profile DEFAULT` | `DEFAULT` |
+| `config_profile` for a named section `[MYPROF]` | `MYPROF` |
 
 ## Inputs
 
 | Input | Description | Default |
 |-------|-------------|---------|
 | `oci_config_payload` | Repository secret value containing the base64 tarball (pass `secrets.OCI_CONFIG_PAYLOAD` or your secret name). | (required) |
-| `profile` | Session profile name you used when packing the secret (`--session-profile-name`); verifies `~/.oci/sessions/<profile>` after unpack. | `DEFAULT` |
-| `oci-auth-mode` | `token_based` installs an `oci` wrapper into `PATH` that injects `--auth security_token` for subsequent `oci` calls. Use `none` for API-key profiles. | `token_based` |
+| `profile` | Name of the profile section packed in the tarball (`[profile]` in `~/.oci/config` after extract). Used to find the session directory and/or `key_file` line. | `DEFAULT` |
+| `oci-auth-mode` | **`auto`**: if `~/.oci/sessions/<profile>` exists → `token_based` (OCI wrapper with `--auth security_token`); else if `key_file` in that profile points to a file on disk → `none`. **`token_based`** / **`none`** skip detection. | `auto` |
 
-The action default is `DEFAULT` only for repos that really use a session profile named `DEFAULT`. In most cases you should explicitly set `profile` to the same value you pass as `--session-profile-name` when running `setup_oci_github_access.sh` (for example `SLI_TEST`).
+In most session workflows you set `profile` to the same value as `--session-profile-name` when packing (for example `SLI_TEST`). For `config_profile` packs, set `profile` to the same value as `--profile` when you ran `setup_oci_github_access.sh`.
 
 GitHub Actions does not allow reading `secrets[dynamicName]` inside a composite action; workflows must pass the secret value explicitly as shown above.

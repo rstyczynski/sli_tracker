@@ -10,9 +10,9 @@ inputs:
     required: false
     default: DEFAULT
   oci-auth-mode:
-    description: "Authentication mode for OCI CLI calls made after restore. token_based creates an oci wrapper that injects --auth security_token."
+    description: "auto (default): session dir present → token_based wrapper; else key_file on disk → none (config_profile / API key packs). token_based | none override detection."
     required: false
-    default: token_based
+    default: auto
 
 outputs:
   config-file:

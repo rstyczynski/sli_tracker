@@ -79,7 +79,6 @@ jobs:
         with:
           oci_config_payload: ${{ secrets.OCI_CONFIG_PAYLOAD }}
           profile: SLI_TEST
-          oci-auth-mode: token_based
 
       - name: "SLI Report — init"
         if: always()

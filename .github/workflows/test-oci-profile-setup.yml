@@ -10,10 +10,10 @@ on:
         type: string
         default: DEFAULT
       oci-auth-mode:
-        description: "token_based (wrapper injects --auth security_token) | none"
+        description: "auto (default): detect session vs API-key pack | token_based | none"
         type: choice
-        options: [token_based, none]
-        default: token_based
+        options: [auto, token_based, none]
+        default: auto
 
 permissions:
   contents: read
@@ -41,7 +41,12 @@ jobs:
           PROFILE: ${{ inputs.profile }}
         run: |
           test -r "$HOME/.oci/config"
-          test -d "$HOME/.oci/sessions/${PROFILE}"
+          if [[ -d "$HOME/.oci/sessions/${PROFILE}" ]]; then
+            echo "Session directory present (token-based pack)."
+          else
+            echo "No session directory (API-key / config_profile pack); checking profile section exists."
+            grep -q "^\[${PROFILE}\]" "$HOME/.oci/config"
+          fi
 
       - name: Verify OCI access with oci os ns get
         env:

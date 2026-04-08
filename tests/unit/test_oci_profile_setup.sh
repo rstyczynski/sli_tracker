@@ -81,6 +81,31 @@ rm -rf "$SRC_HOME" "$DST_HOME"
 pass "oci wrapper created and injects token auth"
 
 echo ""
+echo "=== Test: auto mode picks none when no session dir but key_file exists ==="
+TESTS_RUN=$((TESTS_RUN + 1))
+SRC_HOME="$(mktemp -d)"
+DST_HOME="$(mktemp -d)"
+mkdir -p "$SRC_HOME/.oci/keys"
+printf '%s\n' 'dummy-pem' >"$SRC_HOME/.oci/keys/k.pem"
+cat >"$SRC_HOME/.oci/config" <<'CFG'
+[DEFAULT]
+user=ocid1.user.oc1..x
+tenancy=ocid1.tenancy.oc1..x
+fingerprint=aa:bb
+region=us-phoenix-1
+key_file=${{HOME}}/.oci/keys/k.pem
+CFG
+PAYLOAD="$( (cd "$SRC_HOME" && tar -czf - .oci) | b64_encode_nowrap )"
+export OCI_CONFIG_PAYLOAD="$PAYLOAD"
+HOME="$DST_HOME" OCI_PROFILE_VERIFY=DEFAULT OCI_AUTH_MODE=auto bash "$PROFILE_SETUP"
+if [[ -x "$DST_HOME/.local/oci-wrapper/bin/oci" ]]; then
+  rm -rf "$SRC_HOME" "$DST_HOME"
+  fail "auto should not install oci wrapper for API-key-only payload"
+fi
+rm -rf "$SRC_HOME" "$DST_HOME"
+pass "auto resolved to none for config without session"
+
+echo ""
 echo "=== Test: empty OCI_CONFIG_PAYLOAD ==="
 TESTS_RUN=$((TESTS_RUN + 1))
 EMPTY_HOME="$(mktemp -d)"

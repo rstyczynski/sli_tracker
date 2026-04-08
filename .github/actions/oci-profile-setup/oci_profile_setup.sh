@@ -1,10 +1,42 @@
 #!/usr/bin/env bash
-# Restores ~/.oci from OCI_CONFIG_PAYLOAD (base64 gzip tarball of .oci/config + .oci/sessions/<profile>).
+# Restores ~/.oci from OCI_CONFIG_PAYLOAD (base64 gzip tarball of .oci/config + optional .oci/sessions/<profile>).
 
 set -euo pipefail
 
 PROFILE="${OCI_PROFILE_VERIFY:-DEFAULT}"
-AUTH_MODE="${OCI_AUTH_MODE:-token_based}"
+AUTH_MODE="${OCI_AUTH_MODE:-auto}"
+
+sli_key_file_from_profile() {
+  local cfg="$1" prof="$2"
+  awk -v want="[${prof}]" '
+    function strip(s) { sub(/\r$/, "", s); return s }
+    BEGIN { inblk = 0 }
+    {
+      line = strip($0)
+      if (line == want) { inblk = 1; next }
+      if (line ~ /^\[/ && inblk) exit
+      if (inblk && line ~ /^[[:space:]]*key_file[[:space:]]*=/) {
+        sub(/^[[:space:]]*key_file[[:space:]]*=[[:space:]]*/, "", line)
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+        if (line ~ /^".*"$/) { gsub(/^"|"$/, "", line) }
+        print line
+        exit
+      }
+    }
+  ' "$cfg"
+}
+
+sli_resolve_key_path() {
+  local raw="$1"
+  [[ -z "$raw" ]] && return 0
+  raw="${raw/#\~/$HOME}"
+  raw="${raw//\$\{HOME\}/$HOME}"
+  raw="${raw//\$\{\{HOME\}\}/$HOME}"
+  if [[ "$raw" != /* ]]; then
+    raw="${HOME}/${raw}"
+  fi
+  printf '%s' "$raw"
+}
 
 if [[ -z "${OCI_CONFIG_PAYLOAD:-}" ]]; then
   echo "::error::OCI_CONFIG_PAYLOAD is empty. Pass the repository secret into the action input oci_config_payload (e.g. secrets.OCI_CONFIG_PAYLOAD)." >&2
@@ -42,6 +74,24 @@ if [[ ! -r "${HOME}/.oci/config" ]]; then
 fi
 
 SESSION_DIR="${HOME}/.oci/sessions/${PROFILE}"
+
+if [[ "$AUTH_MODE" == "auto" ]]; then
+  if [[ -d "$SESSION_DIR" ]]; then
+    AUTH_MODE="token_based"
+    echo "::notice::oci-auth-mode auto: using token_based (found ${SESSION_DIR})."
+  else
+    _key_raw="$(sli_key_file_from_profile "${HOME}/.oci/config" "$PROFILE")"
+    _key_abs="$(sli_resolve_key_path "$_key_raw")"
+    if [[ -n "$_key_raw" && -f "$_key_abs" ]]; then
+      AUTH_MODE="none"
+      echo "::notice::oci-auth-mode auto: using none (API key / config_profile pack; no session directory)."
+    else
+      echo "::error::oci-auth-mode auto: no session directory at ${SESSION_DIR} and no usable key_file for profile [${PROFILE}] (check profile name matches the packed config)." >&2
+      exit 1
+    fi
+  fi
+fi
+
 if [[ "$AUTH_MODE" == "token_based" ]]; then
   if [[ ! -d "$SESSION_DIR" ]]; then
     echo "::error::Expected session directory missing after extract: ${SESSION_DIR}" >&2

@@ -27,14 +27,14 @@ rg -q 'workflow_dispatch:' "$W2" || fail "SLI-23 missing workflow_dispatch"
 rg -q "cron:\\s*[\"']0 \\* \\* \\* \\*[\"']" "$W2" || fail "SLI-23 missing hourly cron (0 * * * *)"
 pass "SLI-23 schedule + dispatch ok"
 
-# UT-2 token-based SLI_TEST + OCI_CONFIG_PAYLOAD
+# UT-2 SLI_TEST + OCI_CONFIG_PAYLOAD (oci-auth-mode defaults to auto: session vs API-key packs)
 for f in "$W1" "$W2"; do
   rg -qF 'secrets.OCI_CONFIG_PAYLOAD' "$f" || fail "$(basename "$f") missing secrets.OCI_CONFIG_PAYLOAD"
   rg -qF 'profile: SLI_TEST' "$f" || fail "$(basename "$f") missing profile SLI_TEST"
-  rg -qF 'oci-auth-mode: token_based' "$f" || fail "$(basename "$f") missing oci-auth-mode token_based"
+  rg -qF 'uses: ./.github/actions/oci-profile-setup' "$f" || fail "$(basename "$f") missing oci-profile-setup"
   rg -qF 'uses: ./.github/actions/install-oci-cli' "$f" || fail "$(basename "$f") missing install-oci-cli step"
 done
-pass "token-based profile wiring ok"
+pass "OCI profile restore wiring ok"
 
 # UT-3 repo variables for OCIDs
 for f in "$W1" "$W2"; do

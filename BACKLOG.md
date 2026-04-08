@@ -230,3 +230,9 @@ Test: after enabling the schedule, within 2 hours the workflow has run at least 
 We need a dedicated OCI IAM user intended only for GitHub Actions in this project, authenticated via API key and granted the minimal policies required to ingest into the OCI Logging log and OCI Monitoring metric namespace used by SLI Tracker. This reduces operational risk versus reusing interactive session tokens and makes scheduled workflows stable and auditable. The setup flow must support producing and uploading the correct GitHub secret payload for this account type via `actions/oci-profile-setup/setup_oci_github_access.sh`.
 
 Test: a fresh repository can be configured using the dedicated user and then a workflow run can successfully push one log entry and one metric datapoint using that configuration.
+
+### SLI-25. Upload an existing OCI config profile to GitHub (API key, no IAM changes)
+
+We need a way to upload an existing OCI CLI config profile (default `DEFAULT`) to GitHub as a secret payload for CI use, without creating a new API key and without touching IAM policies. This supports environments where the operator already has a fully privileged OCI user configured locally and only wants to package that profile for workflows. The `actions/oci-profile-setup/setup_oci_github_access.sh` script must support this mode and include any referenced key file material already used by the profile.
+
+Test: using the uploaded payload, a GitHub workflow run can authenticate with the given profile and successfully push one log entry and one metric datapoint.

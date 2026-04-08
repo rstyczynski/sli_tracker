@@ -9,7 +9,7 @@
 #
 # Usage: .../setup_oci_github_access.sh [--profile PROFILE] [--repo OWNER/REPO]
 #          [--session-profile-name NAME] [--secret-name NAME] [--dry-run]
-#          [--account-type session|api_key] [--private-key-secret-ocid OCID]
+#          [--account-type session|api_key|config_profile] [--private-key-secret-ocid OCID]
 #          [--skip-session-auth] [--help]
 
 set -euo pipefail
@@ -34,6 +34,62 @@ sli_base64_encode_nowrap() {
 # Expand literal ${{HOME}} to the real $HOME in ~/.oci files before any `oci` call.
 # Older versions of this script replaced every $HOME prefix, breaking key_file paths like
 # ~/.ssh/*.pem (OCI then looked for a file literally named ${{HOME}}/.ssh/...).
+sli_extract_key_file_value() {
+  awk '
+    /^[[:space:]]*key_file[[:space:]]*=/ {
+      val = $0
+      sub(/^[[:space:]]*key_file[[:space:]]*=[[:space:]]*/, "", val)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", val)
+      if (val ~ /^".*"$/) {
+        gsub(/^"|"$/, "", val)
+      }
+      print val
+      exit
+    }
+  ' "$1"
+}
+
+sli_resolve_user_path() {
+  local p="$1"
+  p="${p/#\~/$HOME}"
+  if [[ "$p" != /* ]]; then
+    p="${HOME}/${p}"
+  fi
+  printf '%s' "$p"
+}
+
+sli_config_profile_copy_key_into_tree() {
+  local tmp_root="$1"
+  local key_raw key_abs rel bn
+
+  key_raw="$(sli_extract_key_file_value "${tmp_root}/.oci/config")"
+  if [[ -z "$key_raw" ]]; then
+    echo "ERROR: key_file is required in the packed profile section for config_profile mode." >&2
+    return 1
+  fi
+  key_abs="$(sli_resolve_user_path "$key_raw")"
+  if [[ ! -f "$key_abs" ]]; then
+    echo "ERROR: key_file not found or not a regular file: ${key_abs}" >&2
+    return 1
+  fi
+
+  if [[ "$key_abs" == "${HOME}/"* ]]; then
+    rel="${key_abs#${HOME}/}"
+    mkdir -p "$(dirname "${tmp_root}/${rel}")"
+    cp "$key_abs" "${tmp_root}/${rel}"
+  else
+    bn="$(basename "$key_abs")"
+    mkdir -p "${tmp_root}/.oci/keys"
+    cp "$key_abs" "${tmp_root}/.oci/keys/${bn}"
+    if command -v perl >/dev/null 2>&1; then
+      perl -pi -e 's#^[[:space:]]*key_file[[:space:]]*=.*#key_file=\$\{\{HOME\}\}/.oci/keys/'"${bn}"'#' "${tmp_root}/.oci/config" || true
+    else
+      sed -i.bak -E "s#^[[:space:]]*key_file[[:space:]]*=.*#key_file=\${{HOME}}/.oci/keys/${bn}#" "${tmp_root}/.oci/config" || true
+      rm -f "${tmp_root}/.oci/config.bak" 2>/dev/null || true
+    fi
+  fi
+}
+
 sli_expand_placeholder_home_in_oci_tree() {
   if command -v perl >/dev/null 2>&1; then
     perl -pi -e "s#\\$\\{\\{HOME\\}\\}#${HOME}#g" "${HOME}/.oci/config" || true
@@ -69,17 +125,21 @@ Options:
                       Name of the *session* profile to create with `oci session authenticate`
                       (default: SLI_TEST). This avoids the interactive \"Enter the name of the profile\"
                       question.
-  --account-type TYPE Session token payload (session) or API key payload (api_key) (default: session).
+  --account-type TYPE session | api_key | config_profile (default: session).
+                      config_profile: pack [--profile] stanza and existing key_file on disk (no session auth, no Vault OCID).
   --private-key-secret-ocid OCID
                       Required for api_key mode. OCID of an OCI Vault Secret that stores the private key PEM.
+                      Not used for config_profile.
   --repo OWNER/REPO   GitHub repository (default: gh repo view)
   --secret-name NAME  Secret name in GitHub (default: OCI_CONFIG_PAYLOAD)
   --dry-run           Pack and print payload size; do not call gh secret set
   --skip-session-auth Do not run oci session authenticate (browser); use existing
-                      ~/.oci/sessions/<session-profile-name> (re-pack / upload only)
+                      ~/.oci/sessions/<session-profile-name> (re-pack / upload only).
+                      Ignored for config_profile.
   --help              Show this help
 
 Session tokens expire; re-run this script before workflows need a fresh token.
+config_profile: use OCI_AUTH_MODE=none in oci-profile-setup; workflows should use the same profile name as --profile (default DEFAULT).
 EOF
 }
 
@@ -137,6 +197,14 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+case "$ACCOUNT_TYPE" in
+  session|api_key|config_profile) ;;
+  *)
+    echo "ERROR: Unknown --account-type: ${ACCOUNT_TYPE} (expected session, api_key, or config_profile)." >&2
+    exit 1
+    ;;
+esac
+
 require_cmd oci
 require_cmd jq
 require_cmd tar
@@ -182,10 +250,14 @@ fi
 echo "Using OCI profile: $PROFILE"
 echo "Session profile name: $SESSION_PROFILE_NAME"
 echo "Account type: $ACCOUNT_TYPE"
-if [[ "$SKIP_SESSION_AUTH" -eq 0 ]]; then
-  echo "Home region: $HOME_REGION"
+if [[ "$ACCOUNT_TYPE" == "session" ]]; then
+  if [[ "$SKIP_SESSION_AUTH" -eq 0 ]]; then
+    echo "Home region: $HOME_REGION"
+  else
+    echo "Home region: (skipped; --skip-session-auth)"
+  fi
 else
-  echo "Home region: (skipped; --skip-session-auth)"
+  echo "Home region: (n/a for account type ${ACCOUNT_TYPE})"
 fi
 echo "GitHub repository: $REPO"
 echo "Secret name: $SECRET_NAME"
@@ -207,19 +279,28 @@ if [[ "$ACCOUNT_TYPE" == "session" ]]; then
     echo "ERROR: Expected session directory missing: ~/${SESSION_REL}" >&2
     exit 1
   fi
-else
+elif [[ "$ACCOUNT_TYPE" == "api_key" ]]; then
   if [[ -z "$PRIVATE_KEY_SECRET_OCID" ]]; then
     echo "ERROR: --private-key-secret-ocid is required when --account-type api_key" >&2
     exit 1
   fi
+elif [[ "$ACCOUNT_TYPE" == "config_profile" ]]; then
+  if [[ -n "$PRIVATE_KEY_SECRET_OCID" ]]; then
+    echo "ERROR: --private-key-secret-ocid is not used with --account-type config_profile" >&2
+    exit 1
+  fi
 fi
 
-# ── Single-profile config: copy only [SESSION_PROFILE_NAME] from ~/.oci/config ──
+# ── Single-profile config: copy one stanza from ~/.oci/config ──
 
 FULL_CFG="${HOME}/.oci/config"
 PACKED_CFG="$(mktemp)"
 
-_prof_line="[${SESSION_PROFILE_NAME}]"
+PACK_PROFILE_NAME="$SESSION_PROFILE_NAME"
+if [[ "$ACCOUNT_TYPE" == "config_profile" ]]; then
+  PACK_PROFILE_NAME="$PROFILE"
+fi
+_prof_line="[${PACK_PROFILE_NAME}]"
 awk -v want="${_prof_line}" '
   function strip(s) { sub(/\r$/, "", s); return s }
   {
@@ -237,7 +318,7 @@ if [[ ! -s "$PACKED_CFG" ]]; then
 fi
 
 echo ""
-echo "Packed config (verbatim session profile only, no [DEFAULT] merge):"
+echo "Packed config (single profile only, no [DEFAULT] merge):"
 cat "$PACKED_CFG"
 echo ""
 
@@ -252,41 +333,47 @@ if [[ "$ACCOUNT_TYPE" == "session" ]]; then
   mkdir -p "$(dirname "${TMP_OCI_DIR}/${SESSION_REL}")"
   cp -a "${HOME}/${SESSION_REL}" "${TMP_OCI_DIR}/${SESSION_REL}"
   rm -f "${TMP_OCI_DIR}/${SESSION_REL}"/*.bak 2>/dev/null || true
-else
+elif [[ "$ACCOUNT_TYPE" == "api_key" ]]; then
   mkdir -p "${TMP_OCI_DIR}/.oci/meta"
   printf '%s' "$PRIVATE_KEY_SECRET_OCID" > "${TMP_OCI_DIR}/.oci/meta/sli_api_key_secret_ocid"
+elif [[ "$ACCOUNT_TYPE" == "config_profile" ]]; then
+  sli_config_profile_copy_key_into_tree "$TMP_OCI_DIR" || exit 1
 fi
 
 # Normalize ~/.oci/ paths to portable ${{HOME}} placeholder (on the copies only).
 if command -v perl >/dev/null 2>&1; then
   perl -pi -e "s#\\Q$HOME/.oci/#\\$\\{\\{HOME\\}\\}/.oci/#g" "${TMP_OCI_DIR}/.oci/config" || true
-  if compgen -G "${TMP_OCI_DIR}/${SESSION_REL}/*" >/dev/null 2>&1; then
+  if [[ "$ACCOUNT_TYPE" == "session" ]] && compgen -G "${TMP_OCI_DIR}/${SESSION_REL}/*" >/dev/null 2>&1; then
     perl -pi -e "s#\\Q$HOME/.oci/#\\$\\{\\{HOME\\}\\}/.oci/#g" "${TMP_OCI_DIR}"/${SESSION_REL}/* || true
   fi
 else
   sed -i.bak "s#$HOME/.oci/#\${{HOME}}/.oci/#g" "${TMP_OCI_DIR}/.oci/config" || true
-  if compgen -G "${TMP_OCI_DIR}/${SESSION_REL}/*" >/dev/null 2>&1; then
+  if [[ "$ACCOUNT_TYPE" == "session" ]] && compgen -G "${TMP_OCI_DIR}/${SESSION_REL}/*" >/dev/null 2>&1; then
     sed -i.bak "s#$HOME/.oci/#\${{HOME}}/.oci/#g" "${TMP_OCI_DIR}"/${SESSION_REL}/* || true
   fi
   rm -f "${TMP_OCI_DIR}/${SESSION_REL}"/*.bak 2>/dev/null || true
 fi
 
 echo "Packing into secret (paths relative to HOME):"
-echo "  .oci/config  (single-profile: ${SESSION_PROFILE_NAME})"
+echo "  .oci/config  (single-profile: ${PACK_PROFILE_NAME})"
 if [[ "$ACCOUNT_TYPE" == "session" ]]; then
   echo "  ${SESSION_REL}/"
-else
+elif [[ "$ACCOUNT_TYPE" == "api_key" ]]; then
   echo "  .oci/meta/sli_api_key_secret_ocid"
+else
+  echo "  .oci/... (including key_file material)"
 fi
 if command -v du >/dev/null 2>&1; then
   echo "  (approx sizes on disk)"
-  du -sh "${TMP_OCI_DIR}/.oci/config" "${TMP_OCI_DIR}/${SESSION_REL}" 2>/dev/null || true
+  du -sh "${TMP_OCI_DIR}/.oci" 2>/dev/null || true
 fi
 
 if [[ "$ACCOUNT_TYPE" == "session" ]]; then
   tar -czf "$TMP_TAR" -C "$TMP_OCI_DIR" .oci/config "${SESSION_REL}"
-else
+elif [[ "$ACCOUNT_TYPE" == "api_key" ]]; then
   tar -czf "$TMP_TAR" -C "$TMP_OCI_DIR" .oci/config .oci/meta/sli_api_key_secret_ocid
+else
+  tar -czf "$TMP_TAR" -C "$TMP_OCI_DIR" .oci
 fi
 rm -rf "$TMP_OCI_DIR"
 PAYLOAD="$(sli_base64_encode_nowrap <"$TMP_TAR")"

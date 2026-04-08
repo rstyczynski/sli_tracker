@@ -425,6 +425,12 @@ async function persistSnapshot(args, result) {
 }
 
 async function main() {
+  // Avoid failing hard when stdout is piped to a consumer that exits early (e.g. `... | jq`).
+  // This can happen in CI logs; the computed snapshot/persist work may have already succeeded.
+  process.stdout.on("error", (err) => {
+    if (err && err.code === "EPIPE") process.exit(0);
+  });
+
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
     process.stdout.write(usage());

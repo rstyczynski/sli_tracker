@@ -12,20 +12,13 @@ Model works on a GitHub repository interacting with OCI tenancy where events are
 ```bash
 cd "$(git rev-parse --show-toplevel)"
 
-# Pick a unique prefix (state file becomes ./state-${NAME_PREFIX}.json)
 export NAME_PREFIX="sli_quickstart"
-
-# OCI log destination (URI-style: //log-group/log-name)
 export SLI_OCI_LOG_URI="//sli-events/github-actions"
-
-# Ensure the OCI log resources exist (uses oci_scaffold under the hood)
-# OCI profile defaults to SLI_TEST; override if you use a different local profile name.
 source ./tools/ensure_oci_resources.sh
-ensure_sli_log_resources "$(pwd)" "${SLI_INTEGRATION_OCI_PROFILE:-SLI_TEST}" "$NAME_PREFIX" "$SLI_OCI_LOG_URI"
+ensure_sli_log_resources "$(pwd)" "${SLI_INTEGRATION_OCI_PROFILE:-DEFAULT}" "$NAME_PREFIX" "$SLI_OCI_LOG_URI"
 
-export SLI_OCI_LOG_ID="$SLI_LOG_OCID"
 echo "COMPARTMENT_OCID=$COMPARTMENT_OCID"
-echo "SLI_OCI_LOG_ID=$SLI_OCI_LOG_ID"
+echo "SLI_LOG_ID=$SLI_LOG_ID"
 ```
 
 1. **Authenticate** so `~/.oci/config` has a usable profile (e.g. `SLI_TEST`). Use the packing script to refresh a session token and upload to GitHub if needed:
@@ -47,7 +40,7 @@ echo "SLI_OCI_LOG_ID=$SLI_OCI_LOG_ID"
    export EMIT_TARGET=log,metric
    export SLI_OUTCOME=success
    export SLI_METRIC_COMPARTMENT=$COMPARTMENT_OCID
-   export SLI_OCI_LOG_ID=$SLI_OCI_LOG_ID
+   export SLI_LOG_ID=$SLI_LOG_ID
    export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
    bash .github/actions/sli-event/emit.sh
    ```
@@ -59,13 +52,13 @@ echo "SLI_OCI_LOG_ID=$SLI_OCI_LOG_ID"
    export EMIT_TARGET=log,metric
    export SLI_OUTCOME=failure
    export SLI_METRIC_COMPARTMENT=$COMPARTMENT_OCID
-   export SLI_OCI_LOG_ID=$SLI_OCI_LOG_ID
+   export SLI_LOG_ID=$SLI_LOG_ID
    export STEPS_JSON='{"test_script":{"outcome":"failure","outputs":{}}}'
    export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
    bash .github/actions/sli-event/emit.sh
    ```
 
-   `SLI_OCI_LOG_ID` is read from the environment; `oci.log-id` in `SLI_CONTEXT_JSON` is optional if it is set. To build the payload without pushing, set `SLI_SKIP_OCI_PUSH=1`.
+   `SLI_LOG_ID` is read from the environment; `oci.log-id` in `SLI_CONTEXT_JSON` is optional if it is set. To build the payload without pushing, set `SLI_SKIP_OCI_PUSH=1`.
 
 1. ***Load simulator***
 
@@ -78,7 +71,7 @@ export EMIT_BACKEND=curl
 export EMIT_TARGET=log,metric
 export SLI_METRIC_NAMESPACE="sli_tracker"
 export SLI_METRIC_COMPARTMENT=$COMPARTMENT_OCID
-export SLI_OCI_LOG_ID=$SLI_OCI_LOG_ID
+export SLI_LOG_ID=$SLI_LOG_ID
 export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
 
 tools/sli_ratio_simulator.sh \
@@ -174,7 +167,7 @@ Example — dual push (log + metric):
 ```bash
 EMIT_TARGET=log,metric \
 SLI_OUTCOME=success \
-SLI_OCI_LOG_ID="<log-ocid>" \
+SLI_LOG_ID="<log-ocid>" \
 SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}' \
 bash .github/actions/sli-event/emit_curl.sh
 ```

@@ -1,0 +1,52 @@
+name: "SLI-22 — scheduled SLI snapshot (5 min)"
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  snapshot:
+    name: "Compute + persist SLI snapshot"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Setup Node"
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: "Install dependencies"
+        run: npm ci
+
+      - name: "Restore OCI profile (token-based)"
+        uses: ./.github/actions/oci-profile-setup
+        with:
+          oci_config_payload: ${{ secrets.OCI_CONFIG_PAYLOAD }}
+          profile: SLI_TEST
+          oci-auth-mode: token_based
+
+      - name: "Compute + persist SLI snapshot"
+        env:
+          COMPARTMENT_OCID: ${{ vars.SLI_OCI_COMPARTMENT_ID }}
+          SLI_OCI_LOG_ID: ${{ vars.SLI_OCI_LOG_ID }}
+          SLI_METRIC_NAMESPACE: ${{ vars.SLI_METRIC_NAMESPACE }}
+        run: |
+          set -euo pipefail
+          metric_ns="${SLI_METRIC_NAMESPACE:-sli_tracker}"
+          tools/sli_compute_sli_metrics.js \
+            --oci-auth config \
+            --window-days 30 \
+            --mql-resolution 5m \
+            --namespace "$metric_ns" \
+            --metric-name outcome \
+            --compartment-id "$COMPARTMENT_OCID" \
+            --oci-config-file "~/.oci/config" \
+            --oci-profile "SLI_TEST" \
+            --persist log,metric \
+            --persist-log-id "$SLI_OCI_LOG_ID" \
+            --persist-metric-namespace "$metric_ns" \
+            --output json | jq
+

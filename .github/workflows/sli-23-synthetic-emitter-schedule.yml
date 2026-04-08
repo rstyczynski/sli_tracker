@@ -1,0 +1,53 @@
+name: "SLI-23 — scheduled synthetic emitter (hourly)"
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  emit:
+    name: "Emit synthetic SLI traffic"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Setup Node"
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: "Install dependencies"
+        run: npm ci
+
+      - name: "Restore OCI profile (token-based)"
+        uses: ./.github/actions/oci-profile-setup
+        with:
+          oci_config_payload: ${{ secrets.OCI_CONFIG_PAYLOAD }}
+          profile: SLI_TEST
+          oci-auth-mode: token_based
+
+      - name: "Run ratio simulator (bounded)"
+        env:
+          EMIT_BACKEND: curl
+          EMIT_TARGET: log,metric
+          SLI_OCI_LOG_ID: ${{ vars.SLI_OCI_LOG_ID }}
+          SLI_METRIC_COMPARTMENT: ${{ vars.SLI_OCI_COMPARTMENT_ID }}
+          SLI_METRIC_NAMESPACE: ${{ vars.SLI_METRIC_NAMESPACE }}
+          SLI_CONTEXT_JSON: '{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
+        run: |
+          set -euo pipefail
+          export SLI_METRIC_NAMESPACE="${SLI_METRIC_NAMESPACE:-sli_tracker}"
+
+          # Keep the hourly run bounded: 10 minutes total (ramp 5m, hold 2m, teardown 3m).
+          tools/sli_ratio_simulator.sh \
+            --target-failure-rate 0.95 \
+            --ramp-seconds 300 \
+            --hold-seconds 120 \
+            --teardown-seconds 180 \
+            --interval-seconds 5 \
+            --ramp-curve logarithmic \
+            --teardown-curve exponential \
+            --seed 42
+

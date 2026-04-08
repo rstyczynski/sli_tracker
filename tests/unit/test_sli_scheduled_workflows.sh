@@ -24,21 +24,21 @@ pass "SLI-22 schedule + dispatch ok"
 
 rg -q 'schedule:' "$W2" || fail "SLI-23 missing schedule trigger"
 rg -q 'workflow_dispatch:' "$W2" || fail "SLI-23 missing workflow_dispatch"
-rg -q 'cron:.*0 \\* \\* \\* \\*' "$W2" || fail "SLI-23 missing hourly cron (0 * * * *)"
+rg -q "cron:\\s*[\"']0 \\* \\* \\* \\*[\"']" "$W2" || fail "SLI-23 missing hourly cron (0 * * * *)"
 pass "SLI-23 schedule + dispatch ok"
 
 # UT-2 token-based SLI_TEST + OCI_CONFIG_PAYLOAD
 for f in "$W1" "$W2"; do
-  rg -q 'oci_config_payload:\\s*\\$\\{\\{\\s*secrets\\.OCI_CONFIG_PAYLOAD\\s*\\}\\}' "$f" || fail "$(basename "$f") missing secrets.OCI_CONFIG_PAYLOAD"
-  rg -q 'profile:\\s*SLI_TEST' "$f" || fail "$(basename "$f") missing profile SLI_TEST"
-  rg -q 'oci-auth-mode:\\s*token_based' "$f" || fail "$(basename "$f") missing oci-auth-mode token_based"
+  rg -qF 'secrets.OCI_CONFIG_PAYLOAD' "$f" || fail "$(basename "$f") missing secrets.OCI_CONFIG_PAYLOAD"
+  rg -qF 'profile: SLI_TEST' "$f" || fail "$(basename "$f") missing profile SLI_TEST"
+  rg -qF 'oci-auth-mode: token_based' "$f" || fail "$(basename "$f") missing oci-auth-mode token_based"
 done
 pass "token-based profile wiring ok"
 
 # UT-3 repo variables for OCIDs
 for f in "$W1" "$W2"; do
-  rg -q 'vars\\.SLI_OCI_COMPARTMENT_ID' "$f" || fail "$(basename "$f") missing vars.SLI_OCI_COMPARTMENT_ID"
-  rg -q 'vars\\.SLI_OCI_LOG_ID' "$f" || fail "$(basename "$f") missing vars.SLI_OCI_LOG_ID"
+  rg -q 'vars\.SLI_OCI_COMPARTMENT_ID' "$f" || fail "$(basename "$f") missing vars.SLI_OCI_COMPARTMENT_ID"
+  rg -q 'vars\.SLI_OCI_LOG_ID' "$f" || fail "$(basename "$f") missing vars.SLI_OCI_LOG_ID"
 done
 pass "repo vars wiring ok"
 

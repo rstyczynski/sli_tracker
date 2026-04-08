@@ -1,0 +1,4 @@
+unit:test_oci_profile_setup_api_key.sh
+unit:test_setup_oci_github_access_api_key_help.sh
+integration:test_api_key_payload_roundtrip.sh
+

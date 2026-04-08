@@ -14,8 +14,8 @@
 #
 # config_profile: --profile = source stanza in ~/.oci/config; --session-profile-name = name written
 # in the packed tarball (default SLI_TEST), so CI can keep profile: SLI_TEST while sourcing [DEFAULT] locally.
-# After a successful secret upload (not --dry-run), if source ≠ destination and [destination] is missing locally,
-# the script appends a mirror stanza to ~/.oci/config so local tooling/README examples using SLI_TEST keep working.
+# After a successful secret upload (not --dry-run), if source ≠ destination, the script writes [destination] in
+# ~/.oci/config as a mirror of [source], replacing any existing [destination] block so local tooling matches CI.
 
 set -euo pipefail
 
@@ -93,25 +93,22 @@ sli_config_profile_copy_key_into_tree() {
   fi
 }
 
-# Append [dest_prof] to the real ~/.oci/config as a copy of [src_prof] (same key_file paths) when missing.
-# Skipped when src == dest, when [dest_prof] already exists, or when config is not writable.
-sli_config_profile_append_local_mirror_stanza() {
+# Write [dest_prof] in the real ~/.oci/config as a copy of [src_prof] (same key_file paths).
+# Removes any existing [dest_prof] block first, then appends the new stanza. Skipped when src == dest.
+sli_config_profile_sync_local_mirror_stanza() {
   local full_cfg="$1" src_prof="$2" dest_prof="$3"
 
   if [[ "$src_prof" == "$dest_prof" ]]; then
     return 0
   fi
   if [[ ! -f "$full_cfg" ]] || [[ ! -w "$full_cfg" ]]; then
-    echo "WARNING: Cannot append [${dest_prof}] mirror: ${full_cfg} missing or not writable." >&2
-    return 0
-  fi
-  if grep -q "^\[${dest_prof}\]" "$full_cfg" 2>/dev/null; then
-    echo "config_profile: ${full_cfg} already contains [${dest_prof}]; leaving local file unchanged."
+    echo "WARNING: Cannot sync [${dest_prof}] mirror: ${full_cfg} missing or not writable." >&2
     return 0
   fi
 
-  local body_tmp
+  local body_tmp stripped_tmp
   body_tmp="$(mktemp)"
+  stripped_tmp="$(mktemp)"
   awk -v want="[${src_prof}]" '
     function strip(s) { sub(/\r$/, "", s); return s }
     BEGIN { inblk = 0 }
@@ -123,19 +120,35 @@ sli_config_profile_append_local_mirror_stanza() {
     }
   ' "$full_cfg" > "$body_tmp"
   if [[ ! -s "$body_tmp" ]]; then
-    rm -f "$body_tmp"
+    rm -f "$body_tmp" "$stripped_tmp"
     echo "ERROR: config_profile: could not extract [${src_prof}] body for local [${dest_prof}] mirror." >&2
     return 1
   fi
 
+  awk -v strip_hdr="[${dest_prof}]" '
+    function strip(s) { sub(/\r$/, "", s); return s }
+    BEGIN { skip = 0 }
+    {
+      line = strip($0)
+      if (line ~ /^\[/) {
+        if (line == strip_hdr) { skip = 1; next }
+        skip = 0
+      }
+      if (skip) next
+      print $0
+    }
+  ' "$full_cfg" > "$stripped_tmp"
+
   {
-    printf '\n# Added by setup_oci_github_access.sh (config_profile): mirror [%s] as [%s] for local tools using --profile %s.\n' \
+    cat "$stripped_tmp"
+    printf '\n# setup_oci_github_access.sh (config_profile): [%s] mirrored as [%s] (replaces any prior [%s] block).\n' \
       "$src_prof" "$dest_prof" "$dest_prof"
     printf '[%s]\n' "$dest_prof"
     cat "$body_tmp"
-  } >> "$full_cfg"
-  rm -f "$body_tmp"
-  echo "config_profile: appended [${dest_prof}] to ${full_cfg} (mirror of [${src_prof}]) for local CLI/SDK use."
+  } > "${full_cfg}.new"
+  mv "${full_cfg}.new" "$full_cfg"
+  rm -f "$body_tmp" "$stripped_tmp"
+  echo "config_profile: wrote [${dest_prof}] in ${full_cfg} (mirror of [${src_prof}]) for local CLI/SDK use."
 }
 
 sli_expand_placeholder_home_in_oci_tree() {
@@ -187,7 +200,7 @@ Options:
   --help              Show this help
 
 Session tokens expire; re-run this script before workflows need a fresh token.
-config_profile: pack [--profile] stanza as [--session-profile-name] in the secret (default: copy [DEFAULT] to [SLI_TEST]). Match oci-profile-setup profile to --session-profile-name. After a successful upload (not --dry-run), appends [session-profile-name] to ~/.oci/config if missing (mirror of source) for local tooling.
+config_profile: pack [--profile] stanza as [--session-profile-name] in the secret (default: copy [DEFAULT] to [SLI_TEST]). Match oci-profile-setup profile to --session-profile-name. After a successful upload (not --dry-run), writes [session-profile-name] in ~/.oci/config as a mirror of [profile], replacing any existing [session-profile-name] block.
 EOF
 }
 
@@ -457,7 +470,7 @@ fi
 echo "Uploading secret ${SECRET_NAME} to ${REPO}..."
 printf '%s' "$PAYLOAD" | gh secret set "$SECRET_NAME" --repo "$REPO"
 if [[ "$ACCOUNT_TYPE" == "config_profile" ]]; then
-  sli_config_profile_append_local_mirror_stanza "$FULL_CFG" "$PROFILE" "$SESSION_PROFILE_NAME"
+  sli_config_profile_sync_local_mirror_stanza "$FULL_CFG" "$PROFILE" "$SESSION_PROFILE_NAME"
 fi
 echo "Done. Workflows can pass this secret to oci-profile-setup as oci_config_payload."
 

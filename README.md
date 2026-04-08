@@ -41,7 +41,7 @@ Alternatively use the packing script to upload a regular profile with an API key
   --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
 ```
 
-After a **successful** secret upload (not `--dry-run`), if your `~/.oci/config` has **`[DEFAULT]`** but no **`[SLI_TEST]`**, the script **appends** **`[SLI_TEST]`** as a mirror of **`[DEFAULT]`** (same `key_file` paths) so local README commands that use **`profile":"SLI_TEST"`** keep working alongside CI.
+After a **successful** secret upload (not `--dry-run`), the script **writes** **`[SLI_TEST]`** in your `~/.oci/config` as a mirror of **`[DEFAULT]`** (same `key_file` paths), **replacing** any existing **`[SLI_TEST]`** block, so local README commands that use **`profile":"SLI_TEST"`** stay aligned with what you just packed for CI.
 
 For a local-only test you only need a valid session/API-key profile on disk matching `profile` below.
 

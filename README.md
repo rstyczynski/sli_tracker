@@ -31,7 +31,7 @@ Use the packing script to refresh a session token and upload to GitHub if needed
 .github/actions/oci-profile-setup/setup_oci_github_access.sh --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
 ```
 
-Alternatively use the packing script to upload regular profile with API key. This profile works w/o time limits, however uploads local private kay.
+Alternatively use the packing script to upload a regular profile with an API key. This profile has no session expiry, but the script copies your local private key material into the packed secret (treat the secret accordingly).
 
 ```bash
 .github/actions/oci-profile-setup/setup_oci_github_access.sh \
@@ -78,7 +78,7 @@ To build the payload without pushing, set `SLI_SKIP_OCI_PUSH=1`.
 
 1. ***Load simulator***
 
-Reauthenticate and generate test load over 45 minutes. Note that OCI code to create loggoup/log mut be executed in this terminal session.
+Reauthenticate and generate test load over 45 minutes. Run the OCI log group / log creation step (`ensure_oci_resources.sh` above) in this same shell session first so compartment and log OCIDs are available.
 
 ```bash
 repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
@@ -146,7 +146,7 @@ tools/sli_compute_sli_metrics.js \
   --output json | jq
 ```
 
-1. ***Run GitHub workflow**
+1. **Run GitHub workflow**
 
 Trigger GitHub workflows to simulate synthetic successes and failures. First line prepares session profile to store it in GitHub repository secrets; the second one trigger workflows. Test procedure fetches logs and metrics to validate
 
@@ -166,7 +166,7 @@ This repository is developed using the **RUP Strikes Back** AI-driven developmen
 Key documents:
 
 - `BACKLOG.md` — full list of backlog items (SLI-1, SLI-2, ...)
-- `PLAN.md` — sprint plan; active sprint has `Status: Progress`
+- `PLAN.md` — sprint plan; each sprint has `Status: Planned | Progress | Done` (or `Failed`)
 - `PROGRESS_BOARD.md` — real-time sprint and item status
 
 To start or continue a development cycle, invoke the RUP Manager:
@@ -183,7 +183,7 @@ All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifac
 
 **Status:** Done
 
-Adds **`--account-type config_profile`** to `setup_oci_github_access.sh` so an operator can pack an existing API-key profile from `~/.oci/config`: **`--profile`** selects the **source** stanza (default **`DEFAULT`**), and **`--session-profile-name`** names the **destination** stanza in the tarball (default **`SLI_TEST`**, matching existing workflows). The key file is included as today; no session flow or IAM changes. The **`oci-profile-setup`** action defaults to **`oci-auth-mode: auto`**. Use **`profile: SLI_TEST`** in workflows when using default pack flags (secret contains **`[SLI_TEST]`**).
+Adds **`--account-type config_profile`** to `setup_oci_github_access.sh` so an operator can pack an existing API-key profile from `~/.oci/config`: **`--profile`** selects the **source** stanza (default **`DEFAULT`**), and **`--session-profile-name`** names the **destination** stanza in the tarball (default **`SLI_TEST`**, matching existing workflows). The key file is included as today; no session flow or IAM changes. The **`oci-profile-setup`** action defaults to **`oci-auth-mode: auto`** (session tarball → token wrapper; API-key / `config_profile` pack → **`none`**). Use **`profile: SLI_TEST`** in workflows when using default pack flags (secret contains **`[SLI_TEST]`**). On restore, if the packed file had no **`[DEFAULT]`** section, setup may append a **`[DEFAULT]`** mirror of the verified profile so the Node **`oci-common`** SDK does not log a misleading “no DEFAULT profile” message (auth still uses the profile you pass, e.g. **`SLI_TEST`**).
 
 **Quality gates:** Unit (new-code manifest) PASS, Integration (new-code manifest) PASS, Regression Unit PASS, Regression Integration PASS — see `progress/sprint_17/sprint_17_tests.md`.
 
@@ -460,15 +460,16 @@ bash .github/actions/sli-event/emit_curl.sh
 
 ## Environment
 
-GitHub workflow lives in GitHub repository holding this code. Interaction with OCI requires OCI CLI (with prerequisite i.e. python) and OCI access profile to be available. Moreover destination OCI log should be specified. Workflow configuration arguments are specified in repository secrets and variables.
+GitHub workflows in this repository talk to OCI using a profile restored on the runner. Scheduled and model workflows that install the OCI CLI use **`./.github/actions/oci-profile-setup`**, which unpacks a **single repository secret** — typically **`OCI_CONFIG_PAYLOAD`** — a base64-encoded gzip tarball of a minimal **`~/.oci`** tree (config plus any bundled key or session files). Operators create or refresh that secret with **`setup_oci_github_access.sh`** (session mode, **`api_key`**, or **`config_profile`**). Workflows set **`profile:`** on the action to match the stanza name inside the packed config (commonly **`SLI_TEST`** when using the script’s default **`--session-profile-name`**).
+
+Repository **variables** (not secrets) usually hold **`SLI_OCI_COMPARTMENT_ID`**, **`SLI_OCI_LOG_ID`**, and optionally **`SLI_METRIC_NAMESPACE`**, **`SLI_OCI_LOG_GROUP_ID`**, etc., depending on the workflow.
 
 ```text
 GitHub
   \- Workflow
         |- GitHub Secrets
-        |       |- OCI Config file
-        |       \- Private key
+        |       \- OCI_CONFIG_PAYLOAD (packed ~/.oci tree; see oci-profile-setup)
         \- GitHub Variables
-                |- OCI config profile name
-                \- OCI Logging
+                |- SLI_OCI_COMPARTMENT_ID, SLI_OCI_LOG_ID, …
+                \- (optional) SLI_METRIC_NAMESPACE, SLI_OCI_LOG_URI / LOG_GROUP_ID, …
 ```

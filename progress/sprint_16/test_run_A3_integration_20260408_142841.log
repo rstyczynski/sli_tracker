@@ -1,0 +1,22 @@
+[info] --new-only mode: filtering to tests listed in progress/sprint_16/new_tests.manifest
+[info] current implementation filters at script level, not function level
+=== integration tests ===
+[run] integration/test_api_key_payload_roundtrip.sh
+::notice::OCI profile restored under /var/folders/rt/g188dkwx2rl25f2xnjnqv8hr0000gn/T/tmp.iVR28PPxLH/.oci (profile SLI_TEST).
+[PASS] api-key payload restore round-trip
+[PASS] integration/test_api_key_payload_roundtrip.sh
+[skip] integration/test_sli_compute_sli_metrics_live.sh (not in manifest)
+[skip] integration/test_sli_compute_sli_metrics.sh (not in manifest)
+[skip] integration/test_sli_emit_curl_local.sh (not in manifest)
+[skip] integration/test_sli_emit_curl_workflow.sh (not in manifest)
+[skip] integration/test_sli_emit_js_workflow.sh (not in manifest)
+[skip] integration/test_sli_emit_metric.sh (not in manifest)
+[skip] integration/test_sli_integration.sh (not in manifest)
+[skip] integration/test_sli_ratio_simulator.sh (not in manifest)
+[skip] integration/test_sli_scheduled_workflows.sh (not in manifest)
+=== integration summary: 1 scripts, 1 passed, 0 failed ===
+
+========================================
+TOTAL: 1 scripts, 1 passed, 0 failed
+========================================
+RESULT: PASS

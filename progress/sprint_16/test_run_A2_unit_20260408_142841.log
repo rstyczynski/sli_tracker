@@ -1,0 +1,23 @@
+[info] --new-only mode: filtering to tests listed in progress/sprint_16/new_tests.manifest
+[info] current implementation filters at script level, not function level
+=== unit tests ===
+[skip] unit/test_emit.sh (not in manifest)
+[skip] unit/test_install_oci_cli.sh (not in manifest)
+[run] unit/test_oci_profile_setup_api_key.sh
+::notice::OCI profile restored under /var/folders/rt/g188dkwx2rl25f2xnjnqv8hr0000gn/T/tmp.6J2c9sSoby/.oci (profile SLI_TEST).
+[PASS] api-key payload restore works without sessions
+[PASS] token_based still requires sessions
+[PASS] unit/test_oci_profile_setup_api_key.sh
+[skip] unit/test_oci_profile_setup.sh (not in manifest)
+[run] unit/test_setup_oci_github_access_api_key_help.sh
+[PASS] help documents api_key mode
+[PASS] unit/test_setup_oci_github_access_api_key_help.sh
+[skip] unit/test_sli_compute_sli_metrics.sh (not in manifest)
+[skip] unit/test_sli_ratio_simulator.sh (not in manifest)
+[skip] unit/test_sli_scheduled_workflows.sh (not in manifest)
+=== unit summary: 2 scripts, 2 passed, 0 failed ===
+
+========================================
+TOTAL: 2 scripts, 2 passed, 0 failed
+========================================
+RESULT: PASS

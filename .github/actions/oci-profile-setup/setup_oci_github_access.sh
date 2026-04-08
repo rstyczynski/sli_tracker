@@ -63,7 +63,7 @@ sli_resolve_user_path() {
 
 sli_config_profile_copy_key_into_tree() {
   local tmp_root="$1"
-  local key_raw key_abs rel bn
+  local key_raw key_abs bn
 
   key_raw="$(sli_extract_key_file_value "${tmp_root}/.oci/config")"
   if [[ -z "$key_raw" ]]; then
@@ -76,20 +76,16 @@ sli_config_profile_copy_key_into_tree() {
     return 1
   fi
 
-  if [[ "$key_abs" == "${HOME}/"* ]]; then
-    rel="${key_abs#${HOME}/}"
-    mkdir -p "$(dirname "${tmp_root}/${rel}")"
-    cp "$key_abs" "${tmp_root}/${rel}"
+  # For config_profile we always make the key file part of the payload.
+  # The tarball includes only `.oci/`, so copy the key into `.oci/keys/` and rewrite key_file.
+  bn="$(basename "$key_abs")"
+  mkdir -p "${tmp_root}/.oci/keys"
+  cp "$key_abs" "${tmp_root}/.oci/keys/${bn}"
+  if command -v perl >/dev/null 2>&1; then
+    perl -pi -e 's#^[[:space:]]*key_file[[:space:]]*=.*#key_file=\$\{\{HOME\}\}/.oci/keys/'"${bn}"'#' "${tmp_root}/.oci/config" || true
   else
-    bn="$(basename "$key_abs")"
-    mkdir -p "${tmp_root}/.oci/keys"
-    cp "$key_abs" "${tmp_root}/.oci/keys/${bn}"
-    if command -v perl >/dev/null 2>&1; then
-      perl -pi -e 's#^[[:space:]]*key_file[[:space:]]*=.*#key_file=\$\{\{HOME\}\}/.oci/keys/'"${bn}"'#' "${tmp_root}/.oci/config" || true
-    else
-      sed -i.bak -E "s#^[[:space:]]*key_file[[:space:]]*=.*#key_file=\${{HOME}}/.oci/keys/${bn}#" "${tmp_root}/.oci/config" || true
-      rm -f "${tmp_root}/.oci/config.bak" 2>/dev/null || true
-    fi
+    sed -i.bak -E "s#^[[:space:]]*key_file[[:space:]]*=.*#key_file=\${{HOME}}/.oci/keys/${bn}#" "${tmp_root}/.oci/config" || true
+    rm -f "${tmp_root}/.oci/config.bak" 2>/dev/null || true
   fi
 }
 

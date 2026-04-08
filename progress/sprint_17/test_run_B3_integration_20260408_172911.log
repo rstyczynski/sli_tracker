@@ -1,0 +1,19 @@
+=== integration tests ===
+[run] integration/test_api_key_payload_roundtrip.sh
+::notice::OCI profile restored under /var/folders/rt/g188dkwx2rl25f2xnjnqv8hr0000gn/T/tmp.vtuexol53e/.oci (profile SLI_TEST).
+[PASS] api-key payload restore round-trip
+[PASS] integration/test_api_key_payload_roundtrip.sh
+[run] integration/test_config_profile_payload_roundtrip.sh
+::notice::OCI profile restored under /var/folders/rt/g188dkwx2rl25f2xnjnqv8hr0000gn/T/tmp.cjAXuDgGCF/.oci (profile DEFAULT).
+[PASS] config_profile-style payload restore round-trip
+[PASS] integration/test_config_profile_payload_roundtrip.sh
+[run] integration/test_sli_compute_sli_metrics_live.sh
+=== Auth gate: OCI profile SLI_TEST ===
+SKIP: OCI profile SLI_TEST not currently valid (no auth loop in this test).
+[PASS] integration/test_sli_compute_sli_metrics_live.sh
+=== integration summary: 3 scripts, 3 passed, 0 failed ===
+
+========================================
+TOTAL: 3 scripts, 3 passed, 0 failed
+========================================
+RESULT: PASS

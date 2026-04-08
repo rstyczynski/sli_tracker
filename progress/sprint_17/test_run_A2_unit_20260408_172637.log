@@ -1,0 +1,23 @@
+[info] --new-only mode: filtering to tests listed in progress/sprint_17/new_tests.manifest
+[info] current implementation filters at script level, not function level
+=== unit tests ===
+[skip] unit/test_emit.sh (not in manifest)
+[skip] unit/test_install_oci_cli.sh (not in manifest)
+[skip] unit/test_oci_profile_setup_api_key.sh (not in manifest)
+[skip] unit/test_oci_profile_setup.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_api_key_help.sh (not in manifest)
+[run] unit/test_setup_oci_github_access_config_profile_dry.sh
+[PASS] config_profile dry-run completed
+[PASS] unit/test_setup_oci_github_access_config_profile_dry.sh
+[run] unit/test_setup_oci_github_access_config_profile_help.sh
+[PASS] help documents config_profile mode
+[PASS] unit/test_setup_oci_github_access_config_profile_help.sh
+[skip] unit/test_sli_compute_sli_metrics.sh (not in manifest)
+[skip] unit/test_sli_ratio_simulator.sh (not in manifest)
+[skip] unit/test_sli_scheduled_workflows.sh (not in manifest)
+=== unit summary: 2 scripts, 2 passed, 0 failed ===
+
+========================================
+TOTAL: 2 scripts, 2 passed, 0 failed
+========================================
+RESULT: PASS

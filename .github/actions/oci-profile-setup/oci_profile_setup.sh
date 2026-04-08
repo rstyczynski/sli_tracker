@@ -86,6 +86,18 @@ if [[ "$AUTH_MODE" == "auto" ]]; then
       AUTH_MODE="none"
       echo "::notice::oci-auth-mode auto: using none (API key / config_profile pack; no session directory)."
     else
+      echo "::group::oci-profile-setup debug (auto mode)"
+      echo "profile=${PROFILE}"
+      echo "session_dir_expected=${SESSION_DIR}"
+      echo "key_file_raw=${_key_raw:-<empty>}"
+      echo "key_file_resolved=${_key_abs:-<empty>}"
+      if [[ -d "${HOME}/.oci" ]]; then
+        ls -la "${HOME}/.oci" || true
+      fi
+      if [[ -d "${HOME}/.oci/keys" ]]; then
+        ls -la "${HOME}/.oci/keys" || true
+      fi
+      echo "::endgroup::"
       echo "::error::oci-auth-mode auto: no session directory at ${SESSION_DIR} and no usable key_file for profile [${PROFILE}] (check profile name matches the packed config; for config_profile use setup_oci_github_access.sh --session-profile-name to match CI)." >&2
       exit 1
     fi

@@ -1,0 +1,3 @@
+unit:test_setup_oci_github_access_config_profile_help.sh
+unit:test_setup_oci_github_access_config_profile_dry.sh
+integration:test_config_profile_payload_roundtrip.sh

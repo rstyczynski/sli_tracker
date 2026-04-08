@@ -4,15 +4,24 @@ Sprint: 16 | Mode: YOLO | Backlog: SLI-24
 
 ## Contract
 
-Deliver a dedicated OCI IAM user authenticated by API key, with minimal policies required to ingest SLI data into OCI Logging and OCI Monitoring for this project. Update the GitHub access setup flow (`.github/actions/oci-profile-setup/setup_oci_github_access.sh`) to support this account type, and ensure all client emit paths in the repo remain compatible.
+- I will implement a dedicated OCI IAM user authenticated via **API key** that is used only by this repo’s GitHub Actions for ingestion to OCI Logging and OCI Monitoring.
+- I will keep all emitting “client code” compatible with this auth mode (scheduled workflows + emitter scripts + SLI calculator persistence).
+- I will implement user and policy provisioning with an **ensure/teardown** lifecycle consistent with `oci_scaffold` (stateful ensure + reversible teardown). Extending `oci_scaffold` via scripts that source its state helpers is allowed.
+- I will update `.github/actions/oci-profile-setup/setup_oci_github_access.sh` to support packing and uploading a GitHub secret payload for the API-key profile type (non-interactive, no session token dependency).
 
-Key constraints:
+Constraints:
 
-- User and policies must follow an **ensure/teardown** lifecycle consistent with the `oci_scaffold` approach (the `oci_scaffold` project may be extended in this sprint).
-- The resulting uploaded GitHub secret/profile must be usable by scheduled workflows without interactive authentication.
-- “Client code” compatibility includes scheduled workflows and local tools that push to OCI (logs and metrics).
+- Must not require interactive browser auth for scheduled workflows.
+- Secret payload must stay within GitHub secret size limits.
+- Policies should be minimal and scoped to the project’s compartment/log/metrics usage.
 
-## Acceptance signal
+## Analysis
 
-- A clean repo can be configured using the dedicated ingestion user, and a workflow run can successfully ingest **one log entry** and **one metric datapoint** using that configuration.
+- Current OCI GitHub secret workflow is **session-token based**: it requires `oci session authenticate` and packs `~/.oci/sessions/<profile>`; this is brittle (token expiry) and not ideal for unattended schedules.
+- `oci-profile-setup` currently **requires** a session directory even when auth mode is not token based; it must be relaxed to support API-key-only payloads.
+- The repo already centralizes OCI resource ensures via `oci_scaffold` (`tools/ensure_oci_resources.sh`). We can follow the same pattern to ensure:
+  - a dedicated IAM user + group
+  - an API key attached to that user (generated keypair stored in the payload)
+  - a tenancy policy granting only ingestion permissions for the target compartment/log/metrics
+- Compatibility impact: scheduled workflows can switch to `oci-auth-mode: none` (or `api_key`) and keep using the restored `~/.oci/config`; tools that use the Node SDK already support config-file auth, so they should work unchanged once config/profile exists.
 

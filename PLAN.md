@@ -193,7 +193,7 @@ Backlog Items:
 
 ## Sprint 16 - Dedicated OCI ingestion user for CI (API key + minimal policies)
 
-Status: Planned
+Status: Progress
 Mode: YOLO
 Test: unit, integration
 Regression: unit

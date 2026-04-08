@@ -75,6 +75,7 @@ jobs:
         uses: ./.github/actions/install-oci-cli
 
       - name: "Restore OCI profile"
+        id: oci_profile
         uses: ./.github/actions/oci-profile-setup
         with:
           oci_config_payload: ${{ secrets.OCI_CONFIG_PAYLOAD }}
@@ -92,7 +93,7 @@ jobs:
               "oci": {
                 "log-id":      "${{ vars.SLI_OCI_LOG_ID }}",
                 "config-file": "~/.oci/config",
-                "profile":     "SLI_TEST"
+                "profile":     "${{ steps.oci_profile.outputs.profile }}"
               }
             }
 

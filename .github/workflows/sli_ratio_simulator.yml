@@ -24,7 +24,8 @@ jobs:
       - name: "Install OCI CLI"
         uses: ./.github/actions/install-oci-cli
 
-      - name: "Restore OCI profile (token-based)"
+      - name: "Restore OCI profile"
+        id: oci_profile
         uses: ./.github/actions/oci-profile-setup
         with:
           oci_config_payload: ${{ secrets.OCI_CONFIG_PAYLOAD }}
@@ -37,10 +38,11 @@ jobs:
           SLI_OCI_LOG_ID: ${{ vars.SLI_OCI_LOG_ID }}
           SLI_METRIC_COMPARTMENT: ${{ vars.SLI_OCI_COMPARTMENT_ID }}
           SLI_METRIC_NAMESPACE: ${{ vars.SLI_METRIC_NAMESPACE || 'sli_tracker' }}
-          SLI_CONTEXT_JSON: '{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
+          OCI_PROFILE_RESTORED: ${{ steps.oci_profile.outputs.profile }}
         run: |
           set -euo pipefail
           export SLI_METRIC_NAMESPACE="${SLI_METRIC_NAMESPACE:-sli_tracker}"
+          export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"'"${OCI_PROFILE_RESTORED}"'"}}'
 
           # Keep the hourly run bounded: 10 minutes total (ramp 5m, hold 2m, teardown 3m).
           tools/sli_ratio_simulator.sh \

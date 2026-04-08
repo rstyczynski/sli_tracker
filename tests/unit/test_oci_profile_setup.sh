@@ -18,6 +18,8 @@ TESTS_PASSED=0
 pass() { echo "  PASS: $*"; TESTS_PASSED=$((TESTS_PASSED + 1)); }
 fail() { echo "  FAIL: $*" >&2; exit 1; }
 
+require_rg() { command -v rg >/dev/null 2>&1 || fail "rg required for SLI_TEST→DEFAULT fallback test"; }
+
 b64_encode_nowrap() {
   if base64 --help 2>&1 | grep -q -- '-w'; then
     base64 -w 0
@@ -104,6 +106,37 @@ if [[ -x "$DST_HOME/.local/oci-wrapper/bin/oci" ]]; then
 fi
 rm -rf "$SRC_HOME" "$DST_HOME"
 pass "auto resolved to none for config without session"
+
+echo ""
+echo "=== Test: auto mode SLI_TEST input falls back to [DEFAULT] when only DEFAULT is packed ==="
+TESTS_RUN=$((TESTS_RUN + 1))
+require_rg
+SRC_HOME="$(mktemp -d)"
+DST_HOME="$(mktemp -d)"
+mkdir -p "$SRC_HOME/.oci/keys"
+printf '%s\n' 'dummy-pem' >"$SRC_HOME/.oci/keys/k.pem"
+cat >"$SRC_HOME/.oci/config" <<'CFG'
+[DEFAULT]
+user=ocid1.user.oc1..x
+tenancy=ocid1.tenancy.oc1..x
+fingerprint=aa:bb
+region=us-phoenix-1
+key_file=${{HOME}}/.oci/keys/k.pem
+CFG
+PAYLOAD="$( (cd "$SRC_HOME" && tar -czf - .oci) | b64_encode_nowrap )"
+export OCI_CONFIG_PAYLOAD="$PAYLOAD"
+_out="$(HOME="$DST_HOME" OCI_PROFILE_VERIFY=SLI_TEST OCI_AUTH_MODE=auto bash "$PROFILE_SETUP" 2>&1)" || {
+  echo "$_out" >&2
+  rm -rf "$SRC_HOME" "$DST_HOME"
+  fail "SLI_TEST→DEFAULT fallback run should succeed"
+}
+echo "$_out" | rg -q 'fallback to \[DEFAULT\]' || {
+  echo "$_out" >&2
+  rm -rf "$SRC_HOME" "$DST_HOME"
+  fail "expected SLI_TEST→DEFAULT fallback notice"
+}
+rm -rf "$SRC_HOME" "$DST_HOME"
+pass "auto maps SLI_TEST workflow input to DEFAULT when tarball has only [DEFAULT]"
 
 echo ""
 echo "=== Test: empty OCI_CONFIG_PAYLOAD ==="

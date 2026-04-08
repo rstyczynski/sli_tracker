@@ -24,7 +24,8 @@ jobs:
       - name: "Install OCI CLI"
         uses: ./.github/actions/install-oci-cli
 
-      - name: "Restore OCI profile (token-based)"
+      - name: "Restore OCI profile"
+        id: oci_profile
         uses: ./.github/actions/oci-profile-setup
         with:
           oci_config_payload: ${{ secrets.OCI_CONFIG_PAYLOAD }}
@@ -35,6 +36,7 @@ jobs:
           COMPARTMENT_OCID: ${{ vars.SLI_OCI_COMPARTMENT_ID }}
           SLI_OCI_LOG_ID: ${{ vars.SLI_OCI_LOG_ID }}
           SLI_METRIC_NAMESPACE: ${{ vars.SLI_METRIC_NAMESPACE || 'sli_tracker' }}
+          OCI_PROFILE_RESTORED: ${{ steps.oci_profile.outputs.profile }}
         run: |
           set -euo pipefail
           metric_ns="${SLI_METRIC_NAMESPACE:-sli_tracker}"
@@ -47,7 +49,7 @@ jobs:
             --metric-name outcome \
             --compartment-id "$COMPARTMENT_OCID" \
             --oci-config-file "~/.oci/config" \
-            --oci-profile "SLI_TEST" \
+            --oci-profile "${OCI_PROFILE_RESTORED}" \
             --persist log,metric \
             --persist-log-id "$SLI_OCI_LOG_ID" \
             --persist-metric-namespace "$metric_ns" \

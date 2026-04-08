@@ -85,6 +85,20 @@ if [[ "$AUTH_MODE" == "auto" ]]; then
     if [[ -n "$_key_raw" && -f "$_key_abs" ]]; then
       AUTH_MODE="none"
       echo "::notice::oci-auth-mode auto: using none (API key / config_profile pack; no session directory)."
+    elif [[ "$PROFILE" == "SLI_TEST" ]]; then
+      # Workflows historically pass profile SLI_TEST; config_profile packs often contain only [DEFAULT].
+      _key_raw="$(sli_key_file_from_profile "${HOME}/.oci/config" "DEFAULT")"
+      _key_abs="$(sli_resolve_key_path "$_key_raw")"
+      if [[ -n "$_key_raw" && -f "$_key_abs" ]]; then
+        PROFILE="DEFAULT"
+        SESSION_DIR="${HOME}/.oci/sessions/${PROFILE}"
+        AUTH_MODE="none"
+        echo "::warning::oci-profile-setup: workflow asked for profile SLI_TEST but the packed config only has a usable [DEFAULT] section (typical for --account-type config_profile --profile DEFAULT). Using profile DEFAULT for this job. Prefer setting the workflow input profile: DEFAULT to match your pack."
+        echo "::notice::oci-auth-mode auto: using none (fallback to [DEFAULT] key_file)."
+      else
+        echo "::error::oci-auth-mode auto: no session directory at ${HOME}/.oci/sessions/SLI_TEST and no usable key_file for [SLI_TEST] or [DEFAULT] (rename your packed section or set profile to match ~/.oci/config)." >&2
+        exit 1
+      fi
     else
       echo "::error::oci-auth-mode auto: no session directory at ${SESSION_DIR} and no usable key_file for profile [${PROFILE}] (check profile name matches the packed config)." >&2
       exit 1

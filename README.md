@@ -138,7 +138,7 @@ tools/sli_compute_sli_metrics.js \
 
 1. ***Run GitHub workflow**
 
-Trigger GitHub workflows to simulate synthetic successes and failures. First line prepares session profile to store it in GitHub repository secrets; the second one trigger workflows. Test procedure fetches logs and metrics to validate 
+Trigger GitHub workflows to simulate synthetic successes and failures. First line prepares session profile to store it in GitHub repository secrets; the second one trigger workflows. Test procedure fetches logs and metrics to validate
 
 Open [Repository Actions](https://github.com/rstyczynski/sli_tracker/actions) to observe execution.
 
@@ -171,9 +171,9 @@ All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifac
 
 ### Sprint 16 — Dedicated OCI ingestion user for CI (API key + minimal policies) (YOLO)
 
-**Status:** implemented + tested
+**Status:** failed (blocked)
 
-Adds support for restoring OCI config payloads that do not contain session-token state, enabling CI usage with API-key profiles while keeping private key material out of GitHub secrets. The OCI GitHub access setup script now supports an `api_key` packing mode that stores only the OCI Vault Secret OCID for the private key, and the restore action no longer requires `~/.oci/sessions/<profile>` when `oci-auth-mode` is non-token.
+Adds support for restoring OCI config payloads that do not contain session-token state, enabling CI usage with API-key profiles while keeping private key material out of GitHub secrets. However, the sprint’s primary goal (ensuring a dedicated OCI IAM ingestion user + minimal policies via `oci_scaffold` ensure/teardown) is blocked in the target environment, so the sprint is marked failed.
 
 **Quality gates:** Unit (new-code manifest) PASS, Integration (new-code manifest) PASS, Regression Unit PASS — see `progress/sprint_16/sprint_16_tests.md`.
 

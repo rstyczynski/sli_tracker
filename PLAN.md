@@ -203,3 +203,16 @@ Add support for a dedicated OCI IAM user authenticated via API key with minimal 
 Backlog Items:
 
 * SLI-24. Dedicated OCI ingestion user for CI (API key + minimal policies)
+
+## Sprint 17 - Upload existing OCI config profile to GitHub (SLI-25)
+
+Status: Progress
+Mode: YOLO
+Test: unit, integration
+Regression: unit
+
+Extend `setup_oci_github_access.sh` with a mode that packs an existing API-key profile from `~/.oci/config` (default section `DEFAULT`), includes the existing `key_file` material on disk, and uploads the tarball as the repository secret—without `oci session authenticate`, without creating a new API key, and without IAM policy changes.
+
+Backlog Items:
+
+* SLI-25. Upload an existing OCI config profile to GitHub (API key, no IAM changes)

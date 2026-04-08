@@ -20,3 +20,12 @@ Sprint: 17 | Mode: YOLO | Backlog: SLI-25
 - **Root cause**: The packed tarball’s section name must match **`oci-profile-setup` `profile`**. Source operator profile **`[DEFAULT]`** and CI profile **`SLI_TEST`** were not aligned at **pack** time.
 - **Fix (supersedes runtime fallback)**: **`setup_oci_github_access.sh`** rewrites the packed stanza from **`--profile` (source)** to **`--session-profile-name` (destination, default `SLI_TEST`)** for **`config_profile`**, so the secret contains **`[SLI_TEST]`** while **`~/.oci/config`** on the laptop still uses **`[DEFAULT]`**. **`oci_profile_setup`** no longer maps SLI_TEST→DEFAULT in **`auto`** mode; workflows keep **`profile: SLI_TEST`** and **`steps.*.outputs.profile`** where needed.
 - **Status**: **Fixed** (pack-side rename + workflow wiring on `main`).
+
+### BUG-17-3 — Misleading CI logs: `No DEFAULT profile was specified in the configuration` (oci-common) while using `SLI_TEST`
+
+- **Symptom**: Successful SLI / OCI workflows printed **`No DEFAULT profile was specified in the configuration`** (often twice) to stderr, even though **`profile: SLI_TEST`** and **`--oci-profile SLI_TEST`** were set and the job succeeded.
+- **Root cause**: `oci-common` **`ConfigFileReader`** logs `console.info` when **`~/.oci/config` has no `[DEFAULT]` section**, regardless of which profile the SDK constructor uses. Single-profile **`OCI_CONFIG_PAYLOAD`** packs (e.g. only **`[SLI_TEST]`**) therefore always triggered the message.
+- **Fix**: After restore in **`oci_profile_setup.sh`**, if **`[DEFAULT]`** is missing, **append a `[DEFAULT]` block** that mirrors the verified profile (`OCI_PROFILE_VERIFY`, e.g. `SLI_TEST`). Integration test **`tests/integration/test_config_profile_payload_roundtrip.sh`** asserts **`[DEFAULT]`** exists after an **`[SLI_TEST]`**-only round-trip.
+- **Status**: **Fixed** (commit `05b667e` — `fix(oci-profile-setup): add [DEFAULT] alias to silence oci-common SDK log` on `main`).
+
+**Rationale:** see `progress/sprint_17/sprint_17_notes.md` (SDK profile name vs. parser expecting a `[DEFAULT]` section).

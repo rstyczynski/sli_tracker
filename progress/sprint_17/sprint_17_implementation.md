@@ -21,4 +21,9 @@ Extended `.github/actions/oci-profile-setup/setup_oci_github_access.sh` with **`
 ## Files touched
 
 - `.github/actions/oci-profile-setup/setup_oci_github_access.sh`
+- `.github/actions/oci-profile-setup/oci_profile_setup.sh` (follow-up: `[DEFAULT]` mirror for oci-common log noise; see `sprint_17_bugs.md` BUG-17-3, `sprint_17_notes.md`)
 - `BACKLOG.md` (SLI-25 section aligned with plan)
+
+## Notes
+
+- **`[DEFAULT]` vs `SLI_TEST`:** See `sprint_17_notes.md` — why the restore script may duplicate the active stanza as `[DEFAULT]` even though the Node SDK is given the **`SLI_TEST`** profile name.

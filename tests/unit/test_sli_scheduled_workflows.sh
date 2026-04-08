@@ -32,6 +32,7 @@ for f in "$W1" "$W2"; do
   rg -qF 'secrets.OCI_CONFIG_PAYLOAD' "$f" || fail "$(basename "$f") missing secrets.OCI_CONFIG_PAYLOAD"
   rg -qF 'profile: SLI_TEST' "$f" || fail "$(basename "$f") missing profile SLI_TEST"
   rg -qF 'oci-auth-mode: token_based' "$f" || fail "$(basename "$f") missing oci-auth-mode token_based"
+  rg -qF 'uses: ./.github/actions/install-oci-cli' "$f" || fail "$(basename "$f") missing install-oci-cli step"
 done
 pass "token-based profile wiring ok"
 

@@ -21,6 +21,9 @@ jobs:
       - name: "Install dependencies"
         run: npm ci
 
+      - name: "Install OCI CLI"
+        uses: ./.github/actions/install-oci-cli
+
       - name: "Restore OCI profile (token-based)"
         uses: ./.github/actions/oci-profile-setup
         with:

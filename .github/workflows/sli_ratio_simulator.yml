@@ -47,10 +47,10 @@ jobs:
 
           # Keep the hourly run bounded: 10 minutes total (ramp 5m, hold 2m, teardown 3m).
           tools/sli_ratio_simulator.sh \
-            --target-failure-rate 0.95 \
-            --ramp-seconds 300 \
+            --target-failure-rate 0.45 \
+            --ramp-seconds 1200 \
             --hold-seconds 120 \
-            --teardown-seconds 180 \
+            --teardown-seconds 1s80 \
             --interval-seconds 5 \
             --ramp-curve logarithmic \
             --teardown-curve exponential \

@@ -60,4 +60,3 @@ jobs:
 
           # Pretty-print when possible, but never fail the job on formatting noise.
           echo "$out" | jq . >/dev/null 2>&1 && echo "$out" | jq . || echo "$out"
-

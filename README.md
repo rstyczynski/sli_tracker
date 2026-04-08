@@ -157,7 +157,6 @@ Open [Repository Actions](https://github.com/rstyczynski/sli_tracker/actions) to
 Open OCI Console to observe pushed logs and metrics.
 
 ```bash
-./.github/actions/oci-profile-setup/setup_oci_github_access.sh
 ./tests/integration/test_sli_integration.sh
 ```
 

@@ -179,7 +179,7 @@ Backlog Items:
 
 ## Sprint 15 - Scheduled SLI snapshot every 5 minutes (GitHub Actions)
 
-Status: Progress
+Status: Done
 Mode: YOLO
 Test: unit, integration
 Regression: unit

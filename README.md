@@ -23,10 +23,22 @@ gh variable set SLI_OCI_LOG_ID --body "$SLI_LOG_OCID" -R "$repo"
 gh variable set SLI_OCI_LOG_GROUP_ID --body "$LOG_GROUP_OCID" -R "$repo"
 ```
 
-1. **Authenticate** so `~/.oci/config` has a usable profile (e.g. `SLI_TEST`). Use the packing script to refresh a session token and upload to GitHub if needed:
+1. **Authenticate** so `~/.oci/config` has a usable profile (e.g. `SLI_TEST`). 
+
+Use the packing script to refresh a session token and upload to GitHub if needed. This profile is a one-time-use, and works 60 minutes.
 
 ```bash
-bash .github/actions/oci-profile-setup/setup_oci_github_access.sh --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+.github/actions/oci-profile-setup/setup_oci_github_access.sh --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+```
+
+Alternatively use the packing script to upload regular profile with API key. This profile works w/o time limits, however uploads local private kay.
+
+```bash
+.github/actions/oci-profile-setup/setup_oci_github_access.sh \
+  --account-type config_profile \
+  --profile DEFAULT \
+  --session-profile-name SLI_TEST \
+  --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
 ```
 
 For a local-only test you only need a valid session/API-key profile on disk matching `profile` below.
@@ -69,8 +81,6 @@ To build the payload without pushing, set `SLI_SKIP_OCI_PUSH=1`.
 Reauthenticate and generate test load over 45 minutes. Note that OCI code to create loggoup/log mut be executed in this terminal session.
 
 ```bash
-bash .github/actions/oci-profile-setup/setup_oci_github_access.sh --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
-
 repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
 export SLI_METRIC_COMPARTMENT="$(gh variable get SLI_OCI_COMPARTMENT_ID -R "$repo")"
 export SLI_OCI_LOG_ID="$(gh variable get SLI_OCI_LOG_ID -R "$repo")"
@@ -171,7 +181,7 @@ All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifac
 
 ### Sprint 17 — Upload existing OCI config profile to GitHub (SLI-25) (YOLO)
 
-**Status:** implemented + tested
+**Status:** Done
 
 Adds **`--account-type config_profile`** to `setup_oci_github_access.sh` so an operator can pack an existing API-key profile from `~/.oci/config`: **`--profile`** selects the **source** stanza (default **`DEFAULT`**), and **`--session-profile-name`** names the **destination** stanza in the tarball (default **`SLI_TEST`**, matching existing workflows). The key file is included as today; no session flow or IAM changes. The **`oci-profile-setup`** action defaults to **`oci-auth-mode: auto`**. Use **`profile: SLI_TEST`** in workflows when using default pack flags (secret contains **`[SLI_TEST]`**).
 

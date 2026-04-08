@@ -1,5 +1,7 @@
 # Sprint 17 — Implementation
 
+**Sprint status:** **Done** (closed). `PLAN.md` marks Sprint 17 `Status: Done`; `PROGRESS_BOARD.md` uses sprint status `tested` and backlog item SLI-25 `tested`.
+
 ## Summary
 
 Extended `.github/actions/oci-profile-setup/setup_oci_github_access.sh` with **`--account-type config_profile`** (SLI-25).

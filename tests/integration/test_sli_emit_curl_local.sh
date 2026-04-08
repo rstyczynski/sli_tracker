@@ -101,32 +101,8 @@ if [[ -n "${_SLI_REAL_OCI_BIN:-}" ]] && oci iam region list --profile "$OCI_INT_
 fi
 echo ""
 
-export NAME_PREFIX="sli_test_sprint6"
-# shellcheck source=../../oci_scaffold/do/oci_scaffold.sh
-source "${REPO_ROOT}/oci_scaffold/do/oci_scaffold.sh"
-
-SLI_OCI_LOG_URI="//sli-events/github-actions"
-LOG_NAME="${SLI_OCI_LOG_URI##*/}"
-_REST="${SLI_OCI_LOG_URI%/*}"
-LOG_GROUP_NAME="${_REST##*/}"
-COMPARTMENT_PATH="${_REST%/*}"
-COMPARTMENT_PATH="${COMPARTMENT_PATH:-/}"
-
-_state_set '.inputs.compartment_path' "$COMPARTMENT_PATH"
-_state_set '.inputs.name_prefix'      "$NAME_PREFIX"
-_state_set '.inputs.log_group_name'   "$LOG_GROUP_NAME"
-_state_set '.inputs.log_name'         "$LOG_NAME"
-
-bash "${REPO_ROOT}/oci_scaffold/resource/ensure-compartment.sh"
-COMPARTMENT_OCID=$(_state_get '.compartment.ocid')
-_state_set '.inputs.oci_compartment' "$COMPARTMENT_OCID"
-
-bash "${REPO_ROOT}/oci_scaffold/resource/ensure-log_group.sh"
-bash "${REPO_ROOT}/oci_scaffold/resource/ensure-log.sh"
-
-LOG_GROUP_OCID=$(_state_get '.log_group.ocid')
-SLI_LOG_OCID=$(_state_get '.log.ocid')
-TENANCY=$(_oci_tenancy_ocid)
+source "${REPO_ROOT}/tools/ensure_oci_resources.sh"
+ensure_sli_log_resources "$REPO_ROOT" "$OCI_INT_PROFILE" "sli_test_sprint6" "//sli-events/github-actions"
 
 PASS=0; FAIL=0
 pass() { echo "PASS: $*"; PASS=$((PASS+1)); }
@@ -140,7 +116,8 @@ export GITHUB_REPOSITORY="rstyczynski/sli_tracker"
 export GITHUB_REPOSITORY_ID="1200217885"
 export GITHUB_REF_NAME="main"
 export GITHUB_REF="refs/heads/main"
-export GITHUB_SHA="$(cd "$REPO_ROOT" && git rev-parse HEAD 2>/dev/null || echo "local")"
+GITHUB_SHA="$(cd "$REPO_ROOT" && git rev-parse HEAD 2>/dev/null || echo "local")"
+export GITHUB_SHA
 export GITHUB_WORKFLOW="LOCAL — emit_curl (no workflow)"
 export GITHUB_WORKFLOW_REF="local/test_sli_emit_curl_local"
 export GITHUB_JOB="emit-curl-local"

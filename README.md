@@ -18,32 +18,13 @@ export NAME_PREFIX="sli_quickstart"
 # OCI log destination (URI-style: //log-group/log-name)
 export SLI_OCI_LOG_URI="//sli-events/github-actions"
 
-# Load oci_scaffold helpers (defines STATE_FILE from NAME_PREFIX)
-source ./oci_scaffold/do/oci_scaffold.sh
+# Ensure the OCI log resources exist (uses oci_scaffold under the hood)
+# OCI profile defaults to SLI_TEST; override if you use a different local profile name.
+source ./tools/ensure_oci_resources.sh
+ensure_sli_log_resources "$(pwd)" "${SLI_INTEGRATION_OCI_PROFILE:-SLI_TEST}" "$NAME_PREFIX" "$SLI_OCI_LOG_URI"
 
-# Compartment path for the log resources (use tenancy root for quickstart)
-_state_set '.inputs.compartment_path' "/"
-
-# Split URI into names
-LOG_NAME="${SLI_OCI_LOG_URI##*/}"
-LOG_GROUP_NAME="${SLI_OCI_LOG_URI%/*}"; LOG_GROUP_NAME="${LOG_GROUP_NAME##*/}"
-
-# Ensure resources exist (uses your current OCI CLI auth/profile)
-_state_set '.inputs.name_prefix'    "$NAME_PREFIX"
-_state_set '.inputs.log_group_name' "$LOG_GROUP_NAME"
-_state_set '.inputs.log_name'       "$LOG_NAME"
-
-bash ./oci_scaffold/resource/ensure-compartment.sh
-
-# Read resolved compartment OCID from state and pass it to subsequent ensure steps
-export COMPARTMENT_OCID="$(_state_get '.compartment.ocid')"
-_state_set '.inputs.oci_compartment' "$COMPARTMENT_OCID"
-
-bash ./oci_scaffold/resource/ensure-log_group.sh
-bash ./oci_scaffold/resource/ensure-log.sh
-
-# Export the created/resolved log OCID for emit.sh (used as SLI_OCI_LOG_ID)
-export SLI_OCI_LOG_ID="$(jq -r '.log.ocid // empty' "$STATE_FILE")"
+export SLI_OCI_LOG_ID="$SLI_LOG_OCID"
+echo "COMPARTMENT_OCID=$COMPARTMENT_OCID"
 echo "SLI_OCI_LOG_ID=$SLI_OCI_LOG_ID"
 ```
 
@@ -88,7 +69,7 @@ echo "SLI_OCI_LOG_ID=$SLI_OCI_LOG_ID"
 
 1. ***Load simulator***
 
-Reauthenticate and generate test load over 45 minutes.
+Reauthenticate and generate test load over 45 minutes. Note that OCI code to create loggoup/log mut be executed in this terminal session.
 
 ```bash
 bash .github/actions/oci-profile-setup/setup_oci_github_access.sh --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
@@ -148,6 +129,8 @@ Auth modes supported by `tools/sli_compute_sli_metrics.js`:
 
 - **Config-file auth**: `--oci-auth config` (default) — works with regular API-key profiles and session-token profiles in `~/.oci/config`.
 - **Instance Principal**: `--oci-auth instance_principal` — for running on OCI Compute instances with dynamic group + IAM policy (no config file needed).
+
+Note: if you’re actively emitting datapoints and want the computed numbers to update “live”, use a smaller query resolution, e.g. `--mql-resolution 5m` (instead of the default `1d`).
 
 **Quality gates:** Unit (new-code manifest) PASS, Integration (new-code manifest) PASS, Regression Unit PASS — see `progress/sprint_14/sprint_14_tests.md`.
 

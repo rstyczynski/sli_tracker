@@ -29,12 +29,28 @@ Live mode (OCI Monitoring query via Node SDK):
 tools/sli_compute_sli_metrics.js \
   --oci-auth config \
   --window-days 30 \
+  --mql-resolution 1d \
   --namespace sli_tracker \
   --metric-name outcome \
   --compartment-id "<compartment-ocid>" \
   --oci-config-file "~/.oci/config" \
   --oci-profile "SLI_TEST" \
   --dimension repo_repository="rstyczynski/sli_tracker" \
+  --output text
+```
+
+For “live-moving” numbers while you’re actively emitting datapoints, use a smaller MQL resolution, e.g. 5 minutes:
+
+```bash
+tools/sli_compute_sli_metrics.js \
+  --oci-auth config \
+  --window-days 1 \
+  --mql-resolution 5m \
+  --namespace sli_tracker \
+  --metric-name outcome \
+  --compartment-id "<compartment-ocid>" \
+  --oci-config-file "~/.oci/config" \
+  --oci-profile "SLI_TEST" \
   --output text
 ```
 

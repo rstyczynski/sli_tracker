@@ -37,6 +37,7 @@ Options:
   --compartment-id OCID     Compartment OCID (live mode)
   --dimension k=v           Dimension filter (repeatable)
   --output json|text        Output format (default: json)
+  --mql-resolution RES      MQL resolution, e.g. 1m, 5m, 1h, 1d (default: 1d)
   --oci-auth MODE           OCI auth mode: config|instance_principal (default: config)
   --oci-config-file PATH    OCI config file (default: ~/.oci/config)
   --oci-profile NAME        OCI profile (default: DEFAULT)
@@ -66,6 +67,7 @@ function parseArgs(argv) {
     dimensions: {},
     output: "json",
     inputFile: "",
+    mqlResolution: "1d",
     ociAuth: "config",
     ociConfigFile: "~/.oci/config",
     ociProfile: "DEFAULT",
@@ -98,10 +100,20 @@ function parseArgs(argv) {
       const v = kv.slice(idx + 1);
       out.dimensions[k] = v;
     } else if (a === "--output") out.output = String(argv[++i] || "json");
+    else if (a === "--mql-resolution") out.mqlResolution = String(argv[++i] || "1d");
     else if (a === "--input-file") out.inputFile = String(argv[++i] || "");
     else die(`Unknown arg: ${a}`);
   }
   return out;
+}
+
+function validateMqlResolution(res) {
+  const r = String(res || "").trim();
+  if (!r) die("--mql-resolution must be non-empty (e.g. 5m, 1h, 1d)");
+  if (!/^[0-9]+[smhdw]$/.test(r)) {
+    die(`Invalid --mql-resolution '${r}' (expected: <number><s|m|h|d|w>, e.g. 5m)`);
+  }
+  return r;
 }
 
 function regionIdFromProvider(provider) {
@@ -251,9 +263,9 @@ async function liveQueryBuckets(args) {
   const startTime = new Date(endTime.getTime() - args.windowDays * 24 * 60 * 60 * 1000);
 
   const pred = buildDimensionPredicate(args.dimensions);
-  // Use 1d interval for stable 30d queries; sums/counts are aggregated across returned buckets.
-  const sumQuery = `${args.metricName}[1d]${pred}.sum()`;
-  const countQuery = `${args.metricName}[1d]${pred}.count()`;
+  const res = validateMqlResolution(args.mqlResolution || "1d");
+  const sumQuery = `${args.metricName}[${res}]${pred}.sum()`;
+  const countQuery = `${args.metricName}[${res}]${pred}.count()`;
 
   let sumResp;
   let countResp;

@@ -127,43 +127,9 @@ fi
 echo ""
 
 export NAME_PREFIX="sli_test_sprint6"
-# shellcheck source=../../oci_scaffold/do/oci_scaffold.sh
-source "${REPO_ROOT}/oci_scaffold/do/oci_scaffold.sh"
-
-SLI_OCI_LOG_URI="//sli-events/github-actions"
-
-LOG_NAME="${SLI_OCI_LOG_URI##*/}"
-_REST="${SLI_OCI_LOG_URI%/*}"
-LOG_GROUP_NAME="${_REST##*/}"
-COMPARTMENT_PATH="${_REST%/*}"
-COMPARTMENT_PATH="${COMPARTMENT_PATH:-/}"
-
-[[ -z "$LOG_GROUP_NAME" || -z "$LOG_NAME" ]] && { echo "ERROR: SLI_OCI_LOG_URI must be /[compartment/]log_group/log, got: $SLI_OCI_LOG_URI"; false; }
-
-_state_set '.inputs.compartment_path' "$COMPARTMENT_PATH"
-_state_set '.inputs.name_prefix'      "$NAME_PREFIX"
-_state_set '.inputs.log_group_name'   "$LOG_GROUP_NAME"
-_state_set '.inputs.log_name'         "$LOG_NAME"
-
-bash "${REPO_ROOT}/oci_scaffold/resource/ensure-compartment.sh"
-
-COMPARTMENT_OCID=$(_state_get '.compartment.ocid')
-[[ -z "$COMPARTMENT_OCID" || "$COMPARTMENT_OCID" == "null" ]] && { echo "ERROR: ensure-compartment.sh did not resolve compartment '$COMPARTMENT_PATH'"; false; }
-
-_state_set '.inputs.oci_compartment' "$COMPARTMENT_OCID"
-
-bash "${REPO_ROOT}/oci_scaffold/resource/ensure-log_group.sh"
-bash "${REPO_ROOT}/oci_scaffold/resource/ensure-log.sh"
-
-LOG_GROUP_OCID=$(_state_get '.log_group.ocid')
-SLI_LOG_OCID=$(_state_get '.log.ocid')
-TENANCY=$(_oci_tenancy_ocid)
-
-[[ -z "$LOG_GROUP_OCID" || "$LOG_GROUP_OCID" == "null" ]] && { echo "ERROR: ensure-log_group.sh did not resolve '$LOG_GROUP_NAME'"; false; }
-[[ -z "$SLI_LOG_OCID"   || "$SLI_LOG_OCID"   == "null" ]] && { echo "ERROR: ensure-log.sh did not resolve '$LOG_NAME'"; false; }
-
-gh variable set SLI_OCI_LOG_ID       --body "$SLI_LOG_OCID"   -R "$REPO"
-gh variable set SLI_OCI_LOG_GROUP_ID --body "$LOG_GROUP_OCID" -R "$REPO"
+source "${REPO_ROOT}/tools/ensure_oci_resources.sh"
+ensure_sli_log_resources "$REPO_ROOT" "$OCI_INT_PROFILE" "$NAME_PREFIX" "//sli-events/github-actions"
+ensure_set_github_sli_vars "$REPO" "$SLI_LOG_OCID" "$LOG_GROUP_OCID"
 
 PASS=0; FAIL=0
 
@@ -235,7 +201,7 @@ ALL_RUNS="$R_CALL_OK $R_CALL_FAIL $R_PUSH_OK $R_PUSH_FAIL"
 echo ""
 echo "=== T4: wait for all four runs to complete ==="
 echo "    Runs: $ALL_RUNS"
-for i in $(seq 1 20); do
+for _i in $(seq 1 20); do
   sleep 30
   all_done=true
   for r in $ALL_RUNS; do

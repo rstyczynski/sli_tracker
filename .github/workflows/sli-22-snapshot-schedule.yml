@@ -1,8 +1,8 @@
-name: "SLI-22 — scheduled SLI snapshot (5 min)"
+name: "SLI-22 — scheduled SLI snapshot (30 min)"
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/30 * * * *"
   workflow_dispatch: {}
 
 jobs:

@@ -19,7 +19,7 @@ pass "workflow files exist"
 # UT-1 schedules + workflow_dispatch
 rg -q 'schedule:' "$W1" || fail "SLI-22 missing schedule trigger"
 rg -q 'workflow_dispatch:' "$W1" || fail "SLI-22 missing workflow_dispatch"
-rg -q 'cron:.*\\*/5' "$W1" || fail "SLI-22 missing */5 minute cron"
+rg -q 'cron:.*\\*/30' "$W1" || fail "SLI-22 missing */30 minute cron"
 pass "SLI-22 schedule + dispatch ok"
 
 rg -q 'schedule:' "$W2" || fail "SLI-23 missing schedule trigger"

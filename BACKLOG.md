@@ -65,7 +65,6 @@ After this change:
 - `context-json` contains only OCI credentials (`config-file` + `profile`); no `log-id`.
 - `action.yml` comment updated to document env var as the primary delivery path.
 
-
 ### SLI-7. Pluggable emit backend for emit.sh
 
 The current emit.sh is tightly coupled to OCI CLI. Add a configurable backend interface so the caller can select the most appropriate transport without changing emit logic.
@@ -190,7 +189,7 @@ Test: integration test runs the emit scripts directly (no workflow dispatch) wit
 
 ### SLI-18. Controlled success/failure ratio simulator script
 
-We need a script that emits SLI events with a configurable success/failure ratio that changes over time in a controlled way so dashboards and alerts can be validated. It must support ramping from 0 to a target failure rate over a configured duration using a selectable curve (linear, exponential, logarithmic, quadratic), holding the achieved level for a configured duration, then tearing down back to baseline using a selectable curve over a configured duration. This provides deterministic “failure budget burn” scenarios without relying on real pipeline instability. Cycle repeats number of time. 
+We need a script that emits SLI events with a configurable success/failure ratio that changes over time in a controlled way so dashboards and alerts can be validated. It must support ramping from 0 to a target failure rate over a configured duration using a selectable curve (linear, exponential, logarithmic, quadratic), holding the achieved level for a configured duration, then tearing down back to baseline using a selectable curve over a configured duration. This provides deterministic “failure budget burn” scenarios without relying on real pipeline instability. Cycle repeats number of time.
 
 Script uses defined method to emit SLI events: emit.sh. On this stage does not trigger workflows; just emit.sh
 
@@ -225,3 +224,9 @@ Test: after enabling the schedule, within 10 minutes there is at least one new s
 We need a scheduled GitHub Actions workflow (cron hourly) that runs the existing local-style synthetic emitter flow (`tools/sli_ratio_simulator.sh`) to generate test SLI traffic to OCI Logging and Monitoring for dashboards. It must use the token-based `SLI_TEST` OCI profile restored from `secrets.OCI_CONFIG_PAYLOAD` and use repo variables for the OCI log and compartment IDs.
 
 Test: after enabling the schedule, within 2 hours the workflow has run at least once successfully and new `outcome` datapoints and log events are visible in OCI for that run.
+
+### SLI-24. Dedicated OCI ingestion user for CI (API key + minimal policies)
+
+We need a dedicated OCI IAM user intended only for GitHub Actions in this project, authenticated via API key and granted the minimal policies required to ingest into the OCI Logging log and OCI Monitoring metric namespace used by SLI Tracker. This reduces operational risk versus reusing interactive session tokens and makes scheduled workflows stable and auditable. The setup flow must support producing and uploading the correct GitHub secret payload for this account type via `actions/oci-profile-setup/setup_oci_github_access.sh`.
+
+Test: a fresh repository can be configured using the dedicated user and then a workflow run can successfully push one log entry and one metric datapoint using that configuration.

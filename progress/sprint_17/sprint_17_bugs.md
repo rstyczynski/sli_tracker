@@ -16,7 +16,7 @@ Sprint: 17 | Mode: YOLO | Backlog: SLI-25
 ### BUG-17-2 — `profile: SLI_TEST` + `config_profile` pack with only `[DEFAULT]`
 
 - **Symptom**: After BUG-17-1 fix, restore still failed with  
-  `no usable key_file for profile [SLI_TEST]` because workflows pass **`profile: SLI_TEST`** while **`setup_oci_github_access.sh --account-type config_profile --profile DEFAULT`** packs only **`[DEFAULT]`**.
-- **Root cause**: Auto mode looked up `key_file` under `[SLI_TEST]`; none exists. Downstream steps also hardcoded **`SLI_TEST`** in `SLI_CONTEXT_JSON` / `--oci-profile`, so even a manual `profile: DEFAULT` fix would have broken emit/metrics unless outputs were wired.
-- **Fix**: (1) In **`oci-auth-mode auto`**, if the workflow asks for **`SLI_TEST`** but only **`[DEFAULT]`** has a usable `key_file`, fall back to **`DEFAULT`** and emit a **`::warning`**. (2) Workflows that run OCI after restore now use **`steps.<id>.outputs.profile`** (or **`OCI_PROFILE_RESTORED`**) so the effective profile matches the restored config.
-- **Status**: **Fixed** (follow-up commit on `main`).
+  `no usable key_file for profile [SLI_TEST]` because workflows pass **`profile: SLI_TEST`** while **`setup_oci_github_access.sh --account-type config_profile --profile DEFAULT`** packed only **`[DEFAULT]`**.
+- **Root cause**: The packed tarball’s section name must match **`oci-profile-setup` `profile`**. Source operator profile **`[DEFAULT]`** and CI profile **`SLI_TEST`** were not aligned at **pack** time.
+- **Fix (supersedes runtime fallback)**: **`setup_oci_github_access.sh`** rewrites the packed stanza from **`--profile` (source)** to **`--session-profile-name` (destination, default `SLI_TEST`)** for **`config_profile`**, so the secret contains **`[SLI_TEST]`** while **`~/.oci/config`** on the laptop still uses **`[DEFAULT]`**. **`oci_profile_setup`** no longer maps SLI_TEST→DEFAULT in **`auto`** mode; workflows keep **`profile: SLI_TEST`** and **`steps.*.outputs.profile`** where needed.
+- **Status**: **Fixed** (pack-side rename + workflow wiring on `main`).

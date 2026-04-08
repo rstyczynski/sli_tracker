@@ -11,6 +11,9 @@
 #          [--session-profile-name NAME] [--secret-name NAME] [--dry-run]
 #          [--account-type session|api_key|config_profile] [--private-key-secret-ocid OCID]
 #          [--skip-session-auth] [--help]
+#
+# config_profile: --profile = source stanza in ~/.oci/config; --session-profile-name = name written
+# in the packed tarball (default SLI_TEST), so CI can keep profile: SLI_TEST while sourcing [DEFAULT] locally.
 
 set -euo pipefail
 
@@ -122,9 +125,9 @@ Usage:
 Options:
   --profile NAME      OCI config profile (default: DEFAULT)
   --session-profile-name NAME
-                      Name of the *session* profile to create with `oci session authenticate`
-                      (default: SLI_TEST). This avoids the interactive \"Enter the name of the profile\"
-                      question.
+                      Session mode: name for `oci session authenticate --profile-name` and packed section.
+                      config_profile mode: destination profile name in the tarball (default: SLI_TEST);
+                      the stanza copied from --profile (source) is rewritten to [NAME] if different.
   --account-type TYPE session | api_key | config_profile (default: session).
                       config_profile: pack [--profile] stanza and existing key_file on disk (no session auth, no Vault OCID).
   --private-key-secret-ocid OCID
@@ -139,7 +142,7 @@ Options:
   --help              Show this help
 
 Session tokens expire; re-run this script before workflows need a fresh token.
-config_profile: use OCI_AUTH_MODE=none in oci-profile-setup; workflows should use the same profile name as --profile (default DEFAULT).
+config_profile: pack [--profile] stanza as [--session-profile-name] in the secret (default: copy [DEFAULT] to [SLI_TEST]). Match oci-profile-setup profile to --session-profile-name.
 EOF
 }
 
@@ -296,11 +299,12 @@ fi
 FULL_CFG="${HOME}/.oci/config"
 PACKED_CFG="$(mktemp)"
 
-PACK_PROFILE_NAME="$SESSION_PROFILE_NAME"
+# Stanza to copy from ~/.oci/config: session/api_key use [SESSION_PROFILE_NAME]; config_profile uses [PROFILE] (source).
 if [[ "$ACCOUNT_TYPE" == "config_profile" ]]; then
-  PACK_PROFILE_NAME="$PROFILE"
+  _prof_line="[${PROFILE}]"
+else
+  _prof_line="[${SESSION_PROFILE_NAME}]"
 fi
-_prof_line="[${PACK_PROFILE_NAME}]"
 awk -v want="${_prof_line}" '
   function strip(s) { sub(/\r$/, "", s); return s }
   {
@@ -316,6 +320,19 @@ if [[ ! -s "$PACKED_CFG" ]]; then
   rm -f "$PACKED_CFG"
   exit 1
 fi
+
+# config_profile: rename [SOURCE] -> [DEST] so workflows can use profile SLI_TEST while sourcing e.g. [DEFAULT].
+if [[ "$ACCOUNT_TYPE" == "config_profile" && "$PROFILE" != "$SESSION_PROFILE_NAME" ]]; then
+  if command -v perl >/dev/null 2>&1; then
+    perl -pi -e "s#^\[\Q${PROFILE}\E\]#[${SESSION_PROFILE_NAME}]#" "$PACKED_CFG"
+  else
+    sed -i.bak "s#^\[${PROFILE}\]#[${SESSION_PROFILE_NAME}]#" "$PACKED_CFG"
+    rm -f "${PACKED_CFG}.bak" 2>/dev/null || true
+  fi
+  echo "config_profile: packed [${PROFILE}] as [${SESSION_PROFILE_NAME}] (destination profile for CI)."
+fi
+
+PACK_PROFILE_NAME="$SESSION_PROFILE_NAME"
 
 echo ""
 echo "Packed config (single profile only, no [DEFAULT] merge):"

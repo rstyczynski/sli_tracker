@@ -173,7 +173,7 @@ All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifac
 
 **Status:** implemented + tested
 
-Adds **`--account-type config_profile`** to `setup_oci_github_access.sh` so an operator can pack an existing API-key profile from `~/.oci/config` (default section `DEFAULT`, overridable with `--profile`), include the existing `key_file` on disk in the tarball, and upload it as `OCI_CONFIG_PAYLOAD`—with no session-token flow, no new API key, and no IAM policy changes. The **`oci-profile-setup`** action defaults to **`oci-auth-mode: auto`**, which uses the session-token wrapper when a session directory is present and otherwise uses API-key auth (no wrapper). Set the workflow **`profile`** input to the same name as the packed section (e.g. `DEFAULT` if you packed `[DEFAULT]`; use `profile: SLI_TEST` only if you packed `[SLI_TEST]`).
+Adds **`--account-type config_profile`** to `setup_oci_github_access.sh` so an operator can pack an existing API-key profile from `~/.oci/config`: **`--profile`** selects the **source** stanza (default **`DEFAULT`**), and **`--session-profile-name`** names the **destination** stanza in the tarball (default **`SLI_TEST`**, matching existing workflows). The key file is included as today; no session flow or IAM changes. The **`oci-profile-setup`** action defaults to **`oci-auth-mode: auto`**. Use **`profile: SLI_TEST`** in workflows when using default pack flags (secret contains **`[SLI_TEST]`**).
 
 **Quality gates:** Unit (new-code manifest) PASS, Integration (new-code manifest) PASS, Regression Unit PASS, Regression Integration PASS — see `progress/sprint_17/sprint_17_tests.md`.
 

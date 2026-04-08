@@ -65,8 +65,8 @@ jobs:
 | How you built the secret | What to set as `profile` |
 |--------------------------|---------------------------|
 | Session flow: `--session-profile-name SLI_TEST` | `SLI_TEST` |
-| `config_profile` / API key: `--profile DEFAULT` | `DEFAULT` |
-| `config_profile` for a named section `[MYPROF]` | `MYPROF` |
+| `config_profile`: `--profile DEFAULT` (source) + default `--session-profile-name SLI_TEST` | `SLI_TEST` (packed section is `[SLI_TEST]`) |
+| `config_profile`: `--profile MYPROF --session-profile-name MYPROF` | `MYPROF` |
 
 ## Inputs
 
@@ -74,8 +74,8 @@ jobs:
 |-------|-------------|---------|
 | `oci_config_payload` | Repository secret value containing the base64 tarball (pass `secrets.OCI_CONFIG_PAYLOAD` or your secret name). | (required) |
 | `profile` | Name of the profile section packed in the tarball (`[profile]` in `~/.oci/config` after extract). Used to find the session directory and/or `key_file` line. | `DEFAULT` |
-| `oci-auth-mode` | **`auto`**: if `~/.oci/sessions/<profile>` exists → `token_based` (OCI wrapper with `--auth security_token`); else if `key_file` in that profile points to a file on disk → `none`. If the workflow passes **`profile: SLI_TEST`** but the tarball only contains **`[DEFAULT]`** (typical for `config_profile --profile DEFAULT`), restore falls back to **`DEFAULT`** and prints a warning—**use `steps.<id>.outputs.profile`** in later steps so OCI sees the correct name. **`token_based`** / **`none`** skip detection. | `auto` |
+| `oci-auth-mode` | **`auto`**: if `~/.oci/sessions/<profile>` exists → `token_based` (OCI wrapper with `--auth security_token`); else if `key_file` in that profile points to a file on disk → `none`. **`token_based`** / **`none`** skip detection. | `auto` |
 
-In most session workflows you set `profile` to the same value as `--session-profile-name` when packing (for example `SLI_TEST`). For `config_profile` packs, set `profile` to the same value as `--profile` when you ran `setup_oci_github_access.sh`, or rely on the **SLI_TEST→DEFAULT** fallback and **`outputs.profile`** in downstream steps.
+In session workflows, set `profile` to the same value as `--session-profile-name` when packing (for example `SLI_TEST`). For **`config_profile`**, `setup_oci_github_access.sh` copies **`--profile` (source, e.g. DEFAULT)** into the tarball as **`--session-profile-name` (destination, default SLI_TEST)**—set **`profile`** in the workflow to that destination name (default **`SLI_TEST`**). Use **`steps.<id>.outputs.profile`** in later steps when you need the resolved name.
 
 GitHub Actions does not allow reading `secrets[dynamicName]` inside a composite action; workflows must pass the secret value explicitly as shown above.

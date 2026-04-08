@@ -15,7 +15,7 @@ trap 'rm -rf "$OP_HOME" "$RUN_HOME"' EXIT
 mkdir -p "${OP_HOME}/.oci/keys"
 printf '%s\n' 'dummy-pem' > "${OP_HOME}/.oci/keys/ci.pem"
 cat > "${OP_HOME}/.oci/config" <<'CFG'
-[DEFAULT]
+[SLI_TEST]
 user=ocid1.user.oc1..dummy
 tenancy=ocid1.tenancy.oc1..dummy
 fingerprint=aa:bb:cc:dd:ee
@@ -27,7 +27,7 @@ payload="$(tar -czf - -C "$OP_HOME" .oci | base64 | tr -d '\n')"
 
 export HOME="$RUN_HOME"
 export OCI_CONFIG_PAYLOAD="$payload"
-export OCI_PROFILE_VERIFY="DEFAULT"
+export OCI_PROFILE_VERIFY="SLI_TEST"
 export OCI_AUTH_MODE="none"
 
 bash "$RESTORE"

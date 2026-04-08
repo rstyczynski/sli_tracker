@@ -24,9 +24,11 @@ EOF
 export HOME="$OP_HOME"
 
 # Dry-run: no gh secret set; requires oci/jq/tar/base64/gh on PATH.
+# Defaults: --profile DEFAULT → stanza copied as --session-profile-name SLI_TEST (destination for CI).
 if ! bash "$SCRIPT" \
   --account-type config_profile \
   --profile DEFAULT \
+  --session-profile-name SLI_TEST \
   --repo "${SLI_TEST_GITHUB_REPO:-octocat/Hello-World}" \
   --dry-run \
   >/tmp/sli_config_profile_dry.log 2>&1; then
@@ -34,4 +36,8 @@ if ! bash "$SCRIPT" \
   fail "config_profile dry-run failed (see log above)"
 fi
 
-pass "config_profile dry-run completed"
+grep -qE '^\[SLI_TEST\]' /tmp/sli_config_profile_dry.log || fail "packed config should list [SLI_TEST] as destination section"
+grep -q 'packed \[DEFAULT\] as \[SLI_TEST\]' /tmp/sli_config_profile_dry.log || fail "expected rename notice (DEFAULT→SLI_TEST)"
+
+pass "config_profile dry-run completed (DEFAULT→SLI_TEST)"
+

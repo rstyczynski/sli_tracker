@@ -1,0 +1,3 @@
+unit:tests/unit/test_sli_scheduled_workflows.sh
+integration:tests/integration/test_sli_scheduled_workflows.sh
+

@@ -39,7 +39,8 @@ jobs:
         run: |
           set -euo pipefail
           metric_ns="${SLI_METRIC_NAMESPACE:-sli_tracker}"
-          tools/sli_compute_sli_metrics.js \
+          out="$(
+            tools/sli_compute_sli_metrics.js \
             --oci-auth config \
             --window-days 30 \
             --mql-resolution 5m \
@@ -52,4 +53,8 @@ jobs:
             --persist-log-id "$SLI_OCI_LOG_ID" \
             --persist-metric-namespace "$metric_ns" \
             --output json
+          )"
+
+          # Pretty-print when possible, but never fail the job on formatting noise.
+          echo "$out" | jq . >/dev/null 2>&1 && echo "$out" | jq . || echo "$out"
 

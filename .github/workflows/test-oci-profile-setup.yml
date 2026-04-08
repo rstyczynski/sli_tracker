@@ -36,6 +36,49 @@ jobs:
           profile: ${{ inputs.profile }}
           oci-auth-mode: ${{ inputs.oci-auth-mode }}
 
+      - name: Debug OCI profile
+        env:
+          PROFILE: ${{ inputs.profile }}
+        run: |
+          set -euo pipefail
+          echo "::group::~/.oci/config"
+          cat "${HOME}/.oci/config"
+          echo "::endgroup::"
+          echo "::group::key_file for profile [${PROFILE}]"
+          key_raw="$(
+            awk -v want="[${PROFILE}]" '
+              function strip(s) { sub(/\r$/, "", s); return s }
+              BEGIN { inblk = 0 }
+              {
+                line = strip($0)
+                if (line == want) { inblk = 1; next }
+                if (line ~ /^\[/ && inblk) exit
+                if (inblk && line ~ /^[[:space:]]*key_file[[:space:]]*=/) {
+                  sub(/^[[:space:]]*key_file[[:space:]]*=[[:space:]]*/, "", line)
+                  gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+                  if (line ~ /^".*"$/) { gsub(/^"|"$/, "", line) }
+                  print line
+                  exit
+                }
+              }
+            ' "${HOME}/.oci/config"
+          )"
+          key_raw="${key_raw/#\~/${HOME}}"
+          if [[ -z "${key_raw}" ]]; then
+            echo "No key_file= line under [${PROFILE}] (session-token pack may use security_token_file only)."
+          else
+            echo "key_file (raw): ${key_raw}"
+            if [[ -f "${key_raw}" ]]; then
+              ls -l "${key_raw}"
+              ls -la "$(dirname "${key_raw}")"
+            else
+              echo "ERROR: key file not found at resolved path: ${key_raw}"
+              ls -la "$(dirname "${key_raw}")" 2>/dev/null || true
+              exit 1
+            fi
+          fi
+          echo "::endgroup::"
+
       - name: Verify restored files
         env:
           PROFILE: ${{ inputs.profile }}

@@ -8,12 +8,16 @@
 # key_file, region, security_token_file — see emit_curl.sh).
 #
 # Usage: .../setup_oci_github_access.sh [--profile PROFILE] [--repo OWNER/REPO]
-#          [--session-profile-name NAME] [--secret-name NAME] [--dry-run] [--skip-session-auth] [--help]
+#          [--session-profile-name NAME] [--secret-name NAME] [--dry-run]
+#          [--account-type session|api_key] [--private-key-secret-ocid OCID]
+#          [--skip-session-auth] [--help]
 
 set -euo pipefail
 
 PROFILE="DEFAULT"
 SESSION_PROFILE_NAME="SLI_TEST"
+ACCOUNT_TYPE="session"
+PRIVATE_KEY_SECRET_OCID=""
 REPO=""
 SECRET_NAME="OCI_CONFIG_PAYLOAD"
 DRY_RUN=0
@@ -65,6 +69,9 @@ Options:
                       Name of the *session* profile to create with `oci session authenticate`
                       (default: SLI_TEST). This avoids the interactive \"Enter the name of the profile\"
                       question.
+  --account-type TYPE Session token payload (session) or API key payload (api_key) (default: session).
+  --private-key-secret-ocid OCID
+                      Required for api_key mode. OCID of an OCI Vault Secret that stores the private key PEM.
   --repo OWNER/REPO   GitHub repository (default: gh repo view)
   --secret-name NAME  Secret name in GitHub (default: OCI_CONFIG_PAYLOAD)
   --dry-run           Pack and print payload size; do not call gh secret set
@@ -92,6 +99,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --session-profile-name)
       SESSION_PROFILE_NAME="${2:?}"
+      shift 2
+      ;;
+    --account-type)
+      ACCOUNT_TYPE="${2:?}"
+      shift 2
+      ;;
+    --private-key-secret-ocid)
+      PRIVATE_KEY_SECRET_OCID="${2:?}"
       shift 2
       ;;
     --repo)
@@ -152,7 +167,7 @@ fi
 
 SESSION_REL=".oci/sessions/${SESSION_PROFILE_NAME}"
 
-if [[ "$SKIP_SESSION_AUTH" -eq 0 ]]; then
+if [[ "$ACCOUNT_TYPE" == "session" && "$SKIP_SESSION_AUTH" -eq 0 ]]; then
   HOME_REGION="$(
     oci iam region-subscription list --profile "$PROFILE" --output json \
       | jq -r '(.data // [])[] | select(."is-home-region" == true) | ."region-name"' \
@@ -166,6 +181,7 @@ fi
 
 echo "Using OCI profile: $PROFILE"
 echo "Session profile name: $SESSION_PROFILE_NAME"
+echo "Account type: $ACCOUNT_TYPE"
 if [[ "$SKIP_SESSION_AUTH" -eq 0 ]]; then
   echo "Home region: $HOME_REGION"
 else
@@ -174,19 +190,28 @@ fi
 echo "GitHub repository: $REPO"
 echo "Secret name: $SECRET_NAME"
 
-if [[ "$SKIP_SESSION_AUTH" -eq 1 ]]; then
-  echo "Skipping oci session authenticate (--skip-session-auth); using existing ~/${SESSION_REL}"
-else
-  echo "Running oci session authenticate (browser)..."
-  oci session authenticate \
-    --region "$HOME_REGION" \
-    --profile "$PROFILE" \
-    --profile-name "$SESSION_PROFILE_NAME"
+if [[ "$ACCOUNT_TYPE" == "session" ]]; then
+  if [[ "$SKIP_SESSION_AUTH" -eq 1 ]]; then
+    echo "Skipping oci session authenticate (--skip-session-auth); using existing ~/${SESSION_REL}"
+  else
+    echo "Running oci session authenticate (browser)..."
+    oci session authenticate \
+      --region "$HOME_REGION" \
+      --profile "$PROFILE" \
+      --profile-name "$SESSION_PROFILE_NAME"
+  fi
 fi
 
-if [[ ! -d "${HOME}/${SESSION_REL}" ]]; then
-  echo "ERROR: Expected session directory missing: ~/${SESSION_REL}" >&2
-  exit 1
+if [[ "$ACCOUNT_TYPE" == "session" ]]; then
+  if [[ ! -d "${HOME}/${SESSION_REL}" ]]; then
+    echo "ERROR: Expected session directory missing: ~/${SESSION_REL}" >&2
+    exit 1
+  fi
+else
+  if [[ -z "$PRIVATE_KEY_SECRET_OCID" ]]; then
+    echo "ERROR: --private-key-secret-ocid is required when --account-type api_key" >&2
+    exit 1
+  fi
 fi
 
 # ── Single-profile config: copy only [SESSION_PROFILE_NAME] from ~/.oci/config ──
@@ -223,9 +248,14 @@ trap 'rm -f "$TMP_TAR" "$PACKED_CFG"; rm -rf "$TMP_OCI_DIR"' EXIT
 # Assemble the tarball tree from copies (never modify the operator's real ~/.oci).
 mkdir -p "${TMP_OCI_DIR}/.oci"
 cp "$PACKED_CFG" "${TMP_OCI_DIR}/.oci/config"
-mkdir -p "$(dirname "${TMP_OCI_DIR}/${SESSION_REL}")"
-cp -a "${HOME}/${SESSION_REL}" "${TMP_OCI_DIR}/${SESSION_REL}"
-rm -f "${TMP_OCI_DIR}/${SESSION_REL}"/*.bak 2>/dev/null || true
+if [[ "$ACCOUNT_TYPE" == "session" ]]; then
+  mkdir -p "$(dirname "${TMP_OCI_DIR}/${SESSION_REL}")"
+  cp -a "${HOME}/${SESSION_REL}" "${TMP_OCI_DIR}/${SESSION_REL}"
+  rm -f "${TMP_OCI_DIR}/${SESSION_REL}"/*.bak 2>/dev/null || true
+else
+  mkdir -p "${TMP_OCI_DIR}/.oci/meta"
+  printf '%s' "$PRIVATE_KEY_SECRET_OCID" > "${TMP_OCI_DIR}/.oci/meta/sli_api_key_secret_ocid"
+fi
 
 # Normalize ~/.oci/ paths to portable ${{HOME}} placeholder (on the copies only).
 if command -v perl >/dev/null 2>&1; then
@@ -243,13 +273,21 @@ fi
 
 echo "Packing into secret (paths relative to HOME):"
 echo "  .oci/config  (single-profile: ${SESSION_PROFILE_NAME})"
-echo "  ${SESSION_REL}/"
+if [[ "$ACCOUNT_TYPE" == "session" ]]; then
+  echo "  ${SESSION_REL}/"
+else
+  echo "  .oci/meta/sli_api_key_secret_ocid"
+fi
 if command -v du >/dev/null 2>&1; then
   echo "  (approx sizes on disk)"
   du -sh "${TMP_OCI_DIR}/.oci/config" "${TMP_OCI_DIR}/${SESSION_REL}" 2>/dev/null || true
 fi
 
-tar -czf "$TMP_TAR" -C "$TMP_OCI_DIR" .oci/config "${SESSION_REL}"
+if [[ "$ACCOUNT_TYPE" == "session" ]]; then
+  tar -czf "$TMP_TAR" -C "$TMP_OCI_DIR" .oci/config "${SESSION_REL}"
+else
+  tar -czf "$TMP_TAR" -C "$TMP_OCI_DIR" .oci/config .oci/meta/sli_api_key_secret_ocid
+fi
 rm -rf "$TMP_OCI_DIR"
 PAYLOAD="$(sli_base64_encode_nowrap <"$TMP_TAR")"
 

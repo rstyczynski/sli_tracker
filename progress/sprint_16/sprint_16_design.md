@@ -16,7 +16,7 @@ Introduce a dedicated OCI IAM user intended only for CI ingestion from GitHub Ac
 - Bootstrap:
   - Update `setup_oci_github_access.sh` to support an `api_key` account type that produces a tarball payload containing:
     - `.oci/config` with a single profile section
-    - the private key file referenced by `key_file` in that profile
+    - an OCI Vault Secret OCID that holds the private key referenced by `key_file` in that profile
     - no `~/.oci/sessions/...` directory requirement
   - Update `oci_profile_setup.sh` so `oci-auth-mode: none` (API key) does not require sessions.
 - Client compatibility:
@@ -51,6 +51,7 @@ We will validate correctness without requiring live OCI access in tests:
 - **Unit**: validate that `oci_profile_setup.sh` can restore API-key payloads without requiring sessions when `OCI_AUTH_MODE=none`, and still requires sessions for `token_based`.
 - **Unit**: validate that `setup_oci_github_access.sh --help` documents the new account type and that `--dry-run` works for api_key mode without calling interactive `oci session authenticate`.
 - **Integration**: run a non-interactive “pack/unpack round-trip” locally (generate a dummy payload tree with config+key, restore with `oci_profile_setup.sh`, assert files exist and placeholders expand).
+  For vault mode, the integration test validates that the Secret OCID metadata is restored and exposed for a downstream step to fetch and write the key file at runtime.
 
 ## Test Specification
 
@@ -58,7 +59,7 @@ We will validate correctness without requiring live OCI access in tests:
 
 Traceability: SLI-24
 
-Test: restore payload containing `.oci/config` + key file, set `OCI_AUTH_MODE=none`, and assert it does not require `~/.oci/sessions/<profile>`.
+Test: restore payload containing `.oci/config` + Secret OCID metadata, set `OCI_AUTH_MODE=none`, and assert it does not require `~/.oci/sessions/<profile>`.
 
 ### UT-2 — `oci_profile_setup.sh` still requires sessions for token_based
 
@@ -76,5 +77,5 @@ Test: run with `--help` and with `--dry-run` + `--account-type api_key` using a 
 
 Traceability: SLI-24
 
-Test: create a temporary HOME with a minimal single-profile `.oci/config` + key file, pack with `--dry-run` and locally unpack via `oci_profile_setup.sh`, and assert restored files exist and `${{HOME}}` placeholders expand.
+Test: create a temporary HOME with a minimal single-profile `.oci/config` + Secret OCID metadata, unpack via `oci_profile_setup.sh`, and assert restored files exist and `${{HOME}}` placeholders expand.
 

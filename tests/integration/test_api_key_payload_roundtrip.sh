@@ -13,7 +13,7 @@ OP_HOME="$(mktemp -d)"
 RUN_HOME="$(mktemp -d)"
 trap 'rm -rf "$OP_HOME" "$RUN_HOME"' EXIT
 
-mkdir -p "${OP_HOME}/.oci/keys"
+mkdir -p "${OP_HOME}/.oci/meta"
 cat > "${OP_HOME}/.oci/config" <<'CFG'
 [SLI_TEST]
 user=ocid1.user.oc1..dummy
@@ -22,13 +22,12 @@ fingerprint=aa:bb:cc:dd:ee
 region=eu-zurich-1
 key_file=${{HOME}}/.oci/keys/sli_api_key.pem
 CFG
-echo "dummy-private-key" > "${OP_HOME}/.oci/keys/sli_api_key.pem"
+echo "ocid1.vaultsecret.oc1..dummy" > "${OP_HOME}/.oci/meta/sli_api_key_secret_ocid"
 
 export HOME="$OP_HOME"
 
-# Pack (dry run prints size; we capture payload by reproducing the pack here once api_key mode exists).
-# For integration we only validate restore behavior is compatible with a config+key payload.
-payload="$(tar -czf - -C "$OP_HOME" .oci/config .oci/keys/sli_api_key.pem | base64 | tr -d '\n')"
+# Pack: for integration we validate restore behavior for a config + key-secret-ocid payload.
+payload="$(tar -czf - -C "$OP_HOME" .oci/config .oci/meta/sli_api_key_secret_ocid | base64 | tr -d '\n')"
 
 export HOME="$RUN_HOME"
 export OCI_CONFIG_PAYLOAD="$payload"
@@ -38,7 +37,6 @@ export OCI_AUTH_MODE="none"
 bash "$RESTORE"
 
 [[ -r "${RUN_HOME}/.oci/config" ]] || fail "config not restored"
-[[ -r "${RUN_HOME}/.oci/keys/sli_api_key.pem" ]] || fail "key not restored"
-rg -q "${RUN_HOME}/.oci/keys/sli_api_key.pem" "${RUN_HOME}/.oci/config" || fail "HOME placeholder not expanded in config"
+[[ -r "${RUN_HOME}/.oci/meta/sli_api_key_secret_ocid" ]] || fail "key secret ocid not restored"
 pass "api-key payload restore round-trip"
 

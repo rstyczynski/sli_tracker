@@ -12,6 +12,7 @@ Sprint: 16 | Mode: YOLO | Backlog: SLI-24
 Constraints:
 
 - Must not require interactive browser auth for scheduled workflows.
+- GitHub secret must not contain the private key material; it must only contain an OCI Vault Secret OCID used to retrieve the key at runtime.
 - Secret payload must stay within GitHub secret size limits.
 - Policies should be minimal and scoped to the project’s compartment/log/metrics usage.
 
@@ -21,7 +22,7 @@ Constraints:
 - `oci-profile-setup` currently **requires** a session directory even when auth mode is not token based; it must be relaxed to support API-key-only payloads.
 - The repo already centralizes OCI resource ensures via `oci_scaffold` (`tools/ensure_oci_resources.sh`). We can follow the same pattern to ensure:
   - a dedicated IAM user + group
-  - an API key attached to that user (generated keypair stored in the payload)
+  - an API key attached to that user (private key stored in OCI Vault Secret; GitHub stores only Secret OCID)
   - a tenancy policy granting only ingestion permissions for the target compartment/log/metrics
 - Compatibility impact: scheduled workflows can switch to `oci-auth-mode: none` (or `api_key`) and keep using the restored `~/.oci/config`; tools that use the Node SDK already support config-file auth, so they should work unchanged once config/profile exists.
 

@@ -42,17 +42,19 @@ if [[ ! -r "${HOME}/.oci/config" ]]; then
 fi
 
 SESSION_DIR="${HOME}/.oci/sessions/${PROFILE}"
-if [[ ! -d "$SESSION_DIR" ]]; then
-  echo "::error::Expected session directory missing after extract: ${SESSION_DIR}" >&2
-  exit 1
-fi
+if [[ "$AUTH_MODE" == "token_based" ]]; then
+  if [[ ! -d "$SESSION_DIR" ]]; then
+    echo "::error::Expected session directory missing after extract: ${SESSION_DIR}" >&2
+    exit 1
+  fi
 
-if command -v perl >/dev/null 2>&1; then
-  perl -pi -e "s#\\$\\{\\{HOME\\}\\}#${HOME}#g" "${SESSION_DIR}"/* 2>/dev/null || true
-  perl -pi -e "s#/(Users|home)/[^/]+/\\.oci/#${HOME}/.oci/#g" "${SESSION_DIR}"/* 2>/dev/null || true
-else
-  sed -i.bak "s#\${{HOME}}#${HOME}#g" "${SESSION_DIR}"/* 2>/dev/null || true
-  sed -i.bak -E "s#/(Users|home)/[^/]+/\\.oci/#${HOME}/.oci/#g" "${SESSION_DIR}"/* 2>/dev/null || true
+  if command -v perl >/dev/null 2>&1; then
+    perl -pi -e "s#\\$\\{\\{HOME\\}\\}#${HOME}#g" "${SESSION_DIR}"/* 2>/dev/null || true
+    perl -pi -e "s#/(Users|home)/[^/]+/\\.oci/#${HOME}/.oci/#g" "${SESSION_DIR}"/* 2>/dev/null || true
+  else
+    sed -i.bak "s#\${{HOME}}#${HOME}#g" "${SESSION_DIR}"/* 2>/dev/null || true
+    sed -i.bak -E "s#/(Users|home)/[^/]+/\\.oci/#${HOME}/.oci/#g" "${SESSION_DIR}"/* 2>/dev/null || true
+  fi
 fi
 
 if [[ "$AUTH_MODE" == "token_based" ]]; then

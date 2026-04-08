@@ -60,7 +60,7 @@ ensure_sli_log_resources() {
     echo "ERROR: ensure-log.sh did not resolve '$log_name'" >&2
     return 1
   }
-  export LOG_GROUP_OCID SLI_LOG_OCID TENANCY
+  export LOG_GROUP_OCID SLI_LOG_OCID TENANCY COMPARTMENT_OCID
 }
 
 ensure_set_github_sli_vars() {
@@ -70,4 +70,3 @@ ensure_set_github_sli_vars() {
   gh variable set SLI_OCI_LOG_ID       --body "$log_ocid"       -R "$repo"
   gh variable set SLI_OCI_LOG_GROUP_ID --body "$log_group_ocid" -R "$repo"
 }
-

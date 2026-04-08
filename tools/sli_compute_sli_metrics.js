@@ -405,12 +405,6 @@ async function persistSnapshot(args, result) {
     const metricNs = args.persistMetricNamespace || "sli_tracker";
     const compId = args.compartmentId;
     if (!compId) die("--compartment-id is required when --persist includes metric");
-    if (/^ocid1\.tenancy\./.test(compId)) {
-      process.stderr.write(
-        `[warn] --compartment-id is a tenancy OCID (${compId}). ` +
-          "This is valid for the root compartment; ensure your IAM policies allow metric posting to the root.\n"
-      );
-    }
 
     // Persist snapshot SLI ratio as a single datapoint (value in [0,1]).
     const v = result.sli === null ? 0 : Number(result.sli);
@@ -449,15 +443,6 @@ async function main() {
     buckets = Array.isArray(obj.buckets) ? obj.buckets : [];
   } else {
     if (!args.compartmentId) die("--compartment-id is required in live mode (or use --input-file)");
-    if (/^ocid1\.tenancy\./.test(args.compartmentId)) {
-      // Root compartment is represented by the tenancy OCID in OCI.
-      // Still, metric queries are scoped to a single compartment (no subtree search),
-      // so this can surprise operators if metrics were emitted into a child compartment.
-      process.stderr.write(
-        `[warn] --compartment-id is a tenancy OCID (${args.compartmentId}). ` +
-          "This is valid for the root compartment, but Monitoring queries do not search sub-compartments.\n"
-      );
-    }
     buckets = await liveQueryBuckets(args);
   }
 

@@ -17,48 +17,54 @@ export SLI_OCI_LOG_URI="//sli-events/github-actions"
 source ./tools/ensure_oci_resources.sh
 ensure_sli_log_resources "$(pwd)" "${SLI_INTEGRATION_OCI_PROFILE:-DEFAULT}" "$NAME_PREFIX" "$SLI_OCI_LOG_URI"
 
-echo "COMPARTMENT_OCID=$COMPARTMENT_OCID"
-echo "SLI_LOG_ID=$SLI_LOG_ID"
+repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+gh variable set SLI_OCI_COMPARTMENT_ID --body "$COMPARTMENT_OCID" -R "$repo"
+gh variable set SLI_OCI_LOG_ID --body "$SLI_LOG_OCID" -R "$repo"
+gh variable set SLI_OCI_LOG_GROUP_ID --body "$LOG_GROUP_OCID" -R "$repo"
 ```
 
 1. **Authenticate** so `~/.oci/config` has a usable profile (e.g. `SLI_TEST`). Use the packing script to refresh a session token and upload to GitHub if needed:
 
-   ```bash
-   bash .github/actions/oci-profile-setup/setup_oci_github_access.sh --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
-   ```
+```bash
+bash .github/actions/oci-profile-setup/setup_oci_github_access.sh --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+```
 
-   For a local-only test you only need a valid session/API-key profile on disk matching `profile` below.
+For a local-only test you only need a valid session/API-key profile on disk matching `profile` below.
 
 1. **Emit a success SLI event** via the dispatcher (**`emit.sh`**). Set **`EMIT_BACKEND=curl`** for bash + curl + openssl only (no OCI CLI). Use **`EMIT_BACKEND=oci-cli`** if the OCI CLI is installed and you want the same path as the default GitHub Action.
 
-   By default `EMIT_TARGET=log,metric` — both an OCI Logging entry and an OCI Monitoring `outcome` metric are pushed. Set `EMIT_TARGET=log` for log only, `EMIT_TARGET=metric` for metric only.
+By default `EMIT_TARGET=log,metric` — both an OCI Logging entry and an OCI Monitoring `outcome` metric are pushed. Set `EMIT_TARGET=log` for log only, `EMIT_TARGET=metric` for metric only.
 
-   If you run locally (not inside GitHub Actions), the workflow/repo fields are empty. The metric emitter will fall back to a single dimension `emit_env=local` to satisfy OCI Monitoring validation.
+If you run locally (not inside GitHub Actions), the workflow/repo fields are empty. The metric emitter will fall back to a single dimension `emit_env=local` to satisfy OCI Monitoring validation.
 
-   ```bash
-   export EMIT_BACKEND=curl
-   export EMIT_TARGET=log,metric
-   export SLI_OUTCOME=success
-   export SLI_METRIC_COMPARTMENT=$COMPARTMENT_OCID
-   export SLI_LOG_ID=$SLI_LOG_ID
-   export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
-   bash .github/actions/sli-event/emit.sh
-   ```
+```bash
+repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+export COMPARTMENT_OCID="$(gh variable get SLI_OCI_COMPARTMENT_ID -R "$repo")"
+export SLI_METRIC_COMPARTMENT="$COMPARTMENT_OCID"
+export SLI_OCI_LOG_ID="$(gh variable get SLI_OCI_LOG_ID -R "$repo")"
+export EMIT_BACKEND=curl
+export EMIT_TARGET=log,metric
+export SLI_OUTCOME=success
+export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
+bash .github/actions/sli-event/emit.sh
+```
 
 1. **Emit a failure SLI event** (same env as above; set `SLI_OUTCOME=failure`). To populate **`failure_reasons`** like in GitHub Actions, pass a minimal `steps-json` with at least one failed step:
 
-   ```bash
-   export EMIT_BACKEND=oci-cli
-   export EMIT_TARGET=log,metric
-   export SLI_OUTCOME=failure
-   export SLI_METRIC_COMPARTMENT=$COMPARTMENT_OCID
-   export SLI_LOG_ID=$SLI_LOG_ID
-   export STEPS_JSON='{"test_script":{"outcome":"failure","outputs":{}}}'
-   export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
-   bash .github/actions/sli-event/emit.sh
-   ```
+```bash
+repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+export COMPARTMENT_OCID="$(gh variable get SLI_OCI_COMPARTMENT_ID -R "$repo")"
+export SLI_METRIC_COMPARTMENT="$COMPARTMENT_OCID"
+export SLI_OCI_LOG_ID="$(gh variable get SLI_OCI_LOG_ID -R "$repo")"
+export EMIT_BACKEND=oci-cli
+export EMIT_TARGET=log,metric
+export SLI_OUTCOME=failure
+export STEPS_JSON='{"test_script":{"outcome":"failure","outputs":{}}}'
+export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
+bash .github/actions/sli-event/emit.sh
+```
 
-   `SLI_LOG_ID` is read from the environment; `oci.log-id` in `SLI_CONTEXT_JSON` is optional if it is set. To build the payload without pushing, set `SLI_SKIP_OCI_PUSH=1`.
+To build the payload without pushing, set `SLI_SKIP_OCI_PUSH=1`.
 
 1. ***Load simulator***
 
@@ -67,11 +73,13 @@ Reauthenticate and generate test load over 45 minutes. Note that OCI code to cre
 ```bash
 bash .github/actions/oci-profile-setup/setup_oci_github_access.sh --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
 
+repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+export COMPARTMENT_OCID="$(gh variable get SLI_OCI_COMPARTMENT_ID -R "$repo")"
+export SLI_METRIC_COMPARTMENT="$COMPARTMENT_OCID"
+export SLI_OCI_LOG_ID="$(gh variable get SLI_OCI_LOG_ID -R "$repo")"
 export EMIT_BACKEND=curl
 export EMIT_TARGET=log,metric
 export SLI_METRIC_NAMESPACE="sli_tracker"
-export SLI_METRIC_COMPARTMENT=$COMPARTMENT_OCID
-export SLI_LOG_ID=$SLI_LOG_ID
 export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
 
 tools/sli_ratio_simulator.sh \
@@ -83,6 +91,52 @@ tools/sli_ratio_simulator.sh \
   --ramp-curve logarithmic \
   --teardown-curve exponential \
   --seed 42
+```
+
+1. ***Run SLI calculator***
+
+```bash
+export COMPARTMENT_OCID="$(gh variable get SLI_OCI_COMPARTMENT_ID -R "$(gh repo view --json nameWithOwner -q .nameWithOwner)")"
+export SLI_OCI_LOG_ID="$(gh variable get SLI_OCI_LOG_ID -R "$(gh repo view --json nameWithOwner -q .nameWithOwner)")"
+
+tools/sli_compute_sli_metrics.js \
+  --oci-auth config \
+  --window-days 30 \
+  --mql-resolution 1d \
+  --namespace sli_tracker \
+  --metric-name outcome \
+  --compartment-id "$COMPARTMENT_OCID" \
+  --oci-config-file "~/.oci/config" \
+  --oci-profile "SLI_TEST" \
+  --output json | jq
+
+# Persist computed snapshot (optional):
+tools/sli_compute_sli_metrics.js \
+  --oci-auth config \
+  --window-days 30 \
+  --mql-resolution 1d \
+  --namespace sli_tracker \
+  --metric-name outcome \
+  --compartment-id "$COMPARTMENT_OCID" \
+  --oci-config-file "~/.oci/config" \
+  --oci-profile "SLI_TEST" \
+  --persist log,metric \
+  --persist-log-id "$SLI_OCI_LOG_ID" \
+  --persist-metric-namespace "sli_tracker" \
+  --output json | jq
+
+# For “live-moving” numbers while you are actively emitting datapoints:
+tools/sli_compute_sli_metrics.js \
+  --oci-auth config \
+  --window-days 1 \
+  --mql-resolution 5m \
+  --namespace sli_tracker \
+  --metric-name outcome \
+  --compartment-id "$COMPARTMENT_OCID" \
+  --oci-config-file "~/.oci/config" \
+  --oci-profile "SLI_TEST" \
+  --dimension emit_env=local \
+  --output json | jq
 ```
 
 1. ***Run GitHub workflow**

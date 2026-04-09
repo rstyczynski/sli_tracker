@@ -1,0 +1,5 @@
+{
+  "metric": "workflow_outcome",
+  "repo": repository.full_name,
+  "value": workflow_run.conclusion = "success" ? 1 : 0
+}

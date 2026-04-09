@@ -1,0 +1,6 @@
+{
+  "kind": "github_workflow_run_specific",
+  "outcome": workflow_run.conclusion,
+  "schema": schema,
+  "repo": repository.full_name
+}

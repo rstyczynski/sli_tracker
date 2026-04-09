@@ -1,0 +1,30 @@
+{
+  "routes": [
+    {
+      "id": "specific_workflow",
+      "mode": "exclusive",
+      "destination": {
+        "type": "oci_log",
+        "name": "specific_events"
+      },
+      "output": {
+        "kind": "specific",
+        "repo": "org/app",
+        "schema": "github.workflow_run"
+      }
+    },
+    {
+      "id": "workflow_metric",
+      "mode": "fanout",
+      "destination": {
+        "type": "oci_metric",
+        "name": "workflow_status"
+      },
+      "output": {
+        "metric": "workflow_outcome",
+        "repo": "org/app",
+        "value": 1
+      }
+    }
+  ]
+}

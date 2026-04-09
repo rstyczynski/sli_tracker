@@ -1,0 +1,6 @@
+{
+  "headers": {
+    "X-GitHub-Event": "workflow_run"
+  },
+  "body": "not-an-object"
+}

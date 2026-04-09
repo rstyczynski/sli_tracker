@@ -1,0 +1,5 @@
+{
+  "file": "004_bad.json",
+  "error": "source file is not valid JSON: Expected property name or '}' in JSON at position 2 (line 1 column 3)",
+  "raw_source": "{ this is not valid JSON\n"
+}

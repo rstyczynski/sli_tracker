@@ -1,0 +1,94 @@
+{
+  "routes": [
+    {
+      "id": "github_workflow_run",
+      "priority": 100,
+      "match": {
+        "headers": {
+          "X-GitHub-Event": "workflow_run"
+        }
+      },
+      "transform": {
+        "mapping": "./mapping_github.jsonata"
+      },
+      "destination": {
+        "type": "oci_log",
+        "name": "github_events",
+        "directory": "oci_log/github_events"
+      }
+    },
+    {
+      "id": "health_endpoint",
+      "priority": 50,
+      "match": {
+        "endpoint": "/health"
+      },
+      "transform": {
+        "mapping": "./mapping_health.jsonata"
+      },
+      "destination": {
+        "type": "oci_metric",
+        "name": "health_signal",
+        "directory": "oci_metric/health_signal"
+      }
+    },
+    {
+      "id": "schema_specific_route",
+      "priority": 200,
+      "match": {
+        "headers": {
+          "X-GitHub-Event": "workflow_run"
+        },
+        "schema": {
+          "path": "schema",
+          "equals": "github.workflow_run"
+        }
+      },
+      "transform": {
+        "mapping": "./mapping_specific.jsonata"
+      },
+      "destination": {
+        "type": "oci_log",
+        "name": "specific_events",
+        "directory": "oci_log/specific_events"
+      }
+    },
+    {
+      "id": "schema_metric",
+      "priority": 60,
+      "match": {
+        "schema": {
+          "path": "schema",
+          "equals": "health.v1"
+        }
+      },
+      "transform": {
+        "mapping": "./mapping_schema.jsonata"
+      },
+      "destination": {
+        "type": "oci_metric",
+        "name": "schema_metric",
+        "directory": "oci_metric/schema_metric"
+      }
+    },
+    {
+      "id": "payload_signature_route",
+      "priority": 40,
+      "match": {
+        "required_fields": [
+          "workflow_run.conclusion",
+          "workflow_run.updated_at",
+          "repository.full_name"
+        ]
+      },
+      "transform": {
+        "mapping": "./mapping_signature.jsonata"
+      },
+      "destination": {
+        "type": "normalized_event",
+        "name": "workflow_signature",
+        "directory": "normalized_event/workflow_signature"
+      }
+    }
+  ]
+}

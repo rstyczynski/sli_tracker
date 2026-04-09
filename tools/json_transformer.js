@@ -1,17 +1,27 @@
 'use strict';
 // tools/json_transformer.js
-// Library: JSON-to-JSON transformation via JSONata mapping file.
+// Library: JSON-to-JSON transformation via JSONata mapping expression/object.
 // Sprint 18 / SLI-26
 
-const fs = require('fs');
 const jsonata = require('jsonata');
 
-/**
- * Load and validate a mapping definition from an object (already parsed).
- * @param {object} obj
- * @returns {{ version: string, description?: string, expression: string }}
- * @throws if `expression` is missing or not a string
- */
+function errorMessage(err) {
+    if (err instanceof Error && typeof err.message === 'string') {
+        return err.message;
+    }
+    if (err && typeof err === 'object') {
+        if (typeof err.message === 'string' && err.message.trim() !== '') {
+            return err.message;
+        }
+        try {
+            return JSON.stringify(err);
+        } catch (_) {
+            // Fall through to String(err).
+        }
+    }
+    return String(err);
+}
+
 function loadMappingFromObject(obj) {
     if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) {
         throw new Error('Mapping must be a JSON object');
@@ -25,51 +35,36 @@ function loadMappingFromObject(obj) {
     return obj;
 }
 
-/**
- * Load a mapping definition from a file.
- *
- * Two formats are supported:
- *   .jsonata — plain JSONata expression; the file content IS the expression.
- *   .json    — JSON envelope: { "version": "1", "description": "...", "expression": "<expr>" }
- *
- * @param {string} filePath
- * @returns {{ expression: string, description?: string }}
- * @throws on missing file, invalid JSON (.json), or missing/bad expression field (.json)
- */
-function loadMapping(filePath) {
-    let raw;
-    try {
-        raw = fs.readFileSync(filePath, 'utf8');
-    } catch (err) {
-        throw new Error(`Cannot read mapping file "${filePath}": ${err.message}`);
+function normalizeMapping(mapping) {
+    if (typeof mapping === 'string') {
+        if (mapping.trim() === '') {
+            throw new Error('Mapping expression must be a non-empty string');
+        }
+        return { expression: mapping };
     }
-    if (filePath.endsWith('.jsonata')) {
-        return { expression: raw.trim() };
-    }
-    let parsed;
-    try {
-        parsed = JSON.parse(raw);
-    } catch (err) {
-        throw new Error(`Mapping file "${filePath}" is not valid JSON: ${err.message}`);
-    }
-    return loadMappingFromObject(parsed);
+    return loadMappingFromObject(mapping);
 }
 
 /**
  * Apply a mapping to a source document.
  * @param {any}    source   — parsed JSON source document
- * @param {object} mapping  — mapping object from loadMapping / loadMappingFromObject
+ * @param {object|string} mapping  — mapping object or raw JSONata expression
  * @returns {Promise<any>}  — transformed document
  * @throws (async) on invalid JSONata expression or evaluation error
  */
 async function transform(source, mapping) {
+    const normalizedMapping = normalizeMapping(mapping);
     let expr;
     try {
-        expr = jsonata(mapping.expression);
+        expr = jsonata(normalizedMapping.expression);
     } catch (err) {
-        throw new Error(`Invalid JSONata expression: ${err.message}`);
+        throw new Error(`Invalid JSONata expression: ${errorMessage(err)}`);
     }
-    return expr.evaluate(source);
+    try {
+        return await expr.evaluate(source);
+    } catch (err) {
+        throw new Error(errorMessage(err));
+    }
 }
 
-module.exports = { loadMapping, loadMappingFromObject, transform };
+module.exports = { loadMappingFromObject, normalizeMapping, transform };

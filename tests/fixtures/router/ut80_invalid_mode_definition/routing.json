@@ -1,0 +1,18 @@
+{
+  "routes": [
+    {
+      "id": "bad_mode_route",
+      "mode": "sideways",
+      "match": {
+        "endpoint": "/health"
+      },
+      "transform": {
+        "mapping": "./mapping.jsonata"
+      },
+      "destination": {
+        "type": "oci_metric",
+        "name": "health_signal"
+      }
+    }
+  ]
+}

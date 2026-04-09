@@ -1,0 +1,42 @@
+{
+  "dead_letter": {
+    "type": "dead_letter",
+    "directory": "dead_letter/errors"
+  },
+  "routes": [
+    {
+      "id": "github_workflow_run",
+      "priority": 100,
+      "match": {
+        "headers": {
+          "X-GitHub-Event": "workflow_run"
+        }
+      },
+      "transform": {
+        "mapping": "./mapping_github.jsonata"
+      },
+      "destination": {
+        "type": "oci_log",
+        "name": "github_events",
+        "directory": "oci_log/github_events"
+      }
+    },
+    {
+      "id": "strict_workflow_run",
+      "priority": 90,
+      "match": {
+        "headers": {
+          "X-GitHub-Event": "workflow_run_strict"
+        }
+      },
+      "transform": {
+        "mapping": "./mapping_strict.jsonata"
+      },
+      "destination": {
+        "type": "oci_log",
+        "name": "strict_events",
+        "directory": "oci_log/strict_events"
+      }
+    }
+  ]
+}

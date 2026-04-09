@@ -1,0 +1,30 @@
+{
+  "routes": [
+    {
+      "id": "workflow_log",
+      "mode": "fanout",
+      "destination": {
+        "type": "oci_log",
+        "name": "github_events"
+      },
+      "output": {
+        "kind": "workflow_log",
+        "repo": "org/app",
+        "outcome": "success"
+      }
+    },
+    {
+      "id": "workflow_metric",
+      "mode": "fanout",
+      "destination": {
+        "type": "oci_metric",
+        "name": "workflow_status"
+      },
+      "output": {
+        "metric": "workflow_outcome",
+        "repo": "org/app",
+        "value": 1
+      }
+    }
+  ]
+}

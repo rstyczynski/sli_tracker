@@ -1,0 +1,5 @@
+{
+  "outcome": workflow_run.conclusion,
+  "updated_at": workflow_run.updated_at,
+  "repo": repository.full_name
+}

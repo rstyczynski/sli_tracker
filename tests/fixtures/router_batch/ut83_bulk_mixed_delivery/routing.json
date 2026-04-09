@@ -1,0 +1,77 @@
+{
+  "dead_letter": {
+    "type": "dead_letter",
+    "directory": "dead_letter/errors"
+  },
+  "routes": [
+    {
+      "id": "generic_workflow",
+      "mode": "exclusive",
+      "priority": 100,
+      "match": {
+        "headers": {
+          "X-GitHub-Event": "workflow_run"
+        }
+      },
+      "transform": {
+        "mapping": "./mapping_generic.jsonata"
+      },
+      "destination": {
+        "type": "normalized_event",
+        "directory": "normalized_event/generic"
+      }
+    },
+    {
+      "id": "specific_workflow",
+      "mode": "exclusive",
+      "priority": 200,
+      "match": {
+        "headers": {
+          "X-GitHub-Event": "workflow_run"
+        },
+        "schema": {
+          "path": "schema",
+          "equals": "github.workflow_run"
+        }
+      },
+      "transform": {
+        "mapping": "./mapping_specific.jsonata"
+      },
+      "destination": {
+        "type": "oci_log",
+        "directory": "oci_log/specific_events"
+      }
+    },
+    {
+      "id": "workflow_metric",
+      "mode": "fanout",
+      "match": {
+        "headers": {
+          "X-GitHub-Event": "workflow_run"
+        }
+      },
+      "transform": {
+        "mapping": "./mapping_metric.jsonata"
+      },
+      "destination": {
+        "type": "oci_metric",
+        "directory": "oci_metric/workflow_status"
+      }
+    },
+    {
+      "id": "health_endpoint",
+      "mode": "exclusive",
+      "priority": 50,
+      "match": {
+        "endpoint": "/health"
+      },
+      "transform": {
+        "mapping": "./mapping_health.jsonata"
+      },
+      "destination": {
+        "type": "oci_metric",
+        "directory": "oci_metric/health_signal"
+      }
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "event_type": "workflow_run",
+  "repo_name": "org/app",
+  "conclusion": "success",
+  "schema_name": "github.workflow_run"
+}

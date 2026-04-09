@@ -1,0 +1,36 @@
+{
+  "routes": [
+    {
+      "id": "route_one",
+      "priority": 50,
+      "match": {
+        "headers": {
+          "X-GitHub-Event": "workflow_run"
+        }
+      },
+      "transform": {
+        "mapping": "./mapping_one.jsonata"
+      },
+      "destination": {
+        "type": "oci_log",
+        "directory": "oci_log/one"
+      }
+    },
+    {
+      "id": "route_two",
+      "priority": 50,
+      "match": {
+        "headers": {
+          "X-GitHub-Event": "workflow_run"
+        }
+      },
+      "transform": {
+        "mapping": "./mapping_two.jsonata"
+      },
+      "destination": {
+        "type": "oci_log",
+        "directory": "oci_log/two"
+      }
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "headers": {
+    "X-GitHub-Event": event_type
+  },
+  "body": {
+    "schema": schema_name,
+    "workflow_run": {
+      "conclusion": conclusion
+    },
+    "repository": {
+      "full_name": repo_name
+    }
+  }
+}

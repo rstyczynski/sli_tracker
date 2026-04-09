@@ -1,0 +1,1 @@
+Routing definition schema validation failed: /routes/0/mode must be equal to one of the allowed values

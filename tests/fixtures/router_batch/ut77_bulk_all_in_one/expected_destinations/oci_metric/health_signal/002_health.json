@@ -1,0 +1,5 @@
+{
+  "metric": "health",
+  "value": 1,
+  "service": "api"
+}

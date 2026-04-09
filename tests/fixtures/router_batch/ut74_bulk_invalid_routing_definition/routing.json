@@ -1,0 +1,16 @@
+{
+  "routes": [
+    {
+      "id": "broken_route",
+      "match": {
+        "endpoint": "/health"
+      },
+      "transform": {
+        "mapping": "./mapping.jsonata"
+      },
+      "destination": {
+        "name": "broken"
+      }
+    }
+  ]
+}

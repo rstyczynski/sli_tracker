@@ -1,0 +1,5 @@
+{
+  "kind": "specific",
+  "repo": repository.full_name,
+  "schema": schema
+}

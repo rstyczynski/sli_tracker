@@ -1,0 +1,6 @@
+{
+  "kind": "github_workflow_run_specific",
+  "outcome": "failure",
+  "schema": "github.workflow_run",
+  "repo": "org/repo-b"
+}

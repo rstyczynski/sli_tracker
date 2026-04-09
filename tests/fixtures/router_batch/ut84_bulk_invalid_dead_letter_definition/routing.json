@@ -1,0 +1,20 @@
+{
+  "dead_letter": {
+    "directory": "dead_letter/errors"
+  },
+  "routes": [
+    {
+      "id": "health_endpoint",
+      "match": {
+        "endpoint": "/health"
+      },
+      "transform": {
+        "mapping": "./mapping.jsonata"
+      },
+      "destination": {
+        "type": "oci_metric",
+        "directory": "oci_metric/health_signal"
+      }
+    }
+  ]
+}

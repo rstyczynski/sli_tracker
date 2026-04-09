@@ -1,0 +1,18 @@
+{
+  "routes": [
+    {
+      "id": "github_only",
+      "match": {
+        "headers": {
+          "X-GitHub-Event": "workflow_run"
+        }
+      },
+      "transform": {
+        "mapping": "./mapping.jsonata"
+      },
+      "destination": {
+        "type": "oci_log"
+      }
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "metric": "health_status",
+  "service": service,
+  "value": status = "ok" ? 1 : 0
+}

@@ -1,0 +1,5 @@
+{
+  "metric": "health_status",
+  "service": "payments",
+  "value": 1
+}

@@ -1,0 +1,16 @@
+(
+  $assert($exists(workflow_run.conclusion), "missing: workflow_run.conclusion");
+  {
+    "headers": {
+      "X-GitHub-Event": "workflow_run"
+    },
+    "body": {
+      "workflow_run": {
+        "conclusion": workflow_run.conclusion
+      },
+      "repository": {
+        "full_name": repository.full_name
+      }
+    }
+  }
+)

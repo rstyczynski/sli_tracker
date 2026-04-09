@@ -9,7 +9,9 @@
 //   cat source.json | node tools/json_transform_cli.js --mapping <file>
 
 const fs = require('fs');
-const { loadMapping, transform } = require('./json_transformer');
+const jsonTransformer = require('./json_transformer');
+const transform = jsonTransformer.transform;
+const loadMappingFromObject = jsonTransformer.loadMappingFromObject;
 
 function usage(code) {
     process.stderr.write([
@@ -60,13 +62,31 @@ async function main() {
         usage(1);
     }
 
-    // Load mapping (throws on bad file / bad JSON / missing expression)
-    let mapping;
+    let rawMapping;
     try {
-        mapping = loadMapping(args.mapping);
+        rawMapping = fs.readFileSync(args.mapping, 'utf8');
     } catch (err) {
-        process.stderr.write(`Error: ${err.message}\n`);
+        process.stderr.write(`Error: Cannot read mapping file "${args.mapping}": ${err.message}\n`);
         process.exit(1);
+    }
+
+    let mapping;
+    if (args.mapping.endsWith('.jsonata')) {
+        mapping = rawMapping;
+    } else {
+        let parsedMapping;
+        try {
+            parsedMapping = JSON.parse(rawMapping);
+        } catch (err) {
+            process.stderr.write(`Error: Mapping file "${args.mapping}" is not valid JSON: ${err.message}\n`);
+            process.exit(1);
+        }
+        try {
+            mapping = loadMappingFromObject(parsedMapping);
+        } catch (err) {
+            process.stderr.write(`Error: ${err.message}\n`);
+            process.exit(1);
+        }
     }
 
     // Read source

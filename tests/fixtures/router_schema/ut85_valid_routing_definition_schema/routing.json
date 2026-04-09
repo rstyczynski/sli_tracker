@@ -1,0 +1,39 @@
+{
+  "dead_letter": {
+    "type": "dead_letter",
+    "directory": "dead_letter/errors"
+  },
+  "routes": [
+    {
+      "id": "workflow_log",
+      "mode": "fanout",
+      "match": {
+        "headers": {
+          "X-GitHub-Event": "workflow_run"
+        }
+      },
+      "transform": {
+        "mapping": "./mapping_log.jsonata"
+      },
+      "destination": {
+        "type": "oci_log",
+        "directory": "oci_log/github_events"
+      }
+    },
+    {
+      "id": "health_endpoint",
+      "mode": "exclusive",
+      "priority": 50,
+      "match": {
+        "endpoint": "/health"
+      },
+      "transform": {
+        "mapping": "./mapping_health.jsonata"
+      },
+      "destination": {
+        "type": "oci_metric",
+        "directory": "oci_metric/health_signal"
+      }
+    }
+  ]
+}

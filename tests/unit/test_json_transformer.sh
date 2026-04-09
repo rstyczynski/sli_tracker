@@ -25,14 +25,24 @@ fail() { echo "[FAIL] $1"; FAIL=$((FAIL+1)); }
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+load_mapping_expr() {
+    local map_file="$1"
+    if [[ "$map_file" == *.jsonata ]]; then
+        cat "$map_file"
+    else
+        node -e "const fs=require('fs'); const obj=JSON.parse(fs.readFileSync('${map_file}','utf8')); process.stdout.write(JSON.stringify(obj))"
+    fi
+}
+
 # Run transform: load source.json + mapping file, emit compact JSON to stdout
 run_fixture() {
     local src_file="$1" map_file="$2"
     node -e "
-const { loadMapping, transform } = require('${TRANSFORMER}');
+const { transform } = require('${TRANSFORMER}');
 const fs = require('fs');
 const src = JSON.parse(fs.readFileSync('${src_file}', 'utf8'));
-const mapping = loadMapping('${map_file}');
+const raw = fs.readFileSync('${map_file}', 'utf8');
+const mapping = '${map_file}'.endsWith('.jsonata') ? raw : JSON.parse(raw);
 transform(src, mapping)
   .then(r => process.stdout.write(JSON.stringify(r)))
   .catch(e => { process.stderr.write(e.message + '\n'); process.exit(1); });
@@ -122,11 +132,11 @@ assert_fixture        "UT-37 OCI PostgreSQL backup CloudEvent → log entry"    
 # Error-expected helper: transform must reject, not resolve
 assert_fixture_error() {
     local label="$1" case_dir="${FX}/$2"
-    if node -e "
-const { loadMapping, transform } = require('${TRANSFORMER}');
+if node -e "
+const { transform } = require('${TRANSFORMER}');
 const fs = require('fs');
 const src = JSON.parse(fs.readFileSync('${case_dir}/source.json', 'utf8'));
-const mapping = loadMapping('${case_dir}/mapping.jsonata');
+const mapping = fs.readFileSync('${case_dir}/mapping.jsonata', 'utf8');
 transform(src, mapping).then(() => process.exit(1)).catch(() => process.exit(0));
 "; then ok "$label"; else fail "$label"; fi
 }
@@ -135,11 +145,11 @@ assert_fixture_error_contains() {
     local label="$1" case_dir="${FX}/$2"
     local expected
     expected=$(tr -d '\n' < "${case_dir}/expected_error.txt")
-    if node -e "
-const { loadMapping, transform } = require('${TRANSFORMER}');
+if node -e "
+const { transform } = require('${TRANSFORMER}');
 const fs = require('fs');
 const src = JSON.parse(fs.readFileSync('${case_dir}/source.json', 'utf8'));
-const mapping = loadMapping('${case_dir}/mapping.jsonata');
+const mapping = fs.readFileSync('${case_dir}/mapping.jsonata', 'utf8');
 transform(src, mapping)
   .then(() => process.exit(1))
   .catch((e) => {
@@ -216,24 +226,22 @@ catch(e) { process.exit(0); }
 
 # UT-17: .jsonata file with syntactically invalid expression
 if node -e "
-const { loadMapping, transform } = require('${TRANSFORMER}');
-const mapping = loadMapping('${FX}/ut17_invalid_syntax/mapping.jsonata');
+const { transform } = require('${TRANSFORMER}');
+const mapping = require('fs').readFileSync('${FX}/ut17_invalid_syntax/mapping.jsonata', 'utf8');
 transform({}, mapping).then(() => process.exit(1)).catch(() => process.exit(0));
 "; then ok "UT-17 invalid JSONata syntax → error"; else fail "UT-17 invalid JSONata syntax → error"; fi
 
-# UT-18: .json file that is not valid JSON
+# UT-18: invalid in-memory mapping object
 if node -e "
-const { loadMapping } = require('${TRANSFORMER}');
-try { loadMapping('${FX}/ut18_invalid_json/mapping.json'); process.exit(1); }
-catch(e) { process.exit(0); }
-"; then ok "UT-18 mapping file not valid JSON → error"; else fail "UT-18 mapping file not valid JSON → error"; fi
+const { transform } = require('${TRANSFORMER}');
+transform({}, { expression: 123 }).then(() => process.exit(1)).catch(() => process.exit(0));
+"; then ok "UT-18 mapping expression not string in memory → error"; else fail "UT-18 mapping expression not string in memory → error"; fi
 
-# UT-19: mapping file does not exist
+# UT-19: invalid mapping argument type
 if node -e "
-const { loadMapping } = require('${TRANSFORMER}');
-try { loadMapping('/tmp/__no_such_file_sli26__.jsonata'); process.exit(1); }
-catch(e) { process.exit(0); }
-"; then ok "UT-19 mapping file does not exist → error"; else fail "UT-19 mapping file does not exist → error"; fi
+const { transform } = require('${TRANSFORMER}');
+transform({}, null).then(() => process.exit(1)).catch(() => process.exit(0));
+"; then ok "UT-19 invalid mapping argument type → error"; else fail "UT-19 invalid mapping argument type → error"; fi
 
 # ── summary ───────────────────────────────────────────────────────────────────
 echo ""

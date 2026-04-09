@@ -1,0 +1,7 @@
+{
+  "endpoint": "/health",
+  "body": {
+    "service": "payments",
+    "status": "ok"
+  }
+}

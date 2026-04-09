@@ -1,0 +1,14 @@
+{
+  "headers": {
+    "X-GitHub-Event": "workflow_run"
+  },
+  "body": {
+    "schema": "github.workflow_run",
+    "workflow_run": {
+      "conclusion": "success"
+    },
+    "repository": {
+      "full_name": "org/app"
+    }
+  }
+}

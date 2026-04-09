@@ -1,0 +1,9 @@
+{
+  "file": "006_unknown.json",
+  "error": "No route matched envelope",
+  "envelope": {
+    "body": {
+      "message": "unknown payload"
+    }
+  }
+}

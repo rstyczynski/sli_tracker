@@ -1,0 +1,42 @@
+{
+  "routes": [
+    {
+      "id": "generic_workflow",
+      "mode": "exclusive",
+      "priority": 100,
+      "match": {
+        "headers": {
+          "X-GitHub-Event": "workflow_run"
+        }
+      },
+      "transform": {
+        "mapping": "./mapping_generic.jsonata"
+      },
+      "destination": {
+        "type": "normalized_event",
+        "directory": "normalized_event/generic"
+      }
+    },
+    {
+      "id": "specific_workflow",
+      "mode": "exclusive",
+      "priority": 200,
+      "match": {
+        "headers": {
+          "X-GitHub-Event": "workflow_run"
+        },
+        "schema": {
+          "path": "schema",
+          "equals": "github.workflow_run"
+        }
+      },
+      "transform": {
+        "mapping": "./mapping_specific.jsonata"
+      },
+      "destination": {
+        "type": "oci_log",
+        "directory": "oci_log/specific_events"
+      }
+    }
+  ]
+}

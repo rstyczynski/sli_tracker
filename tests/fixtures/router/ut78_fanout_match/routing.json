@@ -1,0 +1,36 @@
+{
+  "routes": [
+    {
+      "id": "workflow_log",
+      "mode": "fanout",
+      "match": {
+        "headers": {
+          "X-GitHub-Event": "workflow_run"
+        }
+      },
+      "transform": {
+        "mapping": "./mapping_log.jsonata"
+      },
+      "destination": {
+        "type": "oci_log",
+        "name": "github_events"
+      }
+    },
+    {
+      "id": "workflow_metric",
+      "mode": "fanout",
+      "match": {
+        "headers": {
+          "X-GitHub-Event": "workflow_run"
+        }
+      },
+      "transform": {
+        "mapping": "./mapping_metric.jsonata"
+      },
+      "destination": {
+        "type": "oci_metric",
+        "name": "workflow_status"
+      }
+    }
+  ]
+}

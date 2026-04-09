@@ -1,0 +1,7 @@
+(
+  $assert($exists(workflow_run.conclusion), "missing: workflow_run.conclusion");
+  {
+    "kind": "strict_workflow_run",
+    "outcome": workflow_run.conclusion
+  }
+)

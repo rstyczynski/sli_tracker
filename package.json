@@ -6,6 +6,7 @@
   "license": "UNLICENSED",
   "type": "commonjs",
   "dependencies": {
+    "ajv": "^8.18.0",
     "jsonata": "^2.1.0",
     "oci-common": "^2.126.2",
     "oci-loggingingestion": "^2.126.2",

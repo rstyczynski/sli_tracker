@@ -67,6 +67,21 @@ assert_exit "UT-26 non-existent input"       1  node "$CLI" --mapping "$MAPPING"
 # UT-27: malformed source JSON → exit 1
 assert_exit "UT-27 malformed source JSON"    1  node "$CLI" --mapping "$MAPPING" --input "${FX}/cli_bad_source/source_bad.json"
 
+# UT-28: transform-time validation failure from $assert(...) → exit 1 with useful error
+strict_stderr_file=$(mktemp /tmp/sli26_cli_stderr.XXXXXX)
+strict_stdout_file=$(mktemp /tmp/sli26_cli_stdout.XXXXXX)
+strict_code=0
+node "$CLI" \
+    --mapping "${FX}/neg_c1_required_conclusion_missing/mapping.jsonata" \
+    --input "${FX}/neg_c1_required_conclusion_missing/source.json" \
+    >"$strict_stdout_file" 2>"$strict_stderr_file" || strict_code=$?
+if [[ "$strict_code" -eq 1 ]] && grep -q "missing: workflow_run.conclusion" "$strict_stderr_file" && [[ ! -s "$strict_stdout_file" ]]; then
+    ok "UT-28 strict mapping assertion failure surfaces via CLI"
+else
+    fail "UT-28 strict mapping assertion failure surfaces via CLI"
+fi
+rm -f "$strict_stderr_file" "$strict_stdout_file"
+
 echo ""
 echo "=== json_transform_cli.js: $((PASS+FAIL)) tests, $PASS passed, $FAIL failed ==="
 [[ "$FAIL" -eq 0 ]]

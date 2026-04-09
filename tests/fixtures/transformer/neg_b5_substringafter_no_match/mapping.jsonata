@@ -1,0 +1,7 @@
+{
+  "service":    $substringAfter(eventType, "nosuchprefix."),
+  "bucket":     data.bucketName,
+  "resource":   data.resourceName,
+  "folder":     $substringBefore(data.resourceName, "/"),
+  "eventSource": source
+}

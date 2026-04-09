@@ -1,0 +1,18 @@
+{
+  "overall_status": "UP",
+  "healthy": true,
+  "metricData": [
+    {
+      "namespace": "sli_tracker",
+      "name": "component_health",
+      "datapoints": [{"value": 0, "count": 1}],
+      "dimensions": {"component": "db", "status": "1", "overall_status": "UP"}
+    },
+    {
+      "namespace": "sli_tracker",
+      "name": "component_health",
+      "datapoints": [{"value": 1, "count": 1}],
+      "dimensions": {"component": "ping", "status": "UP", "overall_status": "UP"}
+    }
+  ]
+}

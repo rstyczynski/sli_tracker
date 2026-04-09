@@ -31,10 +31,15 @@ Exits 0 on success with JSON to stdout. Exits 1 on any error with message to std
 
 ### `tools/mappings/` (example mapping files)
 
-- `github_workflow_run_to_oci_log.json` — maps GitHub `workflow_run` webhook to OCI log entry shape
-- `health_to_oci_metric.json` — maps a `/health` API response to an OCI metric datapoint shape
+- `github_workflow_run_to_oci_log.jsonata` — maps GitHub `workflow_run` webhook to OCI log entry shape
+- `health_to_oci_metric.jsonata` — maps a `/health` API response to an OCI metric datapoint shape
 
 ### Mapping file format
+
+Two file formats are supported:
+
+- `.jsonata` — the file content is a raw JSONata expression
+- `.json` — JSON envelope with `version`, optional `description`, and required `expression`
 
 ```json
 {
@@ -77,6 +82,9 @@ The `expression` is a full JSONata expression. The source document root is avail
    - Wrong type (number where string expected — JSONata coerces, result verified)
    - Empty source object `{}`
    - Source is a JSON array at root
+   - Missing nested webhook objects (`workflow_run`, `repository`)
+   - Empty objects that collapse generated output sections
+   - Missing optional metadata (for example `freeformTags`) omitted from output
 
 3. **Bad mapping** — valid source, bad mapping file
    - `expression` field missing
@@ -84,8 +92,14 @@ The `expression` is a full JSONata expression. The source document root is avail
    - `expression` is invalid JSONata syntax
    - Mapping file is not valid JSON
    - Mapping file does not exist
+   - Runtime evaluation errors caused by incompatible data or invalid function usage
 
-4. **CLI behaviour**
+4. **Strict required-field validation**
+   - Mappings may use JSONata `$assert($exists(...), "...")` to fail fast on required input fields
+   - Required-field checks must be verified for both missing leaf fields and missing parent objects
+   - Error messages should stay actionable enough to identify the missing source path
+
+5. **CLI behaviour**
    - Reads from file via `--input`
    - Reads from stdin (pipe)
    - `--pretty` produces indented output
@@ -94,10 +108,11 @@ The `expression` is a full JSONata expression. The source document root is avail
    - Non-existent mapping file → non-zero exit
    - Non-existent input file → non-zero exit
    - Malformed source JSON → non-zero exit
+   - Transform-time `$assert(...)` failure surfaces as exit 1 with error text on stderr
 
 ## Test Specification
 
-### Unit tests — UT-1 through UT-27
+### Unit tests — UT-1 through UT-54
 
 | ID    | Suite | Script                              | Function / scenario                            |
 |-------|-------|-------------------------------------|------------------------------------------------|
@@ -128,3 +143,39 @@ The `expression` is a full JSONata expression. The source document root is avail
 | UT-25 | unit  | test_json_transformer_cli.sh        | cli non-existent mapping file → exit 1         |
 | UT-26 | unit  | test_json_transformer_cli.sh        | cli non-existent input file → exit 1           |
 | UT-27 | unit  | test_json_transformer_cli.sh        | cli malformed source JSON → exit 1             |
+| UT-28 | unit  | test_json_transformer.sh            | github workflow_run success → SLI event        |
+| UT-29 | unit  | test_json_transformer.sh            | github workflow_run failure → outcome_value=0  |
+| UT-30 | unit  | test_json_transformer.sh            | /health all UP → metric value=1 per component  |
+| UT-31 | unit  | test_json_transformer.sh            | /health db DOWN → component value=0            |
+| UT-32 | unit  | test_json_transformer.sh            | github workflow_run → OCI PostMetricData       |
+| UT-33 | unit  | test_json_transformer.sh            | /health all UP → OCI PostMetricData            |
+| UT-34 | unit  | test_json_transformer.sh            | /health db DOWN → OCI PostMetricData           |
+| UT-35 | unit  | test_json_transformer.sh            | OCI bucket CloudEvent → log entry              |
+| UT-36 | unit  | test_json_transformer.sh            | OCI compute CloudEvent → OCI metric            |
+| UT-37 | unit  | test_json_transformer.sh            | OCI PostgreSQL backup CloudEvent → log entry   |
+| UT-38 | unit  | test_json_transformer.sh            | missing conclusion degrades gracefully         |
+| UT-39 | unit  | test_json_transformer.sh            | component missing status degrades gracefully   |
+| UT-40 | unit  | test_json_transformer.sh            | missing freeformTags omits optional dimension  |
+| UT-41 | unit  | test_json_transformer.sh            | division by zero returns null in JSONata       |
+| UT-42 | unit  | test_json_transformer.sh            | undefined function in expression → error       |
+| UT-43 | unit  | test_json_transformer.sh            | invalid date passed to `$toMillis` → error     |
+| UT-44 | unit  | test_json_transformer.sh            | missing workflow_run object degrades gracefully|
+| UT-45 | unit  | test_json_transformer.sh            | empty components object omits metricData       |
+| UT-46 | unit  | test_json_transformer.sh            | numeric component status coerces to unhealthy  |
+| UT-47 | unit  | test_json_transformer.sh            | string arithmetic → error                      |
+| UT-48 | unit  | test_json_transformer.sh            | `$substringAfter` no-match behavior            |
+| UT-49 | unit  | test_json_transformer.sh            | strict mapping rejects missing conclusion      |
+| UT-50 | unit  | test_json_transformer.sh            | strict mapping rejects missing updated_at      |
+| UT-51 | unit  | test_json_transformer.sh            | strict mapping rejects missing repository name |
+| UT-52 | unit  | test_json_transformer.sh            | strict mapping rejects missing workflow_run    |
+| UT-53 | unit  | test_json_transformer.sh            | strict mapping rejects missing repository      |
+| UT-54 | unit  | test_json_transformer_cli.sh        | CLI surfaces strict mapping assertion failure  |
+
+## Requirements Clarified During Construction
+
+- The library must support both raw `.jsonata` files and `.json` envelope files; examples and tests use both formats.
+- JSONata evaluation is Promise-based, so both library and CLI contracts must treat transform failures as async errors.
+- The transformer must support two mapping styles without special-case code:
+  - permissive mappings where missing fields are omitted naturally by JSONata
+  - strict mappings that enforce required inputs via `$assert($exists(...), "...")`
+- Real-world coverage extends beyond the initial examples to GitHub webhook payloads, health-to-metric mappings, and OCI event reshaping, because those are already represented in the fixture corpus and exercise the reusable-library claim.

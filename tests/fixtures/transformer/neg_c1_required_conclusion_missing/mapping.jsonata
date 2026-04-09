@@ -1,0 +1,10 @@
+(
+  $assert($exists(workflow_run.conclusion), "missing: workflow_run.conclusion");
+  $assert($exists(workflow_run.updated_at), "missing: workflow_run.updated_at");
+  $assert($exists(repository.full_name), "missing: repository.full_name");
+  {
+    "outcome": workflow_run.conclusion,
+    "updated_at": workflow_run.updated_at,
+    "repo": repository.full_name
+  }
+)

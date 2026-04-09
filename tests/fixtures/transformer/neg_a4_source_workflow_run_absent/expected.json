@@ -1,0 +1,15 @@
+{
+  "outcome_value": 0,
+  "source": "github_webhook",
+  "workflow": {
+    "path": ".github/workflows/ci.yml"
+  },
+  "repo": {
+    "name":      "myapp",
+    "full_name": "org/myapp",
+    "private":   true,
+    "language":  "TypeScript",
+    "owner":     "org"
+  },
+  "actor": {}
+}

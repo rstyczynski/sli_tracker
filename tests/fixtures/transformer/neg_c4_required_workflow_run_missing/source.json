@@ -1,0 +1,17 @@
+{
+  "action": "completed",
+  "repository": {
+    "name": "myapp",
+    "full_name": "org/myapp",
+    "private": true,
+    "owner": {
+      "login": "org",
+      "type": "Organization"
+    },
+    "language": "TypeScript"
+  },
+  "sender": {
+    "login": "jsmith",
+    "type": "User"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "eventType":   "com.oraclecloud.objectstorage.createobject",
+  "source":      "ObjectStorage",
+  "eventTime":   "2024-03-15T10:23:45Z",
+  "data": {
+    "bucketName": "data-bucket",
+    "resourceName": "reports/2024-03/summary.csv"
+  }
+}

@@ -131,6 +131,29 @@ transform(src, mapping).then(() => process.exit(1)).catch(() => process.exit(0))
 "; then ok "$label"; else fail "$label"; fi
 }
 
+assert_fixture_error_contains() {
+    local label="$1" case_dir="${FX}/$2"
+    local expected
+    expected=$(tr -d '\n' < "${case_dir}/expected_error.txt")
+    if node -e "
+const { loadMapping, transform } = require('${TRANSFORMER}');
+const fs = require('fs');
+const src = JSON.parse(fs.readFileSync('${case_dir}/source.json', 'utf8'));
+const mapping = loadMapping('${case_dir}/mapping.jsonata');
+transform(src, mapping)
+  .then(() => process.exit(1))
+  .catch((e) => {
+    if (String(e.message).includes(${expected@Q})) process.exit(0);
+    process.stderr.write(e.message + '\n');
+    process.exit(2);
+  });
+"; then
+        ok "$label"
+    else
+        fail "$label"
+    fi
+}
+
 # (a) source problems — graceful degradation
 assert_fixture        "UT-38 (a1) missing conclusion → outcome absent, outcome_value=0" neg_a1_source_missing_conclusion
 assert_fixture_subset "UT-39 (a2) component missing status → value=0"                   neg_a2_source_component_no_status
@@ -140,6 +163,25 @@ assert_fixture        "UT-40 (a3) freeformTags absent → env dimension omitted"
 assert_fixture        "UT-41 (b1) division by zero → ratio=null (JSONata does not throw)" neg_b1_division_by_zero
 assert_fixture_error  "UT-42 (b2) undefined function in expression → error"             neg_b2_undefined_function
 assert_fixture_error  "UT-43 (b3) \$toMillis on non-ISO string → error"                 neg_b3_invalid_date
+
+# ── negative: complex source data problems ────────────────────────────────────
+
+assert_fixture        "UT-44 (a4) workflow_run key entirely absent → degraded output"  neg_a4_source_workflow_run_absent
+assert_fixture        "UT-45 (a5) components:{} empty → metricData key absent"         neg_a5_source_empty_components
+assert_fixture_subset "UT-46 (a6) component status is number not string → value=0"     neg_a6_source_status_wrong_type
+
+# ── negative: complex transformation problems ─────────────────────────────────
+
+assert_fixture_error  "UT-47 (b4) multiply string by number → error"                   neg_b4_string_arithmetic
+assert_fixture        "UT-48 (b5) \$substringAfter sep not found → full string returned" neg_b5_substringafter_no_match
+
+# ── strict required-field validation with $assert ──────────────────────────────
+
+assert_fixture_error_contains "UT-49 (c1) required workflow_run.conclusion missing → error"  neg_c1_required_conclusion_missing
+assert_fixture_error_contains "UT-50 (c2) required workflow_run.updated_at missing → error"   neg_c2_required_updated_at_missing
+assert_fixture_error_contains "UT-51 (c3) required repository.full_name missing → error"      neg_c3_required_repository_full_name_missing
+assert_fixture_error_contains "UT-52 (c4) required workflow_run missing → error"              neg_c4_required_workflow_run_missing
+assert_fixture_error_contains "UT-53 (c5) required repository missing → error"                neg_c5_required_repository_missing
 
 # ── corner cases: bad / unusual source data ───────────────────────────────────
 

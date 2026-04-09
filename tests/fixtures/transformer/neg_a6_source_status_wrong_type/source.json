@@ -1,0 +1,15 @@
+{
+  "status": "UP",
+  "components": {
+    "db": {
+      "status": 1,
+      "details": {
+        "database": "PostgreSQL",
+        "validationQuery": "isValid()"
+      }
+    },
+    "ping": {
+      "status": "UP"
+    }
+  }
+}

@@ -1,0 +1,1 @@
+{"service": "com.oraclecloud.objectstorage.createobject", "bucket": "data-bucket", "resource": "reports/2024-03/summary.csv", "folder": "reports", "eventSource": "ObjectStorage"}

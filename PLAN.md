@@ -235,10 +235,27 @@ Backlog Items:
 Status: Done
 Mode: YOLO
 Test: unit
-Regression: unit
+Regression: none
 
-Add a routing layer in front of the JSON transformer that can identify incoming source data, choose the appropriate transformation mapping, and decide the destination contract. Source identification may use transport metadata (for example HTTP headers such as `X-GitHub-Event: workflow_run`), the receiving endpoint identity, explicit schema/type markers inside the payload, and selected mandatory-field checks. The router should be testable offline against a stream of input documents plus routing-definition fixtures, with each case producing an expected routed target JSON payload and selected route metadata.
+Add a routing layer in front of the JSON transformer that can identify incoming source data, choose the appropriate transformation mapping, and decide the destination contract. Source identification may use transport metadata (for example HTTP headers such as `X-GitHub-Event: workflow_run`), the receiving endpoint identity, explicit schema/type markers inside the payload, and selected mandatory-field checks. The router should be testable offline against a stream of input documents plus routing-definition fixtures, with each case producing an expected routed target JSON payload and selected route metadata. The sprint also defines explicit route modes so one message can either select one destination (`exclusive`) or intentionally fan out to multiple destinations (`fanout`).
 
 Backlog Items:
 
 * SLI-27. Identify source payload type and route it to the correct transformer mapping and destination
+* SLI-28. Explicit routing modes for exclusive and fanout delivery
+* SLI-29. Validate routing definition JSON with schema before router use
+
+## Sprint 20 - JavaScript adapter API for router processing
+
+Status: Done
+Mode: YOLO
+Test: unit
+Regression: none
+
+Expose the router as a transport-agnostic JavaScript processing engine by adding injected async handlers for routed outputs and dead-letter cases. The sprint is intentionally lightweight: no framework, no live queue or OCI integration, only library-level APIs that let external JavaScript code provide envelopes and receive routed results without relying on filesystem adapters.
+
+Backlog Items:
+
+* SLI-30. Pluggable JavaScript source and destination adapters for router processing
+* SLI-31. Example filesystem target adapter for router handler API
+* SLI-32. Example filesystem source adapter for router handler API

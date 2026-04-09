@@ -242,3 +242,39 @@ Test: using the uploaded payload, a GitHub workflow run can authenticate with th
 A Node.js library that transforms one JSON document into another by applying a JSONata mapping definition loaded from a file, so source payloads such as `/health`/`/status` API responses or GitHub `workflow_run` webhooks can be converted to target structures such as OCI log or OCI metric without code changes. The mapping definition is a JSON file that describes field projections and expressions; swapping the file changes the target schema. A CLI wrapper lets operators test any transformation interactively against real input.
 
 Test: given a sample `workflow_run` webhook payload and a mapping file targeting the OCI log entry structure, the CLI outputs the correctly shaped OCI document with all mapped fields populated.
+
+### SLI-28. Explicit routing modes for exclusive and fanout delivery
+
+The router needs an explicit way to distinguish between "pick one destination" and "send the same message to multiple destinations" so operators can route one source document to both OCI Logging and OCI Monitoring without relying on accidental ambiguity. Route definitions must declare whether a matching rule is exclusive or fanout, and the router must keep the behavior deterministic when both kinds of rules match the same message. This item is constrained to declarative routing semantics and offline testability; it does not introduce live transport integration.
+
+Test: a single input envelope can be routed by configuration either to one selected destination or to multiple destinations in one pass, with invalid route modes rejected at definition load.
+
+### SLI-29. Validate routing definition JSON with schema before router use
+
+The router should reject malformed `routing.json` documents before any route selection or transformation starts so operator mistakes are caught early and consistently. The routing definition needs a formal JSON Schema validated by the router library, including route structure, match structure, transform mapping reference, destination shape, dead-letter shape, and supported route modes. This validation is a library responsibility and must remain testable offline through fixture-based negative cases.
+
+Test: malformed routing definitions fail during router definition load with clear schema-validation errors, while valid definitions continue to route messages successfully.
+
+### SLI-30. Pluggable JavaScript source and destination adapters for router processing
+
+The router should be usable as a transport-agnostic processing engine instead of only through file and directory adapters. JavaScript code must be able to provide envelopes from in-memory batches, queues, HTTP handlers, or other sources and receive routed outputs and dead-letter cases through injected async handlers, so OCI Logging, OCI Monitoring, queues, and custom delivery code can be attached without changing routing logic. This item keeps the adapter boundary lightweight and library-focused; it does not introduce a framework or live OCI integration.
+
+Test: unit-tested handler-based processing can route successful envelopes to injected JavaScript callbacks and send no-match or transform-failure cases to an injected dead-letter callback without using filesystem reads or writes.
+
+### SLI-31. Example filesystem target adapter for router handler API
+
+The new handler-based adapter API needs at least one concrete example target adapter so its intended usage is visible in code and not only in tests. Provide a small filesystem adapter module that writes routed outputs into destination-specific directories and writes dead-letter payloads into a configured dead-letter directory using deterministic file names. This remains a local example adapter only; it does not introduce OCI-specific delivery logic.
+
+Test: a unit-tested file adapter writes routed outputs and dead-letter payloads to the expected directory structure when used through the handler-based router API.
+
+### SLI-32. Example filesystem source adapter for router handler API
+
+The handler-based router API also needs a concrete source-side example so external JavaScript code can see how envelope ingestion should be structured, not only delivery. Provide a small filesystem source adapter module that reads JSON files from a directory in deterministic order and exposes them as an async iterable suitable for `processEnvelopes(...)`. Malformed JSON in source files must stop processing with a clear critical error because the source adapter is responsible for producing valid envelope objects.
+
+Test: a unit-tested file source adapter reads JSON files in deterministic order, can feed `processEnvelopes(...)`, and fails clearly on malformed source JSON.
+
+### SLI-33. Separate logical destination model from adapter-specific delivery metadata
+
+The router destination contract should remain universal across filesystem, queue, HTTP, OCI, and other adapters. Fields such as `directory` are filesystem-specific and should not live in the generic `destination` object used by routing definitions. Refactor the destination model so routing definitions keep only logical destination identity, such as `type` and `name`, while transport-specific realization details are supplied by adapters through their own configuration or adapter-scoped metadata. This keeps routing definitions transport-agnostic and makes the same route usable across multiple delivery adapters.
+
+Test: unit-tested adapters can resolve the same logical destination to transport-specific targets without relying on filesystem-only fields in the top-level `destination` definition, and existing route selection behavior remains unchanged.

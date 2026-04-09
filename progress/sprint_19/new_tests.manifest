@@ -1,1 +1,5 @@
 unit:test_json_router.sh
+unit:test_json_router_batch.sh
+unit:test_json_router_schema.sh
+unit:test_json_router_cli.sh
+unit:test_json_pipeline_cli.sh

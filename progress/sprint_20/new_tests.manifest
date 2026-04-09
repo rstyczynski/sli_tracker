@@ -1,0 +1,3 @@
+unit:test_json_router_adapters.sh
+unit:test_file_adapter.sh
+unit:test_file_source_adapter.sh

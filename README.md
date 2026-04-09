@@ -180,15 +180,27 @@ All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifac
 
 ## Recent updates
 
-### Sprint 19 — Source identification and routing to transformer + destination (SLI-27) (YOLO)
+### Sprint 20 — JavaScript adapter API for router processing (SLI-30, SLI-31, SLI-32) (YOLO)
 
 **Status:** implemented + tested
 
-Adds a routing layer (`tools/json_router.js`) in front of the Sprint 18 JSON transformer. The router accepts a normalized envelope containing payload body plus optional transport metadata such as headers and endpoint identity, matches that envelope against a declarative routing definition, resolves ambiguity by priority, and then dispatches to the selected JSONata mapping. Route matching supports exact headers, exact endpoint, explicit schema marker fields, and required payload fields, so source identification stays explicit instead of being inferred from transformer internals.
+Adds a lightweight handler-based adapter boundary to `tools/json_router.js` so external JavaScript code can supply envelopes and receive routed outputs or dead-letter cases through injected async callbacks instead of going through filesystem adapters only. The new `processEnvelope(...)` and `processEnvelopes(...)` APIs support fanout and mixed route selections while keeping routing and transformation logic transport-agnostic. Sprint 20 also adds `tools/adapters/file_adapter.js` as a concrete example target adapter that writes routed outputs and dead-letter payloads into deterministic filesystem paths, plus `tools/adapters/file_source_adapter.js` as a concrete example source adapter that reads envelope JSON files in deterministic order.
 
-**Quality gates:** Unit new-code PASS (8 routing checks), Regression Unit PASS — see `progress/sprint_19/sprint_19_tests.md`.
+**Quality gates:** Unit PASS. Current Sprint 20 suite coverage is 12 checks across handler injection plus the example filesystem source and target adapters — see `progress/sprint_20/sprint_20_tests.md`.
 
-**Traceability:** `progress/backlog/SLI-27/`
+**Traceability:** `progress/backlog/SLI-30/`, `progress/backlog/SLI-31/`, `progress/backlog/SLI-32/`
+
+---
+
+### Sprint 19 — Source identification and routing to transformer + destination (SLI-27, SLI-28, SLI-29) (YOLO)
+
+**Status:** implemented + tested
+
+Adds a routing layer (`tools/json_router.js`) in front of the Sprint 18 JSON transformer. The router accepts a normalized envelope containing payload body plus optional transport metadata such as headers and endpoint identity, matches that envelope against a declarative routing definition, resolves exclusive routes by priority, and supports explicit fanout so one message can be delivered to multiple destinations such as OCI Logging and OCI Monitoring in one pass. The routing definition itself is validated by AJV against a checked-in JSON Schema before use, so malformed `routing.json` files fail before any routing or transformation starts. A separate CLI wrapper at `tools/json_router_cli.js` supports single-envelope and batch routing. Route matching supports exact headers, exact endpoint, explicit schema marker fields, and required payload fields, so source identification stays explicit instead of being inferred from transformer internals.
+
+**Quality gates:** Unit PASS. Current router suite coverage is 36 checks across single-envelope routing, batch routing, dedicated `routing.json` schema validation, router CLI behavior, and CLI-to-CLI pipeline behavior, including explicit exclusive/fanout modes and AJV-backed schema validation. No separate regression gate is defined for this sprint — see `progress/sprint_19/sprint_19_tests.md`.
+
+**Traceability:** `progress/backlog/SLI-27/`, `progress/backlog/SLI-28/`, `progress/backlog/SLI-29/`
 
 ---
 

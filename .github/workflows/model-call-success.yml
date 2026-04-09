@@ -1,4 +1,4 @@
-name: "MODEL — API / UI call"
+name: "MODEL — API / UI call with success"
 # Represents: external trigger (REST repository_dispatch, Actions Run workflow).
 # UI: Actions → this workflow → Run workflow.
 # API example (event_type must match repository_dispatch.types):

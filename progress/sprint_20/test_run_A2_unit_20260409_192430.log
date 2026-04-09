@@ -1,0 +1,50 @@
+[info] --new-only mode: filtering to tests listed in progress/sprint_20/new_tests.manifest
+[info] current implementation filters at script level, not function level
+=== unit tests ===
+[skip] unit/test_emit.sh (not in manifest)
+[run] unit/test_file_adapter.sh
+[PASS] UT-103 file adapter writes fanout destinations
+[PASS] UT-104 file adapter writes dead letter output
+[PASS] UT-105 file adapter writes mixed batch outputs
+
+=== file adapter: 3 tests, 3 passed, 0 failed ===
+[PASS] unit/test_file_adapter.sh
+[run] unit/test_file_source_adapter.sh
+[PASS] UT-106 file source adapter reads JSON files in lexical order
+[PASS] UT-107 file source adapter feeds processEnvelopes mixed batch
+[PASS] UT-108 file source adapter stops on malformed JSON file
+
+=== file source adapter: 3 tests, 3 passed, 0 failed ===
+[PASS] unit/test_file_source_adapter.sh
+[skip] unit/test_install_oci_cli.sh (not in manifest)
+[skip] unit/test_json_pipeline_cli.sh (not in manifest)
+[run] unit/test_json_router_adapters.sh
+[PASS] UT-97 processEnvelope fanout onRoute callbacks
+[PASS] UT-98 processEnvelope mixed exclusive and fanout callbacks
+[PASS] UT-99 processEnvelope no-match goes to onDeadLetter
+[PASS] UT-100 processEnvelope transform failure goes to onDeadLetter
+[PASS] UT-101 processEnvelopes array mixed summary
+[PASS] UT-102 processEnvelopes async iterable
+
+=== json_router adapters: 6 tests, 6 passed, 0 failed ===
+[PASS] unit/test_json_router_adapters.sh
+[skip] unit/test_json_router_batch.sh (not in manifest)
+[skip] unit/test_json_router_cli.sh (not in manifest)
+[skip] unit/test_json_router_schema.sh (not in manifest)
+[skip] unit/test_json_router.sh (not in manifest)
+[skip] unit/test_json_transformer_cli.sh (not in manifest)
+[skip] unit/test_json_transformer.sh (not in manifest)
+[skip] unit/test_oci_profile_setup_api_key.sh (not in manifest)
+[skip] unit/test_oci_profile_setup.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_api_key_help.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_config_profile_dry.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_config_profile_help.sh (not in manifest)
+[skip] unit/test_sli_compute_sli_metrics.sh (not in manifest)
+[skip] unit/test_sli_ratio_simulator.sh (not in manifest)
+[skip] unit/test_sli_scheduled_workflows.sh (not in manifest)
+=== unit summary: 3 scripts, 3 passed, 0 failed ===
+
+========================================
+TOTAL: 3 scripts, 3 passed, 0 failed
+========================================
+RESULT: PASS

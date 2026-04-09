@@ -1,0 +1,52 @@
+[info] --new-only mode: filtering to tests listed in progress/sprint_19/new_tests.manifest
+[info] current implementation filters at script level, not function level
+=== unit tests ===
+[skip] unit/test_emit.sh (not in manifest)
+[skip] unit/test_install_oci_cli.sh (not in manifest)
+[run] unit/test_json_router_batch.sh
+[PASS] UT-65 bulk happy-path routing covers header/endpoint/schema/required/priority
+[PASS] UT-66 bulk routing reports unroutable file with filename
+[PASS] UT-67 bulk dead-letter routing covers unknown/transform/invalid-json cases
+[PASS] UT-77 one omnibus batch covers happy paths and dead letters together
+[PASS] UT-81 bulk fanout writes the same source file to multiple destinations
+[PASS] UT-82 bulk exclusive selects one winning destination
+[PASS] UT-83 bulk mixed exclusive and fanout writes selected destinations
+[PASS] UT-72 bulk ambiguous top-priority routes fail with filename
+[PASS] UT-74 invalid routing definition fails before processing
+[PASS] UT-84 invalid dead-letter schema fails before processing
+
+=== json_router bulk: 10 tests, 10 passed, 0 failed ===
+[PASS] unit/test_json_router_batch.sh
+[run] unit/test_json_router.sh
+[PASS] UT-57 header-based route selection
+[PASS] UT-58 endpoint-based route selection
+[PASS] UT-59 schema-based route selection
+[PASS] UT-60 required-fields route selection
+[PASS] UT-61 highest-priority route wins
+[PASS] UT-62 no route matched → error
+[PASS] UT-63 ambiguous top-priority routes → error
+[PASS] UT-64 route matched but strict mapping fails
+[PASS] UT-75 invalid schema matcher rejected at definition load
+[PASS] UT-76 non-object body does not crash and reports no route
+[PASS] UT-78 fanout routes produce multiple outputs
+[PASS] UT-79 exclusive winner and fanout route both selected
+[PASS] UT-80 invalid route mode rejected at definition load
+
+=== json_router.js: 13 tests, 13 passed, 0 failed ===
+[PASS] unit/test_json_router.sh
+[skip] unit/test_json_transformer_cli.sh (not in manifest)
+[skip] unit/test_json_transformer.sh (not in manifest)
+[skip] unit/test_oci_profile_setup_api_key.sh (not in manifest)
+[skip] unit/test_oci_profile_setup.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_api_key_help.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_config_profile_dry.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_config_profile_help.sh (not in manifest)
+[skip] unit/test_sli_compute_sli_metrics.sh (not in manifest)
+[skip] unit/test_sli_ratio_simulator.sh (not in manifest)
+[skip] unit/test_sli_scheduled_workflows.sh (not in manifest)
+=== unit summary: 2 scripts, 2 passed, 0 failed ===
+
+========================================
+TOTAL: 2 scripts, 2 passed, 0 failed
+========================================
+RESULT: PASS

@@ -1,0 +1,103 @@
+{
+  "data": [
+    {
+      "aggregated-datapoints": [
+        {
+          "timestamp": "2026-04-09T10:55:00+00:00",
+          "value": 0.5
+        }
+      ],
+      "compartment-id": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+      "dimensions": {
+        "repo_ref": "main",
+        "repo_repository": "rstyczynski/sli_tracker",
+        "workflow_job": "emit-curl",
+        "workflow_name": "MODEL — emit_curl (no OCI CLI)"
+      },
+      "metadata": {},
+      "name": "outcome",
+      "namespace": "sli_tracker",
+      "resolution": null,
+      "resource-group": null
+    },
+    {
+      "aggregated-datapoints": [
+        {
+          "timestamp": "2026-04-09T10:55:00+00:00",
+          "value": 1.0
+        }
+      ],
+      "compartment-id": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+      "dimensions": {
+        "repo_ref": "main",
+        "repo_repository": "rstyczynski/sli_tracker",
+        "workflow_job": "emit-curl-local",
+        "workflow_name": "LOCAL — emit_curl (no workflow)"
+      },
+      "metadata": {},
+      "name": "outcome",
+      "namespace": "sli_tracker",
+      "resolution": null,
+      "resource-group": null
+    },
+    {
+      "aggregated-datapoints": [
+        {
+          "timestamp": "2026-04-09T10:55:00+00:00",
+          "value": 1.0
+        }
+      ],
+      "compartment-id": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+      "dimensions": {
+        "repo_ref": "main",
+        "repo_repository": "rstyczynski/sli_tracker",
+        "workflow_job": "emit-metric-local",
+        "workflow_name": "LOCAL — metric test"
+      },
+      "metadata": {},
+      "name": "outcome",
+      "namespace": "sli_tracker",
+      "resolution": null,
+      "resource-group": null
+    },
+    {
+      "aggregated-datapoints": [
+        {
+          "timestamp": "2026-04-09T10:50:00+00:00",
+          "value": 0.5
+        }
+      ],
+      "compartment-id": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+      "dimensions": {
+        "repo_repository": "rstyczynski/sli_tracker",
+        "workflow_job": "emit-metric-local",
+        "workflow_name": "SLI-20 live sli20-live-1775731619"
+      },
+      "metadata": {},
+      "name": "outcome",
+      "namespace": "sli_tracker",
+      "resolution": null,
+      "resource-group": null
+    },
+    {
+      "aggregated-datapoints": [
+        {
+          "timestamp": "2026-04-09T10:55:00+00:00",
+          "value": 0.5
+        }
+      ],
+      "compartment-id": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+      "dimensions": {
+        "repo_ref": "main",
+        "repo_repository": "rstyczynski/sli_tracker",
+        "workflow_job": "emit-js",
+        "workflow_name": "MODEL — emit_js (JS action post hook + oci-profile-setup)"
+      },
+      "metadata": {},
+      "name": "outcome",
+      "namespace": "sli_tracker",
+      "resolution": null,
+      "resource-group": null
+    }
+  ]
+}

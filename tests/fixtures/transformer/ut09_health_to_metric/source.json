@@ -1,0 +1,7 @@
+{
+  "status": "UP",
+  "components": {
+    "db":   {"status": "UP"},
+    "disk": {"status": "UP", "details": {"free": 1234567, "threshold": 10485760}}
+  }
+}

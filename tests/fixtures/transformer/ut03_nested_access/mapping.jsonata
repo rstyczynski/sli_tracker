@@ -1,0 +1,4 @@
+{
+  "userId": user.id,
+  "role":   user.role
+}

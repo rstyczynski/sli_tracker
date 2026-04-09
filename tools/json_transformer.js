@@ -26,10 +26,15 @@ function loadMappingFromObject(obj) {
 }
 
 /**
- * Load and validate a mapping definition from a file.
+ * Load a mapping definition from a file.
+ *
+ * Two formats are supported:
+ *   .jsonata — plain JSONata expression; the file content IS the expression.
+ *   .json    — JSON envelope: { "version": "1", "description": "...", "expression": "<expr>" }
+ *
  * @param {string} filePath
- * @returns {{ version: string, description?: string, expression: string }}
- * @throws on missing file, invalid JSON, or missing/bad expression field
+ * @returns {{ expression: string, description?: string }}
+ * @throws on missing file, invalid JSON (.json), or missing/bad expression field (.json)
  */
 function loadMapping(filePath) {
     let raw;
@@ -37,6 +42,9 @@ function loadMapping(filePath) {
         raw = fs.readFileSync(filePath, 'utf8');
     } catch (err) {
         throw new Error(`Cannot read mapping file "${filePath}": ${err.message}`);
+    }
+    if (filePath.endsWith('.jsonata')) {
+        return { expression: raw.trim() };
     }
     let parsed;
     try {

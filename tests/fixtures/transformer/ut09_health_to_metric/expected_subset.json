@@ -1,0 +1,8 @@
+{
+  "metricData": [{
+    "namespace": "sli_tracker",
+    "name":      "health_status",
+    "datapoints": [{"value": 1}],
+    "dimensions": {"component": "app", "status": "UP"}
+  }]
+}

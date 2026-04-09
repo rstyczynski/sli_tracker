@@ -1,0 +1,14 @@
+{
+  "metricData": [{
+    "namespace": "sli_tracker",
+    "name":      "health_status",
+    "datapoints": [{
+      "timestamp": $now(),
+      "value":     status = "UP" ? 1 : 0
+    }],
+    "dimensions": {
+      "component": "app",
+      "status":    status
+    }
+  }]
+}

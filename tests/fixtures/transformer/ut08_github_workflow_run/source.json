@@ -1,0 +1,15 @@
+{
+  "action": "completed",
+  "workflow_run": {
+    "id": 123456,
+    "run_number": 42,
+    "name": "CI",
+    "conclusion": "success",
+    "html_url": "https://github.com/org/repo/actions/runs/123456",
+    "head_branch": "main",
+    "head_sha": "abc123def456"
+  },
+  "repository": {
+    "full_name": "org/repo"
+  }
+}

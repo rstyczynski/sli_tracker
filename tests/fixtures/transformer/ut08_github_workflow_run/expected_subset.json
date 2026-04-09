@@ -1,0 +1,17 @@
+{
+  "logEntryBatches": [{
+    "entries": [{
+      "data": {
+        "outcome":    "success",
+        "workflow":   "CI",
+        "run_id":     "123456",
+        "run_number": "42",
+        "branch":     "main",
+        "sha":        "abc123def456",
+        "repo":       "org/repo",
+        "url":        "https://github.com/org/repo/actions/runs/123456",
+        "event":      "github_workflow_run"
+      }
+    }]
+  }]
+}

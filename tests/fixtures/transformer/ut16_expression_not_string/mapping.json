@@ -1,0 +1,5 @@
+{
+  "version": "1",
+  "description": "expression is a number, not a string — loadMappingFromObject must throw",
+  "expression": 42
+}

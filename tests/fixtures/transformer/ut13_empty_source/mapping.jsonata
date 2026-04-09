@@ -1,0 +1,3 @@
+{
+  "default": $exists(status) ? status : "unknown"
+}

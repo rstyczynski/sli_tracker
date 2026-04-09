@@ -1,0 +1,33 @@
+[info] --new-only mode: filtering to tests listed in progress/sprint_19/new_tests.manifest
+[info] current implementation filters at script level, not function level
+=== unit tests ===
+[skip] unit/test_emit.sh (not in manifest)
+[skip] unit/test_install_oci_cli.sh (not in manifest)
+[run] unit/test_json_router.sh
+[PASS] UT-57 header-based route selection
+[PASS] UT-58 endpoint-based route selection
+[PASS] UT-59 schema-based route selection
+[PASS] UT-60 required-fields route selection
+[PASS] UT-61 highest-priority route wins
+[PASS] UT-62 no route matched → error
+[PASS] UT-63 ambiguous top-priority routes → error
+[PASS] UT-64 route matched but strict mapping fails
+
+=== json_router.js: 8 tests, 8 passed, 0 failed ===
+[PASS] unit/test_json_router.sh
+[skip] unit/test_json_transformer_cli.sh (not in manifest)
+[skip] unit/test_json_transformer.sh (not in manifest)
+[skip] unit/test_oci_profile_setup_api_key.sh (not in manifest)
+[skip] unit/test_oci_profile_setup.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_api_key_help.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_config_profile_dry.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_config_profile_help.sh (not in manifest)
+[skip] unit/test_sli_compute_sli_metrics.sh (not in manifest)
+[skip] unit/test_sli_ratio_simulator.sh (not in manifest)
+[skip] unit/test_sli_scheduled_workflows.sh (not in manifest)
+=== unit summary: 1 scripts, 1 passed, 0 failed ===
+
+========================================
+TOTAL: 1 scripts, 1 passed, 0 failed
+========================================
+RESULT: PASS

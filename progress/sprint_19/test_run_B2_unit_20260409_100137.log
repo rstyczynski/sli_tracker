@@ -1,0 +1,178 @@
+=== unit tests ===
+[run] unit/test_emit.sh
+== sli_normalize_json_object ==
+== sli_expand_oci_config_path ==
+== sli_merge_flat_context ==
+== sli_extract_oci_json ==
+== sli_failure_reasons_from_steps_json ==
+== sli_merge_failure_reasons ==
+== sli_unescape_json_fields ==
+== sli_build_log_entry ==
+== sli_build_base_json (fake GITHUB_*) ==
+== UT-1: emit_common.sh — all helpers sourced ==
+== UT-2: _oci_config_field — multi-profile config parsing ==
+== UT-3: emit_curl.sh — SLI_SKIP_OCI_PUSH skips curl ==
+== UT-4: emit_curl.sh — Authorization header structure ==
+== UT-5: emit_curl.sh — payload matches put-logs shape (specversion + logEntryBatches) ==
+== UT-6: emit.sh dispatcher — EMIT_BACKEND=curl ==
+== UT-7: emit.sh dispatcher — EMIT_BACKEND=oci-cli ==
+== UT-S10-1: sli_build_base_json — workflow object shape ==
+== UT-S10-2: sli_build_base_json — repo object shape ==
+== UT-S10-3: sli_build_base_json — old flat fields absent ==
+== UT-S12-1: sli_outcome_to_metric_value — success → 1 ==
+== UT-S12-2: sli_outcome_to_metric_value — failure → 0 ==
+== UT-S12-3: sli_outcome_to_metric_value — empty/unknown → 0 ==
+== UT-S12-4: emit_curl.sh EMIT_TARGET=log — skips metric push ==
+== UT-S12-5: emit_curl.sh EMIT_TARGET=metric — skips log push ==
+== summary ==
+passed: 54  failed: 0
+[PASS] unit/test_emit.sh
+[run] unit/test_install_oci_cli.sh
+ERROR: Podman is installed but not reachable.
+  Check: podman system connection list
+  Fix:   podman machine start
+[FAIL] unit/test_install_oci_cli.sh (exit code 1)
+[run] unit/test_json_router.sh
+[PASS] UT-57 header-based route selection
+[PASS] UT-58 endpoint-based route selection
+[PASS] UT-59 schema-based route selection
+[PASS] UT-60 required-fields route selection
+[PASS] UT-61 highest-priority route wins
+[PASS] UT-62 no route matched → error
+[PASS] UT-63 ambiguous top-priority routes → error
+[PASS] UT-64 route matched but strict mapping fails
+
+=== json_router.js: 8 tests, 8 passed, 0 failed ===
+[PASS] unit/test_json_router.sh
+[run] unit/test_json_transformer_cli.sh
+[PASS] UT-20 --input file
+[PASS] UT-21 stdin
+[PASS] UT-22 --pretty indented
+[PASS] UT-23 unknown flag
+[PASS] UT-24 missing --mapping
+[PASS] UT-25 non-existent mapping
+[PASS] UT-26 non-existent input
+[PASS] UT-27 malformed source JSON
+[PASS] UT-56 strict mapping assertion failure surfaces via CLI
+
+=== json_transform_cli.js: 9 tests, 9 passed, 0 failed ===
+[PASS] unit/test_json_transformer_cli.sh
+[run] unit/test_json_transformer.sh
+[PASS] UT-1  identity mapping
+[PASS] UT-2  field extraction and rename
+[PASS] UT-3  nested field access
+[PASS] UT-4  array transformation
+[PASS] UT-5  conditional expression
+[PASS] UT-6  string concatenation
+[PASS] UT-7  numeric computation
+[PASS] UT-8  github workflow_run → oci log
+[PASS] UT-9  health endpoint → oci metric
+[PASS] UT-28 github workflow_run success → SLI event + duration_s
+[PASS] UT-29 github workflow_run failure → outcome_value=0
+[PASS] UT-30 /health all UP → metric value=1 per component
+[PASS] UT-31 /health db DOWN → db value=0, others value=1
+[PASS] UT-32 github workflow_run → OCI PostMetricData
+[PASS] UT-33 /health all UP → OCI PostMetricData per component
+[PASS] UT-34 /health db DOWN → OCI PostMetricData db=0
+[PASS] UT-35 OCI bucket CloudEvent → log entry + $substringAfter
+[PASS] UT-36 OCI compute CloudEvent → OCI metric with freeformTags
+[PASS] UT-37 OCI PostgreSQL backup CloudEvent → log entry
+[PASS] UT-38 (a1) missing conclusion → outcome absent, outcome_value=0
+[PASS] UT-39 (a2) component missing status → value=0
+[PASS] UT-40 (a3) freeformTags absent → env dimension omitted
+[PASS] UT-41 (b1) division by zero → ratio=null (JSONata does not throw)
+[PASS] UT-42 (b2) undefined function in expression → error
+[PASS] UT-43 (b3) $toMillis on non-ISO string → error
+[PASS] UT-44 (a4) workflow_run key entirely absent → degraded output
+[PASS] UT-45 (a5) components:{} empty → metricData key absent
+[PASS] UT-46 (a6) component status is number not string → value=0
+[PASS] UT-47 (b4) multiply string by number → error
+[PASS] UT-48 (b5) $substringAfter sep not found → full string returned
+[PASS] UT-49 (c1) required workflow_run.conclusion missing → error
+[PASS] UT-50 (c2) required workflow_run.updated_at missing → error
+[PASS] UT-51 (c3) required repository.full_name missing → error
+[PASS] UT-52 (c4) required workflow_run missing → error
+[PASS] UT-53 (c5) required repository missing → error
+[PASS] UT-54 (d1) missing conclusion → fallback value + diagnostics
+[PASS] UT-55 (d2) missing repository full_name → fallback value + diagnostics
+[PASS] UT-10 missing field in source omitted
+[PASS] UT-11 null field value passes through
+[PASS] UT-12 number-to-string coercion
+[PASS] UT-13 empty source with $exists guard
+[PASS] UT-14 source is array at root
+[PASS] UT-15 missing expression field → error
+[PASS] UT-16 expression not a string → error
+[PASS] UT-17 invalid JSONata syntax → error
+[PASS] UT-18 mapping file not valid JSON → error
+[PASS] UT-19 mapping file does not exist → error
+
+=== json_transformer.js: 47 tests, 47 passed, 0 failed ===
+[PASS] unit/test_json_transformer.sh
+[run] unit/test_oci_profile_setup_api_key.sh
+::notice::OCI profile restored under /var/folders/rt/g188dkwx2rl25f2xnjnqv8hr0000gn/T/tmp.fZlzpMGAyr/.oci (profile SLI_TEST).
+[PASS] api-key payload restore works without sessions
+[PASS] token_based still requires sessions
+[PASS] unit/test_oci_profile_setup_api_key.sh
+[run] unit/test_oci_profile_setup.sh
+
+=== Test: pack/unpack round-trip (synthetic ~/.oci) ===
+::notice::oci-auth-mode auto: using token_based (found /var/folders/rt/g188dkwx2rl25f2xnjnqv8hr0000gn/T/tmp.QXQU4iCAQa/.oci/sessions/DEFAULT).
+::notice::OCI wrapper enabled (token_based): /var/folders/rt/g188dkwx2rl25f2xnjnqv8hr0000gn/T/tmp.QXQU4iCAQa/.local/oci-wrapper/bin/oci injects --auth security_token.
+::notice::OCI profile restored under /var/folders/rt/g188dkwx2rl25f2xnjnqv8hr0000gn/T/tmp.QXQU4iCAQa/.oci (profile DEFAULT).
+  PASS: round-trip restored config and session files
+
+=== Test: token_based mode creates oci wrapper ===
+::notice::OCI wrapper enabled (token_based): /var/folders/rt/g188dkwx2rl25f2xnjnqv8hr0000gn/T/tmp.Gn6FYbJgr4/.local/oci-wrapper/bin/oci injects --auth security_token.
+::notice::OCI profile restored under /var/folders/rt/g188dkwx2rl25f2xnjnqv8hr0000gn/T/tmp.Gn6FYbJgr4/.oci (profile DEFAULT).
+  PASS: oci wrapper created and injects token auth
+
+=== Test: auto mode picks none when no session dir but key_file exists ===
+::notice::oci-auth-mode auto: using none (API key / config_profile pack; no session directory).
+::notice::OCI profile restored under /var/folders/rt/g188dkwx2rl25f2xnjnqv8hr0000gn/T/tmp.Xxs98ONm2L/.oci (profile DEFAULT).
+  PASS: auto resolved to none for config without session
+
+=== Test: empty OCI_CONFIG_PAYLOAD ===
+  PASS: empty payload rejected
+
+=== Test: malformed payload ===
+  PASS: malformed payload rejected
+
+=== Test: setup script rejects missing ~/.oci/config ===
+  PASS: missing config rejected
+
+=== Test: setup script --help ===
+  PASS: help text present
+
+=== Test: bash -n on shell scripts ===
+  PASS: bash -n OK
+
+Results: 8 / 8 tests passed.
+[PASS] unit/test_oci_profile_setup.sh
+[run] unit/test_setup_oci_github_access_api_key_help.sh
+[PASS] help documents api_key mode
+[PASS] unit/test_setup_oci_github_access_api_key_help.sh
+[run] unit/test_setup_oci_github_access_config_profile_dry.sh
+[PASS] config_profile dry-run completed (DEFAULT→SLI_TEST)
+[PASS] unit/test_setup_oci_github_access_config_profile_dry.sh
+[run] unit/test_setup_oci_github_access_config_profile_help.sh
+[PASS] help documents config_profile mode
+[PASS] unit/test_setup_oci_github_access_config_profile_help.sh
+[run] unit/test_sli_compute_sli_metrics.sh
+[PASS] unit sli_compute_sli_metrics fixture computation
+[PASS] unit/test_sli_compute_sli_metrics.sh
+[run] unit/test_sli_ratio_simulator.sh
+[PASS] unit sli_ratio_simulator dry-run curve + determinism
+[PASS] unit/test_sli_ratio_simulator.sh
+[run] unit/test_sli_scheduled_workflows.sh
+[PASS] workflow files exist
+[PASS] SLI-22 schedule + dispatch ok
+[PASS] SLI-23 schedule + dispatch ok
+[PASS] OCI profile restore wiring ok
+[PASS] repo vars wiring ok
+[PASS] unit/test_sli_scheduled_workflows.sh
+=== unit summary: 13 scripts, 12 passed, 1 failed ===
+
+========================================
+TOTAL: 13 scripts, 12 passed, 1 failed
+========================================
+RESULT: FAIL

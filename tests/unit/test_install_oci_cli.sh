@@ -36,15 +36,15 @@ pull_image() {
 }
 
 if ! command -v podman >/dev/null 2>&1; then
-    echo "ERROR: podman not found. Install podman to run these tests." >&2
-    exit 1
+    echo "[SKIP] podman not found. Install podman to run these tests."
+    exit 0
 fi
 
 if ! podman info >/dev/null 2>&1; then
-    echo "ERROR: Podman is installed but not reachable." >&2
-    echo "  Check: podman system connection list" >&2
-    echo "  Fix:   podman machine start" >&2
-    exit 1
+    echo "[SKIP] Podman is installed but not reachable."
+    echo "  Check: podman system connection list"
+    echo "  Fix:   podman machine start"
+    exit 0
 fi
 
 if [[ ! -f "$INSTALL_SCRIPT" ]]; then

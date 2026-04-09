@@ -180,6 +180,18 @@ All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifac
 
 ## Recent updates
 
+### Sprint 18 — JSON-to-JSON transformation library with JSONata (SLI-26) (YOLO)
+
+**Status:** implemented + tested
+
+Adds a Node.js library (`tools/json_transformer.js`) and CLI (`tools/json_transform_cli.js`) that transform any JSON document to another shape using a JSONata expression loaded from a mapping file (`tools/mappings/`). Swapping the mapping file changes the target schema with no code changes. Example mappings ship for GitHub `workflow_run` webhook → OCI log entry and `/health` response → OCI metric datapoint. The module is designed for reuse in an OCI Fn function (next sprint).
+
+**Quality gates:** Unit (new-code manifest, 27 tests) PASS — see `progress/sprint_18/sprint_18_tests.md`. Regression: none (independent new module).
+
+**Traceability:** `progress/backlog/SLI-26/`
+
+---
+
 ### Sprint 17 — Upload existing OCI config profile to GitHub (SLI-25) (YOLO)
 
 **Status:** Done

@@ -1,0 +1,40 @@
+=== unit tests ===
+[run] unit/test_emit.sh
+== sli_normalize_json_object ==
+== sli_expand_oci_config_path ==
+== sli_merge_flat_context ==
+== sli_extract_oci_json ==
+== sli_failure_reasons_from_steps_json ==
+== sli_merge_failure_reasons ==
+== sli_unescape_json_fields ==
+== sli_build_log_entry ==
+== sli_build_base_json (fake GITHUB_*) ==
+== UT-1: emit_common.sh — all helpers sourced ==
+== UT-2: _oci_config_field — multi-profile config parsing ==
+== UT-3: emit_curl.sh — SLI_SKIP_OCI_PUSH skips curl ==
+== UT-4: emit_curl.sh — Authorization header structure ==
+== UT-5: emit_curl.sh — payload matches put-logs shape (specversion + logEntryBatches) ==
+== UT-6: emit.sh dispatcher — EMIT_BACKEND=curl ==
+== UT-7: emit.sh dispatcher — EMIT_BACKEND=oci-cli ==
+== UT-S10-1: sli_build_base_json — workflow object shape ==
+== UT-S10-2: sli_build_base_json — repo object shape ==
+== UT-S10-3: sli_build_base_json — old flat fields absent ==
+== UT-S12-1: sli_outcome_to_metric_value — success → 1 ==
+== UT-S12-2: sli_outcome_to_metric_value — failure → 0 ==
+== UT-S12-3: sli_outcome_to_metric_value — empty/unknown → 0 ==
+== UT-S12-4: emit_curl.sh EMIT_TARGET=log — skips metric push ==
+== UT-S12-5: emit_curl.sh EMIT_TARGET=metric — skips log push ==
+== summary ==
+passed: 54  failed: 0
+[PASS] unit/test_emit.sh
+[run] unit/test_install_oci_cli.sh
+
+=== Test: OCI CLI install on fresh ubuntu:22.04 ===
+  Image ubuntu:22.04 already cached.
+  Starting container...
+::group::Detect OS
+OS: Ubuntu 22.04
+::endgroup::
+::group::Install prerequisites
+Updating package lists...
+Installing packages: python3 python3-pip python3-venv curl jq...

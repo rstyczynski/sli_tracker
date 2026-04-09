@@ -1,0 +1,5 @@
+{
+  "version": "1",
+  "description": "Map a GitHub workflow_run webhook payload to an OCI Logging logEntryBatch",
+  "expression": "{ \"logEntryBatches\": [{ \"defaultlogentrytime\": $now(), \"entries\": [{ \"data\": { \"outcome\": workflow_run.conclusion, \"workflow\": workflow_run.name, \"run_id\": $string(workflow_run.id), \"run_number\": $string(workflow_run.run_number), \"branch\": workflow_run.head_branch, \"sha\": workflow_run.head_sha, \"repo\": repository.full_name, \"url\": workflow_run.html_url, \"event\": \"github_workflow_run\" } }] }] }"
+}

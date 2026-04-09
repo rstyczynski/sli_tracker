@@ -1,0 +1,54 @@
+[info] --new-only mode: filtering to tests listed in progress/sprint_18/new_tests.manifest
+[info] current implementation filters at script level, not function level
+=== unit tests ===
+[skip] unit/test_emit.sh (not in manifest)
+[skip] unit/test_install_oci_cli.sh (not in manifest)
+[run] unit/test_json_transformer_cli.sh
+[PASS] UT-20 --input file
+[PASS] UT-21 stdin
+[PASS] UT-22 --pretty indented
+[PASS] UT-23 unknown flag
+[PASS] UT-24 missing --mapping
+[PASS] UT-25 non-existent mapping
+[PASS] UT-26 non-existent input
+[PASS] UT-27 malformed source JSON
+
+=== json_transform_cli.js summary: 8 tests, 8 passed, 0 failed ===
+[PASS] unit/test_json_transformer_cli.sh
+[run] unit/test_json_transformer.sh
+[PASS] UT-1 identity mapping
+[PASS] UT-2 field extraction and rename
+[PASS] UT-3 nested field access
+[PASS] UT-4 array transformation
+[PASS] UT-5 conditional expression
+[PASS] UT-6 string concatenation
+[PASS] UT-7 numeric computation
+[PASS] UT-8 github workflow_run to oci log shape
+[PASS] UT-9 health endpoint to oci metric shape
+[PASS] UT-10 missing field omitted
+[PASS] UT-11 null field value
+[PASS] UT-12 type coercion
+[PASS] UT-13 empty source object
+[PASS] UT-14 source array at root
+[PASS] UT-15 missing expression field
+[PASS] UT-16 expression not a string
+[PASS] UT-17 invalid JSONata syntax
+[PASS] UT-18 mapping file not valid JSON
+[PASS] UT-19 mapping file does not exist
+
+=== json_transformer.js summary: 19 tests, 19 passed, 0 failed ===
+[PASS] unit/test_json_transformer.sh
+[skip] unit/test_oci_profile_setup_api_key.sh (not in manifest)
+[skip] unit/test_oci_profile_setup.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_api_key_help.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_config_profile_dry.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_config_profile_help.sh (not in manifest)
+[skip] unit/test_sli_compute_sli_metrics.sh (not in manifest)
+[skip] unit/test_sli_ratio_simulator.sh (not in manifest)
+[skip] unit/test_sli_scheduled_workflows.sh (not in manifest)
+=== unit summary: 2 scripts, 2 passed, 0 failed ===
+
+========================================
+TOTAL: 2 scripts, 2 passed, 0 failed
+========================================
+RESULT: PASS

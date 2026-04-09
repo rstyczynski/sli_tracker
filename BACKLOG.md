@@ -236,3 +236,9 @@ Test: a fresh repository can be configured using the dedicated user and then a w
 We need a way to upload an existing OCI CLI config profile (default `DEFAULT`) to GitHub as a secret payload for CI use, without creating a new API key and without touching IAM policies. This supports environments where the operator already has a fully privileged OCI user configured locally and only wants to package that profile for workflows. The `actions/oci-profile-setup/setup_oci_github_access.sh` script must support this mode and include any referenced key file material already used by the profile.
 
 Test: using the uploaded payload, a GitHub workflow run can authenticate with the given profile and successfully push one log entry and one metric datapoint.
+
+### SLI-26. JSON-to-JSON transformation library with file-based mapping and CLI
+
+A Node.js library that transforms one JSON document into another by applying a JSONata mapping definition loaded from a file, so source payloads such as `/health`/`/status` API responses or GitHub `workflow_run` webhooks can be converted to target structures such as OCI log or OCI metric without code changes. The mapping definition is a JSON file that describes field projections and expressions; swapping the file changes the target schema. A CLI wrapper lets operators test any transformation interactively against real input.
+
+Test: given a sample `workflow_run` webhook payload and a mapping file targeting the OCI log entry structure, the CLI outputs the correctly shaped OCI document with all mapped fields populated.

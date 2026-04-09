@@ -216,3 +216,16 @@ Extend `setup_oci_github_access.sh` with a mode that packs an existing API-key p
 Backlog Items:
 
 * SLI-25. Upload an existing OCI config profile to GitHub (API key, no IAM changes)
+
+## Sprint 18 - JSON-to-JSON transformation library (SLI-26)
+
+Status: Progress
+Mode: YOLO
+Test: unit
+Regression: none
+
+Node.js library that maps one JSON document to another using a JSONata expression loaded from a mapping file. Includes a CLI wrapper for interactive testing. No integration with OCI or any external service at this stage.
+
+Backlog Items:
+
+* SLI-26. JSON-to-JSON transformation library with file-based mapping and CLI

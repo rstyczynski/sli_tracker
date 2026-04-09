@@ -27,7 +27,7 @@ on:
       simulate-failure:
         description: "Force the main step to fail (for SLI testing)"
         type: boolean
-        default: true
+        default: false
 
   repository_dispatch:
     types: [model-call]

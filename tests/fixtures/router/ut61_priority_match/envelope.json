@@ -1,0 +1,11 @@
+{
+  "headers": {
+    "x-github-event": "workflow_run"
+  },
+  "body": {
+    "schema": "github.workflow_run",
+    "workflow_run": {
+      "conclusion": "success"
+    }
+  }
+}

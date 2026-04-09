@@ -1,0 +1,14 @@
+{
+  "route": {
+    "id": "payload_signature_route",
+    "destination": {
+      "type": "normalized_event",
+      "name": "workflow_signature"
+    }
+  },
+  "output": {
+    "outcome": "failure",
+    "updated_at": "2024-03-16T14:12:03Z",
+    "repo": "org/app"
+  }
+}

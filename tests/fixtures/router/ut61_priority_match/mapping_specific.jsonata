@@ -1,0 +1,4 @@
+{
+  "route_kind": "specific",
+  "outcome": workflow_run.conclusion
+}

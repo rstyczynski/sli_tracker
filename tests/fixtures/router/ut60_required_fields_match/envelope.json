@@ -1,0 +1,11 @@
+{
+  "body": {
+    "workflow_run": {
+      "conclusion": "failure",
+      "updated_at": "2024-03-16T14:12:03Z"
+    },
+    "repository": {
+      "full_name": "org/app"
+    }
+  }
+}

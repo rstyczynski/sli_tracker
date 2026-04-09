@@ -1,0 +1,7 @@
+{
+  "endpoint": "/health",
+  "body": {
+    "status": "UP",
+    "service": "api"
+  }
+}

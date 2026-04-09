@@ -1,0 +1,17 @@
+{
+  "routes": [
+    {
+      "id": "health_endpoint_to_metric",
+      "match": {
+        "endpoint": "/health"
+      },
+      "transform": {
+        "mapping": "./mapping.jsonata"
+      },
+      "destination": {
+        "type": "oci_metric",
+        "name": "health_signal"
+      }
+    }
+  ]
+}

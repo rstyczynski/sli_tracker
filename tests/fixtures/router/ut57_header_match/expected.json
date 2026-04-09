@@ -1,0 +1,14 @@
+{
+  "route": {
+    "id": "github_workflow_run_to_log",
+    "destination": {
+      "type": "oci_log",
+      "name": "github_events"
+    }
+  },
+  "output": {
+    "kind": "github_workflow_run",
+    "outcome": "success",
+    "repo": "org/app"
+  }
+}

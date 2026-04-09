@@ -1,0 +1,20 @@
+{
+  "routes": [
+    {
+      "id": "schema_driven_metric",
+      "match": {
+        "schema": {
+          "path": "schema",
+          "equals": "health.v1"
+        }
+      },
+      "transform": {
+        "mapping": "./mapping.jsonata"
+      },
+      "destination": {
+        "type": "oci_metric",
+        "name": "schema_metric"
+      }
+    }
+  ]
+}

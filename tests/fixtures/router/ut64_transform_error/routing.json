@@ -1,0 +1,18 @@
+{
+  "routes": [
+    {
+      "id": "strict_route",
+      "match": {
+        "headers": {
+          "X-GitHub-Event": "workflow_run"
+        }
+      },
+      "transform": {
+        "mapping": "./mapping.jsonata"
+      },
+      "destination": {
+        "type": "oci_log"
+      }
+    }
+  ]
+}

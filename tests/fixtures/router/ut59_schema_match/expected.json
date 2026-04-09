@@ -1,0 +1,13 @@
+{
+  "route": {
+    "id": "schema_driven_metric",
+    "destination": {
+      "type": "oci_metric",
+      "name": "schema_metric"
+    }
+  },
+  "output": {
+    "schema": "health.v1",
+    "value": 0
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "schema": schema,
+  "value": status = "UP" ? 1 : 0
+}

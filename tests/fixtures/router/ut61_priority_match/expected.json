@@ -1,0 +1,13 @@
+{
+  "route": {
+    "id": "schema_specific_route",
+    "destination": {
+      "type": "oci_log",
+      "name": "specific"
+    }
+  },
+  "output": {
+    "route_kind": "specific",
+    "outcome": "success"
+  }
+}

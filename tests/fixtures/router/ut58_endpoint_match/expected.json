@@ -1,0 +1,14 @@
+{
+  "route": {
+    "id": "health_endpoint_to_metric",
+    "destination": {
+      "type": "oci_metric",
+      "name": "health_signal"
+    }
+  },
+  "output": {
+    "metric": "health",
+    "value": 1,
+    "service": "api"
+  }
+}

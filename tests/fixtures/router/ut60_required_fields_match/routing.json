@@ -1,0 +1,21 @@
+{
+  "routes": [
+    {
+      "id": "payload_signature_route",
+      "match": {
+        "required_fields": [
+          "workflow_run.conclusion",
+          "workflow_run.updated_at",
+          "repository.full_name"
+        ]
+      },
+      "transform": {
+        "mapping": "./mapping.jsonata"
+      },
+      "destination": {
+        "type": "normalized_event",
+        "name": "workflow_signature"
+      }
+    }
+  ]
+}

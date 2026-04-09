@@ -1,0 +1,29 @@
+{
+  "outcome":       workflow_run.conclusion,
+  "outcome_value": workflow_run.conclusion = "success" ? 1 : 0,
+  "source":        "github_webhook",
+  "workflow": {
+    "name":        workflow_run.name,
+    "path":        workflow.path,
+    "run_id":      $string(workflow_run.id),
+    "run_number":  $string(workflow_run.run_number),
+    "run_attempt": $string(workflow_run.run_attempt),
+    "trigger":     workflow_run.event,
+    "branch":      workflow_run.head_branch,
+    "sha":         workflow_run.head_sha,
+    "created_at":  workflow_run.created_at,
+    "updated_at":  workflow_run.updated_at,
+    "duration_s":  ($toMillis(workflow_run.updated_at) - $toMillis(workflow_run.created_at)) / 1000
+  },
+  "repo": {
+    "name":       repository.name,
+    "full_name":  repository.full_name,
+    "private":    repository.private,
+    "language":   repository.language,
+    "owner":      repository.owner.login
+  },
+  "actor": {
+    "login": workflow_run.triggering_actor.login,
+    "type":  workflow_run.triggering_actor.type
+  }
+}

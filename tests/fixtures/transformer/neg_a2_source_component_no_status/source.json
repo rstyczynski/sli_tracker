@@ -1,0 +1,9 @@
+{
+  "status": "UP",
+  "components": {
+    "db":        {"status": "UP",   "details": {"database": "PostgreSQL"}},
+    "diskSpace": {"status": "UP",   "details": {"free": 50123456789, "total": 107374182400, "threshold": 10485760, "path": "/.", "exists": true}},
+    "ping":      {},
+    "redis":     {"status": "UP",   "details": {"version": "7.0.9"}}
+  }
+}

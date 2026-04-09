@@ -1,0 +1,21 @@
+{
+  "metricData": $each(components, function($comp, $name) {
+    {
+      "namespace":  "sli_tracker",
+      "name":       "component_health",
+      "datapoints": [{
+        "timestamp": $now(),
+        "value":     $comp.status = "UP" ? 1 : 0,
+        "count":     1
+      }],
+      "dimensions": {
+        "component":      $name,
+        "status":         $comp.status,
+        "overall_status": status
+      },
+      "metadata": {
+        "unit": "none"
+      }
+    }
+  })
+}

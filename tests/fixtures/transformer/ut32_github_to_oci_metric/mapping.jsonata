@@ -1,0 +1,24 @@
+{
+  "metricData": [{
+    "namespace":     "sli_tracker",
+    "name":          "workflow_outcome",
+    "datapoints": [{
+      "timestamp": workflow_run.updated_at,
+      "value":     workflow_run.conclusion = "success" ? 1 : 0,
+      "count":     1
+    }],
+    "dimensions": {
+      "workflow": workflow_run.name,
+      "branch":   workflow_run.head_branch,
+      "trigger":  workflow_run.event,
+      "repo":     repository.full_name,
+      "outcome":  workflow_run.conclusion
+    },
+    "metadata": {
+      "unit":        "none",
+      "run_id":      $string(workflow_run.id),
+      "run_number":  $string(workflow_run.run_number),
+      "duration_s":  $string(($toMillis(workflow_run.updated_at) - $toMillis(workflow_run.created_at)) / 1000)
+    }
+  }]
+}

@@ -1,0 +1,21 @@
+{
+  "logEntryBatches": [{
+    "defaultlogentrytime": eventTime,
+    "entries": [{
+      "data": {
+        "event_type":       eventType,
+        "event_id":         eventID,
+        "event_time":       eventTime,
+        "source":           source,
+        "operation":        $substringAfter(eventType, "psql."),
+        "db_system":        data.resourceName,
+        "db_system_id":     data.dbSystemId,
+        "backup_id":        data.backupId,
+        "backup_type":      data.backupType,
+        "retention_days":   data.retentionPeriod,
+        "compartment":      data.compartmentName,
+        "env":              data.freeformTags.env
+      }
+    }]
+  }]
+}

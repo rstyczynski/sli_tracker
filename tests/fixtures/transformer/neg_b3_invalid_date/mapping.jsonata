@@ -1,0 +1,3 @@
+{
+  "duration_s": ($toMillis(updated_at) - $toMillis(created_at)) / 1000
+}

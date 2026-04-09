@@ -1,0 +1,21 @@
+{
+  "logEntryBatches": [{
+    "defaultlogentrytime": "2024-03-17T03:15:00Z",
+    "entries": [{
+      "data": {
+        "event_type":       "com.oraclecloud.psql.backupcreated",
+        "event_id":         "b2c3d4e5-2345-6789-bcde-f01234567890",
+        "event_time":       "2024-03-17T03:15:00Z",
+        "source":           "Psql",
+        "operation":        "backupcreated",
+        "db_system":        "prod-postgres-primary",
+        "db_system_id":     "ocid1.postgresqldbsystem.oc1.iad..aaaaaaaapg",
+        "backup_id":        "ocid1.postgresqlbackup.oc1.iad..aaaaaaaabkp",
+        "backup_type":      "AUTOMATIC",
+        "retention_days":   7,
+        "compartment":      "mycompartment",
+        "env":              "prod"
+      }
+    }]
+  }]
+}

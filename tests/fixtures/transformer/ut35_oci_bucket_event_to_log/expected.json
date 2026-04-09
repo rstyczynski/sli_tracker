@@ -1,0 +1,18 @@
+{
+  "logEntryBatches": [{
+    "defaultlogentrytime": "2024-03-15T10:23:45Z",
+    "entries": [{
+      "data": {
+        "event_type":   "com.oraclecloud.objectstorage.createobject",
+        "event_id":     "f81d4fae-7dec-11d0-a765-00a0c91e6bf6",
+        "source":       "ObjectStorage",
+        "event_time":   "2024-03-15T10:23:45Z",
+        "resource":     "reports/2024-03/summary.csv",
+        "bucket":       "data-bucket",
+        "namespace":    "mynamespace",
+        "compartment":  "mycompartment",
+        "operation":    "createobject"
+      }
+    }]
+  }]
+}

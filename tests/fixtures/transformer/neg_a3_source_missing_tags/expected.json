@@ -1,0 +1,22 @@
+{
+  "metricData": [{
+    "namespace": "sli_tracker",
+    "name":      "compute_lifecycle_event",
+    "datapoints": [{
+      "timestamp": "2024-03-16T08:44:17Z",
+      "value":     1,
+      "count":     1
+    }],
+    "dimensions": {
+      "event_type":    "terminateinstance.end",
+      "resource_name": "web-server-prod-03",
+      "compartment":   "mycompartment",
+      "ad":            "US-ASHBURN-AD-2"
+    },
+    "metadata": {
+      "unit":        "none",
+      "resource_id": "ocid1.instance.oc1.iad..aaaaaaaainst",
+      "event_id":    "a1b2c3d4-1234-5678-abcd-ef0123456789"
+    }
+  }]
+}

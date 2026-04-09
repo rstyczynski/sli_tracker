@@ -1,0 +1,28 @@
+{
+  "metricData": [
+    {
+      "namespace": "sli_tracker",
+      "name":      "component_health",
+      "dimensions": {"component": "db",        "status": "DOWN", "overall_status": "DOWN"},
+      "datapoints": [{"value": 0, "count": 1}]
+    },
+    {
+      "namespace": "sli_tracker",
+      "name":      "component_health",
+      "dimensions": {"component": "diskSpace", "status": "UP",   "overall_status": "DOWN"},
+      "datapoints": [{"value": 1, "count": 1}]
+    },
+    {
+      "namespace": "sli_tracker",
+      "name":      "component_health",
+      "dimensions": {"component": "ping",      "status": "UP",   "overall_status": "DOWN"},
+      "datapoints": [{"value": 1, "count": 1}]
+    },
+    {
+      "namespace": "sli_tracker",
+      "name":      "component_health",
+      "dimensions": {"component": "redis",     "status": "UP",   "overall_status": "DOWN"},
+      "datapoints": [{"value": 1, "count": 1}]
+    }
+  ]
+}

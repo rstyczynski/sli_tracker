@@ -1,0 +1,8 @@
+{
+  "metricData": [
+    {"dimensions": {"component": "db"},        "datapoints": [{"value": 1}]},
+    {"dimensions": {"component": "diskSpace"}, "datapoints": [{"value": 1}]},
+    {"dimensions": {"component": "ping"},      "datapoints": [{"value": 0}]},
+    {"dimensions": {"component": "redis"},     "datapoints": [{"value": 1}]}
+  ]
+}

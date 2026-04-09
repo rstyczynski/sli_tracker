@@ -1,0 +1,25 @@
+{
+  "eventType":          "com.oraclecloud.psql.backupcreated",
+  "cloudEventsVersion": "0.1",
+  "eventTypeVersion":   "2.0",
+  "source":             "Psql",
+  "eventTime":          "2024-03-17T03:15:00Z",
+  "contentType":        "application/json",
+  "eventID":            "b2c3d4e5-2345-6789-bcde-f01234567890",
+  "data": {
+    "compartmentId":    "ocid1.compartment.oc1..aaaaaaaaxyz",
+    "compartmentName":  "mycompartment",
+    "resourceName":     "prod-postgres-primary",
+    "resourceId":       "ocid1.postgresqldbsystem.oc1.iad..aaaaaaaapg",
+    "dbSystemId":       "ocid1.postgresqldbsystem.oc1.iad..aaaaaaaapg",
+    "backupId":         "ocid1.postgresqlbackup.oc1.iad..aaaaaaaabkp",
+    "backupType":       "AUTOMATIC",
+    "retentionPeriod":  7,
+    "availabilityDomain": "US-ASHBURN-AD-1",
+    "freeformTags":     {"env": "prod"},
+    "definedTags":      {}
+  },
+  "extensions": {
+    "compartmentId": "ocid1.compartment.oc1..aaaaaaaaxyz"
+  }
+}

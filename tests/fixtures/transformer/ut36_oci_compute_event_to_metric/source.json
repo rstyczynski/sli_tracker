@@ -1,0 +1,21 @@
+{
+  "eventType":          "com.oraclecloud.computeapi.terminateinstance.end",
+  "cloudEventsVersion": "0.1",
+  "eventTypeVersion":   "2.0",
+  "source":             "ComputeApi",
+  "eventTime":          "2024-03-16T08:44:17Z",
+  "contentType":        "application/json",
+  "eventID":            "a1b2c3d4-1234-5678-abcd-ef0123456789",
+  "data": {
+    "compartmentId":   "ocid1.compartment.oc1..aaaaaaaaxyz",
+    "compartmentName": "mycompartment",
+    "resourceName":    "web-server-prod-03",
+    "resourceId":      "ocid1.instance.oc1.iad..aaaaaaaainst",
+    "availabilityDomain": "US-ASHBURN-AD-2",
+    "freeformTags":    {"env": "prod", "team": "platform"},
+    "definedTags":     {}
+  },
+  "extensions": {
+    "compartmentId": "ocid1.compartment.oc1..aaaaaaaaxyz"
+  }
+}

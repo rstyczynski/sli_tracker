@@ -1,0 +1,23 @@
+{
+  "metricData": [{
+    "namespace":  "sli_tracker",
+    "name":       "compute_lifecycle_event",
+    "datapoints": [{
+      "timestamp": eventTime,
+      "value":     1,
+      "count":     1
+    }],
+    "dimensions": {
+      "event_type":    $substringAfter(eventType, "computeapi."),
+      "resource_name": data.resourceName,
+      "compartment":   data.compartmentName,
+      "ad":            data.availabilityDomain,
+      "env":           data.freeformTags.env
+    },
+    "metadata": {
+      "unit":        "none",
+      "resource_id": data.resourceId,
+      "event_id":    eventID
+    }
+  }]
+}

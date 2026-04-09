@@ -1,0 +1,18 @@
+{
+  "logEntryBatches": [{
+    "defaultlogentrytime": eventTime,
+    "entries": [{
+      "data": {
+        "event_type":   eventType,
+        "event_id":     eventID,
+        "source":       source,
+        "event_time":   eventTime,
+        "resource":     data.resourceName,
+        "bucket":       data.bucketName,
+        "namespace":    data.namespace,
+        "compartment":  data.compartmentName,
+        "operation":    $substringAfter(eventType, "objectstorage.")
+      }
+    }]
+  }]
+}

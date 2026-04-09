@@ -1,0 +1,10 @@
+{
+  "overall_status": "DOWN",
+  "healthy": false,
+  "metricData": [
+    {"name": "component_health", "dimensions": {"component": "db"},        "datapoints": [{"value": 0}]},
+    {"name": "component_health", "dimensions": {"component": "diskSpace"}, "datapoints": [{"value": 1}]},
+    {"name": "component_health", "dimensions": {"component": "ping"},      "datapoints": [{"value": 1}]},
+    {"name": "component_health", "dimensions": {"component": "redis"},     "datapoints": [{"value": 1}]}
+  ]
+}

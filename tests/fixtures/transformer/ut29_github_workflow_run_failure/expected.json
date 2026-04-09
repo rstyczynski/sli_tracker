@@ -1,0 +1,29 @@
+{
+  "outcome":       "failure",
+  "outcome_value": 0,
+  "source":        "github_webhook",
+  "workflow": {
+    "name":        "CI / Build and Test",
+    "path":        ".github/workflows/ci.yml",
+    "run_id":      "8765432200",
+    "run_number":  "248",
+    "run_attempt": "1",
+    "trigger":     "pull_request",
+    "branch":      "feature/new-auth",
+    "sha":         "deadbeef12345678901234567890abcdef012345",
+    "created_at":  "2024-03-16T14:05:11Z",
+    "updated_at":  "2024-03-16T14:12:03Z",
+    "duration_s":  412
+  },
+  "repo": {
+    "name":      "myapp",
+    "full_name": "org/myapp",
+    "private":   true,
+    "language":  "TypeScript",
+    "owner":     "org"
+  },
+  "actor": {
+    "login": "adev",
+    "type":  "User"
+  }
+}

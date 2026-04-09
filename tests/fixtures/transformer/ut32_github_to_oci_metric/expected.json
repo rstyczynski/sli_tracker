@@ -1,0 +1,24 @@
+{
+  "metricData": [{
+    "namespace": "sli_tracker",
+    "name":      "workflow_outcome",
+    "datapoints": [{
+      "timestamp": "2024-03-15T10:31:22Z",
+      "value":     1,
+      "count":     1
+    }],
+    "dimensions": {
+      "workflow": "CI / Build and Test",
+      "branch":   "main",
+      "trigger":  "push",
+      "repo":     "org/myapp",
+      "outcome":  "success"
+    },
+    "metadata": {
+      "unit":       "none",
+      "run_id":     "8765432109",
+      "run_number": "247",
+      "duration_s": "457"
+    }
+  }]
+}

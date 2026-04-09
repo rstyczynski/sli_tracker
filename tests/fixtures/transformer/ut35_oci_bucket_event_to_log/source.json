@@ -1,0 +1,25 @@
+{
+  "eventType":          "com.oraclecloud.objectstorage.createobject",
+  "cloudEventsVersion": "0.1",
+  "eventTypeVersion":   "2.0",
+  "source":             "ObjectStorage",
+  "eventTime":          "2024-03-15T10:23:45Z",
+  "contentType":        "application/json",
+  "eventID":            "f81d4fae-7dec-11d0-a765-00a0c91e6bf6",
+  "data": {
+    "compartmentId":   "ocid1.compartment.oc1..aaaaaaaaxyz",
+    "compartmentName": "mycompartment",
+    "resourceName":    "reports/2024-03/summary.csv",
+    "resourceId":      "/n/mynamespace/b/data-bucket/o/reports%2F2024-03%2Fsummary.csv",
+    "namespace":       "mynamespace",
+    "bucketName":      "data-bucket",
+    "bucketId":        "ocid1.bucket.oc1.iad..aaaaaaaabucket",
+    "availabilityDomain": "US-ASHBURN-AD-1",
+    "eTag":            "\"abc123def456\"",
+    "freeformTags":    {},
+    "definedTags":     {}
+  },
+  "extensions": {
+    "compartmentId": "ocid1.compartment.oc1..aaaaaaaaxyz"
+  }
+}

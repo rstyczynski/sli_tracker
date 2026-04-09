@@ -180,6 +180,18 @@ All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifac
 
 ## Recent updates
 
+### Sprint 19 — Source identification and routing to transformer + destination (SLI-27) (YOLO)
+
+**Status:** implemented + tested
+
+Adds a routing layer (`tools/json_router.js`) in front of the Sprint 18 JSON transformer. The router accepts a normalized envelope containing payload body plus optional transport metadata such as headers and endpoint identity, matches that envelope against a declarative routing definition, resolves ambiguity by priority, and then dispatches to the selected JSONata mapping. Route matching supports exact headers, exact endpoint, explicit schema marker fields, and required payload fields, so source identification stays explicit instead of being inferred from transformer internals.
+
+**Quality gates:** Unit new-code PASS (8 routing checks), Regression Unit PASS — see `progress/sprint_19/sprint_19_tests.md`.
+
+**Traceability:** `progress/backlog/SLI-27/`
+
+---
+
 ### Sprint 18 — JSON-to-JSON transformation library with JSONata (SLI-26) (YOLO)
 
 **Status:** implemented + tested

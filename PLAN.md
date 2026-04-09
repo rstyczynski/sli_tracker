@@ -219,7 +219,7 @@ Backlog Items:
 
 ## Sprint 18 - JSON-to-JSON transformation library (SLI-26)
 
-Status: Progress
+Status: Done
 Mode: YOLO
 Test: unit
 Regression: none
@@ -229,3 +229,16 @@ Node.js library that maps one JSON document to another using a JSONata expressio
 Backlog Items:
 
 * SLI-26. JSON-to-JSON transformation library with file-based mapping and CLI
+
+## Sprint 19 - Source identification and routing to transformer + destination
+
+Status: Done
+Mode: YOLO
+Test: unit
+Regression: unit
+
+Add a routing layer in front of the JSON transformer that can identify incoming source data, choose the appropriate transformation mapping, and decide the destination contract. Source identification may use transport metadata (for example HTTP headers such as `X-GitHub-Event: workflow_run`), the receiving endpoint identity, explicit schema/type markers inside the payload, and selected mandatory-field checks. The router should be testable offline against a stream of input documents plus routing-definition fixtures, with each case producing an expected routed target JSON payload and selected route metadata.
+
+Backlog Items:
+
+* SLI-27. Identify source payload type and route it to the correct transformer mapping and destination

@@ -1,0 +1,81 @@
+[info] --new-only mode: filtering to tests listed in progress/sprint_18/new_tests.manifest
+[info] current implementation filters at script level, not function level
+=== unit tests ===
+[skip] unit/test_emit.sh (not in manifest)
+[skip] unit/test_install_oci_cli.sh (not in manifest)
+[run] unit/test_json_transformer_cli.sh
+[PASS] UT-20 --input file
+[PASS] UT-21 stdin
+[PASS] UT-22 --pretty indented
+[PASS] UT-23 unknown flag
+[PASS] UT-24 missing --mapping
+[PASS] UT-25 non-existent mapping
+[PASS] UT-26 non-existent input
+[PASS] UT-27 malformed source JSON
+[PASS] UT-28 strict mapping assertion failure surfaces via CLI
+
+=== json_transform_cli.js: 9 tests, 9 passed, 0 failed ===
+[PASS] unit/test_json_transformer_cli.sh
+[run] unit/test_json_transformer.sh
+[PASS] UT-1  identity mapping
+[PASS] UT-2  field extraction and rename
+[PASS] UT-3  nested field access
+[PASS] UT-4  array transformation
+[PASS] UT-5  conditional expression
+[PASS] UT-6  string concatenation
+[PASS] UT-7  numeric computation
+[PASS] UT-8  github workflow_run → oci log
+[PASS] UT-9  health endpoint → oci metric
+[PASS] UT-28 github workflow_run success → SLI event + duration_s
+[PASS] UT-29 github workflow_run failure → outcome_value=0
+[PASS] UT-30 /health all UP → metric value=1 per component
+[PASS] UT-31 /health db DOWN → db value=0, others value=1
+[PASS] UT-32 github workflow_run → OCI PostMetricData
+[PASS] UT-33 /health all UP → OCI PostMetricData per component
+[PASS] UT-34 /health db DOWN → OCI PostMetricData db=0
+[PASS] UT-35 OCI bucket CloudEvent → log entry + $substringAfter
+[PASS] UT-36 OCI compute CloudEvent → OCI metric with freeformTags
+[PASS] UT-37 OCI PostgreSQL backup CloudEvent → log entry
+[PASS] UT-38 (a1) missing conclusion → outcome absent, outcome_value=0
+[PASS] UT-39 (a2) component missing status → value=0
+[PASS] UT-40 (a3) freeformTags absent → env dimension omitted
+[PASS] UT-41 (b1) division by zero → ratio=null (JSONata does not throw)
+[PASS] UT-42 (b2) undefined function in expression → error
+[PASS] UT-43 (b3) $toMillis on non-ISO string → error
+[PASS] UT-44 (a4) workflow_run key entirely absent → degraded output
+[PASS] UT-45 (a5) components:{} empty → metricData key absent
+[PASS] UT-46 (a6) component status is number not string → value=0
+[PASS] UT-47 (b4) multiply string by number → error
+[PASS] UT-48 (b5) $substringAfter sep not found → full string returned
+[PASS] UT-49 (c1) required workflow_run.conclusion missing → error
+[PASS] UT-50 (c2) required workflow_run.updated_at missing → error
+[PASS] UT-51 (c3) required repository.full_name missing → error
+[PASS] UT-52 (c4) required workflow_run missing → error
+[PASS] UT-53 (c5) required repository missing → error
+[PASS] UT-10 missing field in source omitted
+[PASS] UT-11 null field value passes through
+[PASS] UT-12 number-to-string coercion
+[PASS] UT-13 empty source with $exists guard
+[PASS] UT-14 source is array at root
+[PASS] UT-15 missing expression field → error
+[PASS] UT-16 expression not a string → error
+[PASS] UT-17 invalid JSONata syntax → error
+[PASS] UT-18 mapping file not valid JSON → error
+[PASS] UT-19 mapping file does not exist → error
+
+=== json_transformer.js: 45 tests, 45 passed, 0 failed ===
+[PASS] unit/test_json_transformer.sh
+[skip] unit/test_oci_profile_setup_api_key.sh (not in manifest)
+[skip] unit/test_oci_profile_setup.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_api_key_help.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_config_profile_dry.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_config_profile_help.sh (not in manifest)
+[skip] unit/test_sli_compute_sli_metrics.sh (not in manifest)
+[skip] unit/test_sli_ratio_simulator.sh (not in manifest)
+[skip] unit/test_sli_scheduled_workflows.sh (not in manifest)
+=== unit summary: 2 scripts, 2 passed, 0 failed ===
+
+========================================
+TOTAL: 2 scripts, 2 passed, 0 failed
+========================================
+RESULT: PASS

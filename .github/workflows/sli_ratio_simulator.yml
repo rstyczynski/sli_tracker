@@ -50,7 +50,7 @@ jobs:
             --target-failure-rate 0.45 \
             --ramp-seconds 1200 \
             --hold-seconds 120 \
-            --teardown-seconds 1s80 \
+            --teardown-seconds 180 \
             --interval-seconds 5 \
             --ramp-curve logarithmic \
             --teardown-curve exponential \

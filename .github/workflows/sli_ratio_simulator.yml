@@ -45,6 +45,10 @@ jobs:
           export SLI_METRIC_NAMESPACE="${SLI_METRIC_NAMESPACE:-sli_tracker}"
           export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"'"${OCI_PROFILE_RESTORED}"'"}}'
 
+          # Randomize seed per run. Keep it within 32-bit signed int range (1..2,147,483,647)
+          # because the simulator parses it as an integer in Python.
+          SEED="$(( ( (RANDOM << 16) ^ RANDOM ^ $(date +%s) ) % 2147483647 + 1 ))"
+
           # Keep the hourly run bounded: 10 minutes total (ramp 5m, hold 2m, teardown 3m).
           tools/sli_ratio_simulator.sh \
             --target-failure-rate 0.45 \
@@ -54,5 +58,5 @@ jobs:
             --interval-seconds 5 \
             --ramp-curve logarithmic \
             --teardown-curve exponential \
-            --seed 42
+            --seed "$SEED"
 

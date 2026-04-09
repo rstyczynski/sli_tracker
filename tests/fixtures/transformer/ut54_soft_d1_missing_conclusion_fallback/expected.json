@@ -1,0 +1,8 @@
+{
+  "outcome": "unknown",
+  "updated_at": "2024-03-15T10:31:22Z",
+  "repo": "org/myapp",
+  "missing_fields": [
+    "workflow_run.conclusion"
+  ]
+}

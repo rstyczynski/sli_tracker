@@ -186,7 +186,7 @@ All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifac
 
 Adds a Node.js library (`tools/json_transformer.js`) and CLI (`tools/json_transform_cli.js`) that transform any JSON document to another shape using a JSONata expression loaded from a mapping file (`tools/mappings/`). Swapping the mapping file changes the target schema with no code changes. Example mappings ship for GitHub `workflow_run` webhook → OCI log entry and `/health` response → OCI metric datapoint. The module supports both permissive mappings that omit missing fields naturally and strict mappings that fail fast with JSONata `$assert($exists(...), "...")`. It is designed for reuse in an OCI Fn function (next sprint).
 
-**Quality gates:** Unit (new-code manifest) PASS. Current suite coverage is 54 checks across transformer and CLI paths, including strict required-field validation — see `progress/sprint_18/sprint_18_tests.md`. Regression: none (independent new module).
+**Quality gates:** Unit (new-code manifest) PASS. Current suite coverage is 56 checks across transformer and CLI paths, including strict required-field validation, soft fallback mappings, and UT-tagged fixture datasets — see `progress/sprint_18/sprint_18_tests.md`. Regression: none (independent new module).
 
 **Traceability:** `progress/backlog/SLI-26/`
 

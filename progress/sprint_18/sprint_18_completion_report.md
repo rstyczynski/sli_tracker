@@ -14,7 +14,7 @@ Sprint: 18 | Mode: YOLO | Status: implemented
 
 | Item | Status | Tests |
 |------|--------|-------|
-| SLI-26 | tested | unit pass |
+| SLI-26 | tested | 56 unit checks pass |
 
 ## Quality Gates
 
@@ -30,3 +30,7 @@ Sprint: 18 | Mode: YOLO | Status: implemented
 
 - Test: unit | Regression: none
 - Flaky tests deferred: None
+
+## Notes
+
+- Final fixture organization uses UT-coded dataset directory names plus `test_ids.txt` metadata for traceability from tests back to datasets.

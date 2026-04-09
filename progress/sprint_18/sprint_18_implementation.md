@@ -39,4 +39,5 @@ The `expression` is evaluated with the source document as root context (`$`). St
 
 ## Test Scope Reached
 
-- Library and CLI unit coverage now includes baseline expression handling, malformed mapping/input cases, real-world GitHub and OCI payload mappings, graceful degradation for optional data, and strict required-field validation using `$assert(...)`.
+- Library and CLI unit coverage now includes baseline expression handling, malformed mapping/input cases, real-world GitHub and OCI payload mappings, graceful degradation for optional data, strict required-field validation using `$assert(...)`, and soft-fallback mappings that emit diagnostics instead of aborting.
+- The transformer fixture corpus is organized with UT-coded directory names plus per-dataset `test_ids.txt` metadata so test ownership is visible directly inside each dataset directory.

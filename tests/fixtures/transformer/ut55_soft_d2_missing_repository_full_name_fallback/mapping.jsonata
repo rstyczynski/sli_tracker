@@ -1,0 +1,10 @@
+{
+  "outcome": $exists(workflow_run.conclusion) ? workflow_run.conclusion : "unknown",
+  "updated_at": workflow_run.updated_at,
+  "repo": $exists(repository.full_name) ? repository.full_name : "repo_unknown",
+  "missing_fields": [
+    $exists(workflow_run.conclusion) ? undefined : "workflow_run.conclusion",
+    $exists(workflow_run.updated_at) ? undefined : "workflow_run.updated_at",
+    $exists(repository.full_name) ? undefined : "repository.full_name"
+  ]
+}

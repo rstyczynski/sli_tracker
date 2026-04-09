@@ -4,7 +4,7 @@
 
 Result at sprint closeout: **PASS** — 2 scripts, 48 checks passed, 0 failed.
 
-Result after requirements reconciliation: **PASS** — 2 scripts, 54 checks passed, 0 failed.
+Result after requirements reconciliation: **PASS** — 2 scripts, 56 checks passed, 0 failed.
 
 Coverage now includes:
 
@@ -12,7 +12,9 @@ Coverage now includes:
 - real-world GitHub webhook, `/health`, and OCI event transformation fixtures
 - graceful degradation for permissive mappings with missing optional source fields
 - strict required-field validation through JSONata `$assert($exists(...), "...")`
+- soft-fallback mappings that substitute defaults and emit missing-field diagnostics
 - CLI propagation of transform-time assertion failures
+- fixture datasets named and tagged with UT identifiers for direct traceability
 
 ### Artifacts
 

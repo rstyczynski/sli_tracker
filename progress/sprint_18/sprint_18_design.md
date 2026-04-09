@@ -59,6 +59,14 @@ The `expression` is a full JSONata expression. The source document root is avail
 }
 ```
 
+### Fixture naming
+
+Transformer fixtures live under `tests/fixtures/transformer/`.
+
+- baseline fixture directories use the canonical UT-style naming already present in the suite, for example `ut01_identity`
+- extended negative and soft-handling fixtures now also carry the UT identifier in the directory name, for example `ut48_neg_b5_substringafter_no_match` and `ut54_soft_d1_missing_conclusion_fallback`
+- each fixture directory includes `test_ids.txt` so dataset ownership is explicit even when one dataset is reused by multiple tests, for example `ut49_ut56_neg_c1_required_conclusion_missing`
+
 ## Testing Strategy
 
 **Scope:** unit only. No OCI API calls, no HTTP, no filesystem side effects beyond reading fixture files.
@@ -112,7 +120,7 @@ The `expression` is a full JSONata expression. The source document root is avail
 
 ## Test Specification
 
-### Unit tests — UT-1 through UT-54
+### Unit tests — UT-1 through UT-56
 
 | ID    | Suite | Script                              | Function / scenario                            |
 |-------|-------|-------------------------------------|------------------------------------------------|
@@ -169,7 +177,9 @@ The `expression` is a full JSONata expression. The source document root is avail
 | UT-51 | unit  | test_json_transformer.sh            | strict mapping rejects missing repository name |
 | UT-52 | unit  | test_json_transformer.sh            | strict mapping rejects missing workflow_run    |
 | UT-53 | unit  | test_json_transformer.sh            | strict mapping rejects missing repository      |
-| UT-54 | unit  | test_json_transformer_cli.sh        | CLI surfaces strict mapping assertion failure  |
+| UT-54 | unit  | test_json_transformer.sh            | missing conclusion → fallback value + diagnostics |
+| UT-55 | unit  | test_json_transformer.sh            | missing repository name → fallback value + diagnostics |
+| UT-56 | unit  | test_json_transformer_cli.sh        | CLI surfaces strict mapping assertion failure  |
 
 ## Requirements Clarified During Construction
 
@@ -178,4 +188,5 @@ The `expression` is a full JSONata expression. The source document root is avail
 - The transformer must support two mapping styles without special-case code:
   - permissive mappings where missing fields are omitted naturally by JSONata
   - strict mappings that enforce required inputs via `$assert($exists(...), "...")`
+- Fixture datasets are now traceable back to unit-test identifiers through UT-coded directory names and local `test_ids.txt` metadata.
 - Real-world coverage extends beyond the initial examples to GitHub webhook payloads, health-to-metric mappings, and OCI event reshaping, because those are already represented in the fixture corpus and exercise the reusable-library claim.

@@ -34,9 +34,23 @@ assert_exit() {
     else fail "$label (expected exit $expected_code, got $actual_code)"; fi
 }
 
-MAPPING="${FX}/cli_basic/mapping.jsonata"
-SOURCE="${FX}/cli_basic/source.json"
-EXPECTED=$(node -e "process.stdout.write(JSON.stringify(JSON.parse(require('fs').readFileSync('${FX}/cli_basic/expected.json','utf8'))))")
+assert_exit_and_stderr_contains() {
+    local label="$1" expected_code="$2" expected_fragment="$3"
+    shift 3
+    local actual_code=0 stderr_file
+    stderr_file=$(mktemp /tmp/sli26_cli_stderr.XXXXXX)
+    "$@" >/dev/null 2>"$stderr_file" || actual_code=$?
+    if [[ "$actual_code" -eq "$expected_code" ]] && grep -q "$expected_fragment" "$stderr_file"; then
+        ok "$label"
+    else
+        fail "$label (expected exit $expected_code and stderr containing '$expected_fragment', got exit $actual_code)"
+    fi
+    rm -f "$stderr_file"
+}
+
+MAPPING="${FX}/ut20_ut21_ut22_cli_basic/mapping.jsonata"
+SOURCE="${FX}/ut20_ut21_ut22_cli_basic/source.json"
+EXPECTED=$(node -e "process.stdout.write(JSON.stringify(JSON.parse(require('fs').readFileSync('${FX}/ut20_ut21_ut22_cli_basic/expected.json','utf8'))))")
 
 # UT-20: --input file produces correct output
 result=$(node "$CLI" --mapping "$MAPPING" --input "$SOURCE")
@@ -65,20 +79,22 @@ assert_exit "UT-25 non-existent mapping"     1  node "$CLI" --mapping /tmp/__no_
 assert_exit "UT-26 non-existent input"       1  node "$CLI" --mapping "$MAPPING" --input /tmp/__no_such_input__.json
 
 # UT-27: malformed source JSON → exit 1
-assert_exit "UT-27 malformed source JSON"    1  node "$CLI" --mapping "$MAPPING" --input "${FX}/cli_bad_source/source_bad.json"
+CLI_BAD_SOURCE_ERROR=$(tr -d '\n' < "${FX}/ut27_cli_bad_source/expected_error.txt")
+assert_exit_and_stderr_contains "UT-27 malformed source JSON" 1 "$CLI_BAD_SOURCE_ERROR" \
+    node "$CLI" --mapping "$MAPPING" --input "${FX}/ut27_cli_bad_source/source_bad.json"
 
-# UT-28: transform-time validation failure from $assert(...) → exit 1 with useful error
+# UT-56: transform-time validation failure from $assert(...) → exit 1 with useful error
 strict_stderr_file=$(mktemp /tmp/sli26_cli_stderr.XXXXXX)
 strict_stdout_file=$(mktemp /tmp/sli26_cli_stdout.XXXXXX)
 strict_code=0
-node "$CLI" \
-    --mapping "${FX}/neg_c1_required_conclusion_missing/mapping.jsonata" \
-    --input "${FX}/neg_c1_required_conclusion_missing/source.json" \
+    node "$CLI" \
+    --mapping "${FX}/ut49_ut56_neg_c1_required_conclusion_missing/mapping.jsonata" \
+    --input "${FX}/ut49_ut56_neg_c1_required_conclusion_missing/source.json" \
     >"$strict_stdout_file" 2>"$strict_stderr_file" || strict_code=$?
 if [[ "$strict_code" -eq 1 ]] && grep -q "missing: workflow_run.conclusion" "$strict_stderr_file" && [[ ! -s "$strict_stdout_file" ]]; then
-    ok "UT-28 strict mapping assertion failure surfaces via CLI"
+    ok "UT-56 strict mapping assertion failure surfaces via CLI"
 else
-    fail "UT-28 strict mapping assertion failure surfaces via CLI"
+    fail "UT-56 strict mapping assertion failure surfaces via CLI"
 fi
 rm -f "$strict_stderr_file" "$strict_stdout_file"
 

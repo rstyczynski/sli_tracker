@@ -1,0 +1,23 @@
+{
+  "adapters": {
+    "oci_object_storage:raw_ingest": {
+      "bucket": "REPLACED_AT_RUNTIME",
+      "prefix": "ingest/"
+    }
+  },
+  "routes": [
+    {
+      "id": "passthrough_to_object_storage",
+      "mode": "exclusive",
+      "priority": 0,
+      "transform": {
+        "mapping": "./passthrough.jsonata"
+      },
+      "destination": {
+        "type": "oci_object_storage",
+        "name": "raw_ingest"
+      }
+    }
+  ]
+}
+

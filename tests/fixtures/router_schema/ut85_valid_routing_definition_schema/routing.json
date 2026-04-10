@@ -1,7 +1,7 @@
 {
   "dead_letter": {
     "type": "dead_letter",
-    "directory": "dead_letter/errors"
+    "name": "errors"
   },
   "routes": [
     {
@@ -17,7 +17,7 @@
       },
       "destination": {
         "type": "oci_log",
-        "directory": "oci_log/github_events"
+        "name": "github_events"
       }
     },
     {
@@ -32,7 +32,7 @@
       },
       "destination": {
         "type": "oci_metric",
-        "directory": "oci_metric/health_signal"
+        "name": "health_signal"
       }
     }
   ]

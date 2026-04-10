@@ -259,3 +259,30 @@ Backlog Items:
 * SLI-30. Pluggable JavaScript source and destination adapters for router processing
 * SLI-31. Example filesystem target adapter for router handler API
 * SLI-32. Example filesystem source adapter for router handler API
+
+## Sprint 21 - Universal destinations and component-scoped router regression
+
+Status: Done
+Mode: YOLO
+Test: unit, integration
+Regression: unit
+
+Refactor `routing.json` destinations so they stay transport-agnostic and stop carrying filesystem-only path metadata. The router component should route to logical destination identities (`type` + optional `name`), while concrete adapters resolve those identities for filesystem, OCI Object Storage, OCI Monitoring, and OCI Logging delivery. This sprint also defines how to scope regression to the router/transformer component only by adding manifest-based regression filtering to the centralized test runner.
+
+Backlog Items:
+
+* SLI-33. Separate logical destination model from adapter-specific delivery metadata
+* SLI-34. Component-scoped regression manifests for router and transformer
+
+## Sprint 22 - Public OCI Function router to Object Storage (pass-through)
+
+Status: Done
+Mode: YOLO
+Test: unit, integration
+Regression: unit
+
+Create an internet-exposed OCI Function that accepts a routing envelope payload and persists it to OCI Object Storage without transformation. Use the `oci_scaffold` `cycle-apigw` pattern to ensure the public API Gateway exposure and the required OCI resources (compartment, function app, function, gateway, deployment, bucket) are created idempotently for local and CI validation.
+
+Backlog Items:
+
+* SLI-35. Public OCI Function router to Object Storage (pass-through)

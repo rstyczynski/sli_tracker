@@ -45,10 +45,12 @@ function createFileAdapter(options = {}) {
     }
 
     const rootDir = ensureString(options.rootDir, 'File adapter rootDir');
+    const destinationMap = options.destinationMap;
     const deadLetterDir = options.deadLetterDir === undefined
         ? 'dead_letter/errors'
         : ensureString(options.deadLetterDir, 'File adapter deadLetterDir');
     const preserveSourceFileName = options.preserveSourceFileName === true;
+    const supportedTypes = Array.isArray(options.supportedTypes) ? new Set(options.supportedTypes) : null;
     const formatDeadLetter = options.formatDeadLetter === undefined
         ? ({ error, envelope }) => ({ error, envelope })
         : options.formatDeadLetter;
@@ -75,9 +77,36 @@ function createFileAdapter(options = {}) {
         return fallbackName;
     }
 
+    function destinationPath(destination) {
+        if (isObject(destinationMap)) {
+            const exactKey = typeof destination.name === 'string' && destination.name.trim() !== ''
+                ? `${destination.type}:${destination.name}`
+                : destination.type;
+            const mapped = destinationMap[exactKey] !== undefined ? destinationMap[exactKey] : destinationMap[destination.type];
+            if (isObject(mapped) && typeof mapped.directory === 'string' && mapped.directory.trim() !== '') {
+                return mapped.directory;
+            }
+            // legacy: plain string value
+            if (typeof mapped === 'string' && mapped.trim() !== '') {
+                return mapped;
+            }
+        }
+        if (typeof destination.name === 'string' && destination.name.trim() !== '') {
+            return path.join(destination.type, destination.name);
+        }
+        return destination.type;
+    }
+
     return {
+        supports(destination) {
+            return isObject(destination) && (!supportedTypes || supportedTypes.has(destination.type));
+        },
+
         async onRoute({ route, output, envelope }) {
             routeIndex += 1;
+            if (!this.supports(route.destination)) {
+                throw new Error(`File adapter does not support destination type "${route.destination.type}"`);
+            }
             const relDir = destinationPath(route.destination);
             const fileName = resolveFileName(envelope, undefined, `${formatIndex(routeIndex)}_${sanitizeSegment(route.id)}.json`);
             const targetPath = path.join(rootDir, relDir, fileName);

@@ -1,7 +1,7 @@
 {
   "dead_letter": {
     "type": "dead_letter",
-    "directory": "dead_letter/errors"
+    "name": "errors"
   },
   "routes": [
     {
@@ -18,7 +18,7 @@
       },
       "destination": {
         "type": "normalized_event",
-        "directory": "normalized_event/generic"
+        "name": "generic"
       }
     },
     {
@@ -39,7 +39,7 @@
       },
       "destination": {
         "type": "oci_log",
-        "directory": "oci_log/specific_events"
+        "name": "specific_events"
       }
     },
     {
@@ -55,7 +55,7 @@
       },
       "destination": {
         "type": "oci_metric",
-        "directory": "oci_metric/workflow_status"
+        "name": "workflow_status"
       }
     },
     {
@@ -70,7 +70,7 @@
       },
       "destination": {
         "type": "oci_metric",
-        "directory": "oci_metric/health_signal"
+        "name": "health_signal"
       }
     }
   ]

@@ -2,6 +2,10 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+LOG_DIR="${REPO_ROOT}/logs"
+
+mkdir -p "$LOG_DIR"
 
 usage() {
     cat <<'EOF'
@@ -16,6 +20,7 @@ Suite options (one or more required):
   --all            Run all test suites (smoke + unit + integration)
 
 Filter options:
+  --manifest SPEC  Run only test scripts listed in the given manifest file.
   --new-only SPEC  Run only test functions listed in the given test spec file.
                    Used for new-code gates (Test: parameter). Without this flag,
                    all tests in the suite run (used for regression gates).
@@ -32,6 +37,9 @@ Examples:
   # New-code gate: run only tests listed in sprint's test spec
   tests/run.sh --unit --new-only progress/sprint_7/sprint_7_test_spec.md
 
+  # Component-scoped regression: run only scripts listed in a manifest
+  tests/run.sh --unit --manifest progress/sprint_21/regression_tests.manifest
+
   # Full regression
   tests/run.sh --all
 EOF
@@ -43,6 +51,8 @@ run_suite() {
     local suite_passed=0
     local suite_failed=0
     local suite_total=0
+    local ts
+    ts="$(date -u '+%Y%m%d_%H%M%S')"
 
     if [[ ! -d "$suite_dir" ]]; then
         printf '[%s] directory not found: %s -- skipping\n' "$suite_name" "$suite_dir"
@@ -58,12 +68,24 @@ run_suite() {
     fi
 
     printf '=== %s tests ===\n' "$suite_name"
+    printf '[info] logs: %s\n' "$LOG_DIR"
+
+    if [[ "$suite_name" == "integration" ]]; then
+        if [[ -x "$SCRIPT_DIR/cleanup_sli_buckets.sh" ]]; then
+            printf '[pre] integration cleanup: deleting sli-* buckets in /SLI_tracker\n'
+            local cleanup_log
+            cleanup_log="${LOG_DIR}/${ts}_${suite_name}_cleanup_sli_buckets.log"
+            bash "$SCRIPT_DIR/cleanup_sli_buckets.sh" >"$cleanup_log" 2>&1
+        else
+            printf '[warn] integration cleanup script not executable: %s\n' "$SCRIPT_DIR/cleanup_sli_buckets.sh"
+        fi
+    fi
 
     while IFS= read -r script; do
         local script_name
         script_name="$(basename "$script")"
 
-        if [[ -n "$NEW_ONLY_SPEC" ]]; then
+        if [[ -n "$MANIFEST_FILE" ]]; then
             if [[ -z "${MANIFEST_SCRIPTS["${suite_name}:${script_name}"]:-}" ]]; then
                 printf '[skip] %s/%s (not in manifest)\n' "$suite_name" "$script_name"
                 continue
@@ -73,13 +95,16 @@ run_suite() {
         printf '[run] %s/%s\n' "$suite_name" "$script_name"
 
         local exit_code=0
-        bash "$script" || exit_code=$?
+        local log_file
+        log_file="${LOG_DIR}/${ts}_${suite_name}_${script_name%.sh}.log"
+        bash "$script" >"$log_file" 2>&1 || exit_code=$?
 
         if [[ "$exit_code" -eq 0 ]]; then
             printf '[PASS] %s/%s\n' "$suite_name" "$script_name"
             suite_passed=$((suite_passed + 1))
         else
             printf '[FAIL] %s/%s (exit code %d)\n' "$suite_name" "$script_name" "$exit_code"
+            printf '       log: %s\n' "$log_file"
             suite_failed=$((suite_failed + 1))
         fi
         suite_total=$((suite_total + 1))
@@ -104,6 +129,7 @@ RUN_SMOKE=false
 RUN_UNIT=false
 RUN_INTEGRATION=false
 NEW_ONLY_SPEC=""
+MANIFEST_SPEC=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -123,6 +149,14 @@ while [[ $# -gt 0 ]]; do
                 exit 1
             fi
             ;;
+        --manifest)
+            shift
+            MANIFEST_SPEC="${1:-}"
+            if [[ -z "$MANIFEST_SPEC" ]]; then
+                printf 'Error: --manifest requires a manifest file path\n' >&2
+                exit 1
+            fi
+            ;;
         --help)
             usage
             exit 0
@@ -137,13 +171,18 @@ while [[ $# -gt 0 ]]; do
 done
 
 declare -A MANIFEST_SCRIPTS
-if [[ -n "$NEW_ONLY_SPEC" ]]; then
-    if [[ ! -f "$NEW_ONLY_SPEC" ]]; then
-        printf '[error] manifest file not found: %s\n' "$NEW_ONLY_SPEC" >&2
+MANIFEST_FILE="${NEW_ONLY_SPEC:-$MANIFEST_SPEC}"
+if [[ -n "$MANIFEST_FILE" ]]; then
+    if [[ ! -f "$MANIFEST_FILE" ]]; then
+        printf '[error] manifest file not found: %s\n' "$MANIFEST_FILE" >&2
         exit 1
     fi
-    printf '[info] --new-only mode: filtering to tests listed in %s\n' "$NEW_ONLY_SPEC"
-    printf '[info] current implementation filters at script level, not function level\n'
+    if [[ -n "$NEW_ONLY_SPEC" ]]; then
+        printf '[info] --new-only mode: filtering to tests listed in %s\n' "$MANIFEST_FILE"
+        printf '[info] current implementation filters at script level, not function level\n'
+    else
+        printf '[info] --manifest mode: filtering to tests listed in %s\n' "$MANIFEST_FILE"
+    fi
     while IFS= read -r line; do
         line="${line%%#*}"
         line="$(echo "$line" | xargs)"
@@ -152,7 +191,7 @@ if [[ -n "$NEW_ONLY_SPEC" ]]; then
         rest="${line#*:}"
         script_name="${rest%%:*}"
         MANIFEST_SCRIPTS["${suite}:${script_name}"]=1
-    done < "$NEW_ONLY_SPEC"
+    done < "$MANIFEST_FILE"
 fi
 
 TOTAL_SCRIPTS=0

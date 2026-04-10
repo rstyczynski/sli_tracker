@@ -1,6 +1,6 @@
 {
   "dead_letter": {
-    "directory": "dead_letter/errors"
+    "name": "errors"
   },
   "routes": [
     {
@@ -13,7 +13,7 @@
       },
       "destination": {
         "type": "oci_metric",
-        "directory": "oci_metric/health_signal"
+        "name": "health_signal"
       }
     }
   ]

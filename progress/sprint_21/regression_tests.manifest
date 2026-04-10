@@ -1,0 +1,12 @@
+unit:test_json_transformer.sh
+unit:test_json_transformer_cli.sh
+unit:test_json_router.sh
+unit:test_json_router_batch.sh
+unit:test_json_router_schema.sh
+unit:test_json_router_cli.sh
+unit:test_json_pipeline_cli.sh
+unit:test_json_router_adapters.sh
+unit:test_file_adapter.sh
+unit:test_file_source_adapter.sh
+unit:test_destination_adapters.sh
+unit:test_mapping_loader.sh

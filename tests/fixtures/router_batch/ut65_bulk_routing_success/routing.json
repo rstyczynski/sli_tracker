@@ -13,8 +13,7 @@
       },
       "destination": {
         "type": "oci_log",
-        "name": "github_events",
-        "directory": "oci_log/github_events"
+        "name": "github_events"
       }
     },
     {
@@ -28,8 +27,7 @@
       },
       "destination": {
         "type": "oci_metric",
-        "name": "health_signal",
-        "directory": "oci_metric/health_signal"
+        "name": "health_signal"
       }
     },
     {
@@ -49,8 +47,7 @@
       },
       "destination": {
         "type": "oci_log",
-        "name": "specific_events",
-        "directory": "oci_log/specific_events"
+        "name": "specific_events"
       }
     },
     {
@@ -67,8 +64,7 @@
       },
       "destination": {
         "type": "oci_metric",
-        "name": "schema_metric",
-        "directory": "oci_metric/schema_metric"
+        "name": "schema_metric"
       }
     },
     {
@@ -86,8 +82,7 @@
       },
       "destination": {
         "type": "normalized_event",
-        "name": "workflow_signature",
-        "directory": "normalized_event/workflow_signature"
+        "name": "workflow_signature"
       }
     }
   ]

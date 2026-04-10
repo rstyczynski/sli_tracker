@@ -278,3 +278,17 @@ Test: a unit-tested file source adapter reads JSON files in deterministic order,
 The router destination contract should remain universal across filesystem, queue, HTTP, OCI, and other adapters. Fields such as `directory` are filesystem-specific and should not live in the generic `destination` object used by routing definitions. Refactor the destination model so routing definitions keep only logical destination identity, such as `type` and `name`, while transport-specific realization details are supplied by adapters through their own configuration or adapter-scoped metadata. This keeps routing definitions transport-agnostic and makes the same route usable across multiple delivery adapters.
 
 Test: unit-tested adapters can resolve the same logical destination to transport-specific targets without relying on filesystem-only fields in the top-level `destination` definition, and existing route selection behavior remains unchanged.
+
+### SLI-34. Component-scoped regression manifests for router and transformer
+
+The router and transformer component now has a non-trivial internal surface area with its own library APIs, adapters, CLI wrappers, and fixtures. Regression for this component should not require running unrelated repository unit suites every time the routing contract changes. Extend the test runner and sprint procedure so regression can be scoped to a manifest-defined subset of unit scripts covering the router/transformer component while still using the centralized `tests/run.sh` entrypoint and preserving explicit traceability in sprint artifacts.
+
+Test: the test runner accepts a manifest filter for regression runs, and a sprint can execute a router/transformer-only unit regression gate that includes the relevant component scripts but excludes unrelated unit suites.
+
+### SLI-35. Public OCI Function router to Object Storage (pass-through)
+
+Expose a public OCI Function endpoint that accepts a routing envelope payload and saves it to an OCI Object Storage bucket without transformation so raw inputs can be replayed and audited later. This enables an internet-facing ingestion point that persists received messages reliably before any downstream processing.
+
+Sprint 22 artifacts: `progress/sprint_22/` (design, implementation, tests, manifests).
+
+Test: posting a sample envelope to the public endpoint results in an object created in the configured bucket with content matching the request payload.

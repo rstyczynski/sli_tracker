@@ -1,0 +1,5 @@
+{
+  "kind": "log",
+  "repo": repository.full_name,
+  "outcome": workflow_run.conclusion
+}

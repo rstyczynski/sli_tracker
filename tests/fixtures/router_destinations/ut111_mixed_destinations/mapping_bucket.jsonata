@@ -1,0 +1,5 @@
+{
+  "kind": "object",
+  "bucket": data.additionalDetails.bucketName,
+  "resource": data.resourceName
+}

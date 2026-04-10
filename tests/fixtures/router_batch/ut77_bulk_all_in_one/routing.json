@@ -1,7 +1,7 @@
 {
   "dead_letter": {
     "type": "dead_letter",
-    "directory": "dead_letter/errors"
+    "name": "errors"
   },
   "routes": [
     {
@@ -17,7 +17,7 @@
       },
       "destination": {
         "type": "oci_log",
-        "directory": "oci_log/github_events"
+        "name": "github_events"
       }
     },
     {
@@ -31,7 +31,7 @@
       },
       "destination": {
         "type": "oci_metric",
-        "directory": "oci_metric/health_signal"
+        "name": "health_signal"
       }
     },
     {
@@ -51,7 +51,7 @@
       },
       "destination": {
         "type": "oci_log",
-        "directory": "oci_log/specific_events"
+        "name": "specific_events"
       }
     },
     {
@@ -68,7 +68,7 @@
       },
       "destination": {
         "type": "oci_metric",
-        "directory": "oci_metric/schema_metric"
+        "name": "schema_metric"
       }
     },
     {
@@ -86,7 +86,7 @@
       },
       "destination": {
         "type": "normalized_event",
-        "directory": "normalized_event/workflow_signature"
+        "name": "workflow_signature"
       }
     },
     {
@@ -102,7 +102,7 @@
       },
       "destination": {
         "type": "oci_log",
-        "directory": "oci_log/strict_events"
+        "name": "strict_events"
       }
     }
   ]

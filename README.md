@@ -23,7 +23,7 @@ gh variable set SLI_OCI_LOG_ID --body "$SLI_LOG_OCID" -R "$repo"
 gh variable set SLI_OCI_LOG_GROUP_ID --body "$LOG_GROUP_OCID" -R "$repo"
 ```
 
-1. **Authenticate** so `~/.oci/config` has a usable profile (e.g. `SLI_TEST`). 
+1. **Authenticate** so `~/.oci/config` has a usable profile (e.g. `SLI_TEST`).
 
 Use the packing script to refresh a session token and upload to GitHub if needed. This profile is a one-time-use, and works 60 minutes.
 
@@ -179,6 +179,20 @@ To start or continue a development cycle, invoke the RUP Manager:
 All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifacts are stored under `progress/sprint_<N>/`.
 
 ## Recent updates
+
+### Sprint 21 — Universal destinations and component-scoped router regression (SLI-33, SLI-34) (YOLO)
+
+**Status:** implemented + tested
+
+Refactors the router destination contract so `routing.json` carries only logical destination identity instead of filesystem path metadata. `destination.directory` is removed from the routing schema and replaced by adapter-side resolution from `type` + optional `name`. The sprint adds concrete destination adapters for filesystem, OCI Logging, OCI Monitoring, and OCI Object Storage, plus a dispatcher that routes outputs to the first adapter supporting the selected destination type. The same sprint defines a practical answer for component-scoped regression by adding a generic `--manifest` filter to `tests/run.sh`, so router/transformer unit regression can run through the centralized runner without pulling in unrelated unit suites.
+
+It also completes the previously “design intent” `mapping` section: when `routing.json` defines `mapping`, the router can load `transform.mapping` from OCI Object Storage via an injected `loadMapping` handler, and `tools/json_router_cli.js` is wired the same way (CLI/library parity). Additionally, `routing.json` can now define `source`, enabling end-to-end config-driven runs (source + mapping + destinations) via the library runtime and the CLI. Live OCI integration gates validate these behaviors under compartment `/SLI_tracker`.
+
+**Quality gates:** Unit PASS. New-code gate passed with 7 scripts; component-scoped regression passed with 12 router/transformer unit scripts; integration passed with 6 scripts — see `progress/sprint_21/sprint_21_tests.md`.
+
+**Traceability:** `progress/backlog/SLI-33/`, `progress/backlog/SLI-34/`
+
+---
 
 ### Sprint 20 — JavaScript adapter API for router processing (SLI-30, SLI-31, SLI-32) (YOLO)
 

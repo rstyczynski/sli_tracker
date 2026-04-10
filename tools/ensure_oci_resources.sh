@@ -70,3 +70,89 @@ ensure_set_github_sli_vars() {
   gh variable set SLI_OCI_LOG_ID       --body "$log_ocid"       -R "$repo"
   gh variable set SLI_OCI_LOG_GROUP_ID --body "$log_group_ocid" -R "$repo"
 }
+
+ensure_sli_mapping_bucket() {
+  local repo_root="${1:?repo_root}"
+  local oci_profile="${2:?oci_profile}"
+  local name_prefix="${3:?name_prefix}"
+  local compartment_path="${4:-/SLI_tracker}"
+
+  # Exports (for callers):
+  #   COMPARTMENT_OCID, MAPPING_BUCKET_NAME, MAPPING_BUCKET_NAMESPACE
+
+  export OCI_CLI_PROFILE="$oci_profile"
+  export NAME_PREFIX="$name_prefix"
+
+  # shellcheck source=../oci_scaffold/do/oci_scaffold.sh
+  source "${repo_root}/oci_scaffold/do/oci_scaffold.sh"
+
+  _state_set '.inputs.compartment_path' "$compartment_path"
+  bash "${repo_root}/oci_scaffold/resource/ensure-compartment.sh"
+  COMPARTMENT_OCID="$(_state_get '.compartment.ocid')"
+  [[ -z "${COMPARTMENT_OCID:-}" || "${COMPARTMENT_OCID:-}" == "null" ]] && {
+    echo "ERROR: ensure-compartment.sh did not resolve compartment '$compartment_path'" >&2
+    return 1
+  }
+  export COMPARTMENT_OCID
+
+  _state_set '.inputs.oci_compartment' "$COMPARTMENT_OCID"
+  _state_set '.inputs.name_prefix'     "$NAME_PREFIX"
+  bash "${repo_root}/oci_scaffold/resource/ensure-bucket.sh"
+
+  MAPPING_BUCKET_NAME="$(_state_get '.bucket.name')"
+  MAPPING_BUCKET_NAMESPACE="$(_state_get '.bucket.namespace')"
+
+  [[ -z "${MAPPING_BUCKET_NAME:-}" || "${MAPPING_BUCKET_NAME:-}" == "null" ]] && {
+    echo "ERROR: ensure-bucket.sh did not resolve bucket name" >&2
+    return 1
+  }
+  [[ -z "${MAPPING_BUCKET_NAMESPACE:-}" || "${MAPPING_BUCKET_NAMESPACE:-}" == "null" ]] && {
+    echo "ERROR: ensure-bucket.sh did not resolve bucket namespace" >&2
+    return 1
+  }
+
+  export MAPPING_BUCKET_NAME MAPPING_BUCKET_NAMESPACE
+}
+
+ensure_sli_bucket() {
+  local repo_root="${1:?repo_root}"
+  local oci_profile="${2:?oci_profile}"
+  local name_prefix="${3:?name_prefix}"
+  local compartment_path="${4:-/SLI_tracker}"
+
+  # Exports (for callers):
+  #   COMPARTMENT_OCID, BUCKET_NAME, BUCKET_NAMESPACE
+
+  export OCI_CLI_PROFILE="$oci_profile"
+  export NAME_PREFIX="$name_prefix"
+
+  # shellcheck source=../oci_scaffold/do/oci_scaffold.sh
+  source "${repo_root}/oci_scaffold/do/oci_scaffold.sh"
+
+  _state_set '.inputs.compartment_path' "$compartment_path"
+  bash "${repo_root}/oci_scaffold/resource/ensure-compartment.sh"
+  COMPARTMENT_OCID="$(_state_get '.compartment.ocid')"
+  [[ -z "${COMPARTMENT_OCID:-}" || "${COMPARTMENT_OCID:-}" == "null" ]] && {
+    echo "ERROR: ensure-compartment.sh did not resolve compartment '$compartment_path'" >&2
+    return 1
+  }
+  export COMPARTMENT_OCID
+
+  _state_set '.inputs.oci_compartment' "$COMPARTMENT_OCID"
+  _state_set '.inputs.name_prefix'     "$NAME_PREFIX"
+  bash "${repo_root}/oci_scaffold/resource/ensure-bucket.sh"
+
+  BUCKET_NAME="$(_state_get '.bucket.name')"
+  BUCKET_NAMESPACE="$(_state_get '.bucket.namespace')"
+
+  [[ -z "${BUCKET_NAME:-}" || "${BUCKET_NAME:-}" == "null" ]] && {
+    echo "ERROR: ensure-bucket.sh did not resolve bucket name" >&2
+    return 1
+  }
+  [[ -z "${BUCKET_NAMESPACE:-}" || "${BUCKET_NAMESPACE:-}" == "null" ]] && {
+    echo "ERROR: ensure-bucket.sh did not resolve bucket namespace" >&2
+    return 1
+  }
+
+  export BUCKET_NAME BUCKET_NAMESPACE
+}

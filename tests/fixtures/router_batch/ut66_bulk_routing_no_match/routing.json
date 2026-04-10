@@ -12,7 +12,7 @@
       },
       "destination": {
         "type": "oci_log",
-        "directory": "oci_log/github_events"
+        "name": "github_events"
       }
     }
   ]

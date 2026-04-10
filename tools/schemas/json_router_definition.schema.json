@@ -4,6 +4,19 @@
   "additionalProperties": false,
   "required": ["routes"],
   "properties": {
+    "adapters": {
+      "type": "object",
+      "description": "Destination target map. Keys are 'type:name' or 'type'; values are adapter-specific target objects.",
+      "additionalProperties": {}
+    },
+    "mapping": {
+      "$ref": "#/$defs/destination",
+      "description": "Logical source from which mapping files are fetched. Resolved via the adapters section."
+    },
+    "source": {
+      "$ref": "#/$defs/destination",
+      "description": "Logical source from which envelopes are read. Resolved via the adapters section by the host program."
+    },
     "dead_letter": {
       "$ref": "#/$defs/destination"
     },
@@ -18,7 +31,7 @@
   "$defs": {
     "destination": {
       "type": "object",
-      "additionalProperties": true,
+      "additionalProperties": false,
       "required": ["type"],
       "properties": {
         "type": {
@@ -26,10 +39,6 @@
           "minLength": 1
         },
         "name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "directory": {
           "type": "string",
           "minLength": 1
         }

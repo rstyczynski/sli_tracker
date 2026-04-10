@@ -14,7 +14,7 @@
       },
       "destination": {
         "type": "normalized_event",
-        "directory": "normalized_event/generic"
+        "name": "generic"
       }
     },
     {
@@ -35,7 +35,7 @@
       },
       "destination": {
         "type": "oci_log",
-        "directory": "oci_log/specific_events"
+        "name": "specific_events"
       }
     }
   ]

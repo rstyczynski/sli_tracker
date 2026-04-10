@@ -1,7 +1,7 @@
 {
   "dead_letter": {
     "type": "dead_letter",
-    "directory": "dead_letter/errors"
+    "name": "errors"
   },
   "routes": [
     {
@@ -17,8 +17,7 @@
       },
       "destination": {
         "type": "oci_log",
-        "name": "github_events",
-        "directory": "oci_log/github_events"
+        "name": "github_events"
       }
     },
     {
@@ -34,8 +33,7 @@
       },
       "destination": {
         "type": "oci_log",
-        "name": "strict_events",
-        "directory": "oci_log/strict_events"
+        "name": "strict_events"
       }
     }
   ]

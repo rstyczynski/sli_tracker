@@ -1,0 +1,103 @@
+=== smoke tests ===
+[info] logs: /Users/rstyczynski/projects/SLI_tracker/logs
+[run] smoke/test_critical_emit.sh
+[PASS] smoke/test_critical_emit.sh
+=== smoke summary: 1 scripts, 1 passed, 0 failed ===
+
+=== unit tests ===
+[info] logs: /Users/rstyczynski/projects/SLI_tracker/logs
+[run] unit/test_destination_adapters.sh
+[PASS] unit/test_destination_adapters.sh
+[run] unit/test_emit.sh
+[PASS] unit/test_emit.sh
+[run] unit/test_file_adapter.sh
+[PASS] unit/test_file_adapter.sh
+[run] unit/test_file_source_adapter.sh
+[PASS] unit/test_file_source_adapter.sh
+[run] unit/test_fn_passthrough_router.sh
+[PASS] unit/test_fn_passthrough_router.sh
+[run] unit/test_install_oci_cli.sh
+[PASS] unit/test_install_oci_cli.sh
+[run] unit/test_json_pipeline_cli.sh
+[PASS] unit/test_json_pipeline_cli.sh
+[run] unit/test_json_router_adapters.sh
+[PASS] unit/test_json_router_adapters.sh
+[run] unit/test_json_router_batch.sh
+[PASS] unit/test_json_router_batch.sh
+[run] unit/test_json_router_cli.sh
+[PASS] unit/test_json_router_cli.sh
+[run] unit/test_json_router_mapping_source.sh
+[PASS] unit/test_json_router_mapping_source.sh
+[run] unit/test_json_router_schema.sh
+[PASS] unit/test_json_router_schema.sh
+[run] unit/test_json_router.sh
+[PASS] unit/test_json_router.sh
+[run] unit/test_json_transformer_cli.sh
+[PASS] unit/test_json_transformer_cli.sh
+[run] unit/test_json_transformer.sh
+[PASS] unit/test_json_transformer.sh
+[run] unit/test_mapping_loader.sh
+[PASS] unit/test_mapping_loader.sh
+[run] unit/test_oci_profile_setup_api_key.sh
+[PASS] unit/test_oci_profile_setup_api_key.sh
+[run] unit/test_oci_profile_setup.sh
+[PASS] unit/test_oci_profile_setup.sh
+[run] unit/test_setup_oci_github_access_api_key_help.sh
+[PASS] unit/test_setup_oci_github_access_api_key_help.sh
+[run] unit/test_setup_oci_github_access_config_profile_dry.sh
+[PASS] unit/test_setup_oci_github_access_config_profile_dry.sh
+[run] unit/test_setup_oci_github_access_config_profile_help.sh
+[PASS] unit/test_setup_oci_github_access_config_profile_help.sh
+[run] unit/test_sli_compute_sli_metrics.sh
+[PASS] unit/test_sli_compute_sli_metrics.sh
+[run] unit/test_sli_ratio_simulator.sh
+[PASS] unit/test_sli_ratio_simulator.sh
+[run] unit/test_sli_scheduled_workflows.sh
+[PASS] unit/test_sli_scheduled_workflows.sh
+=== unit summary: 24 scripts, 24 passed, 0 failed ===
+
+=== integration tests ===
+[info] logs: /Users/rstyczynski/projects/SLI_tracker/logs
+[pre] integration cleanup: deleting sli-* buckets in /SLI_tracker
+[run] integration/test_api_key_payload_roundtrip.sh
+[PASS] integration/test_api_key_payload_roundtrip.sh
+[run] integration/test_config_profile_payload_roundtrip.sh
+[PASS] integration/test_config_profile_payload_roundtrip.sh
+[run] integration/test_fn_apigw_object_storage_passthrough.sh
+[PASS] integration/test_fn_apigw_object_storage_passthrough.sh
+[run] integration/test_json_router_cli_mapping_oci_object_storage.sh
+[PASS] integration/test_json_router_cli_mapping_oci_object_storage.sh
+[run] integration/test_json_router_mapping_oci_object_storage.sh
+[PASS] integration/test_json_router_mapping_oci_object_storage.sh
+[run] integration/test_router_complex_flow_file_map_multi_targets.sh
+[PASS] integration/test_router_complex_flow_file_map_multi_targets.sh
+[run] integration/test_router_flow_1_file_to_bucket_map_file.sh
+[PASS] integration/test_router_flow_1_file_to_bucket_map_file.sh
+[run] integration/test_router_flow_2_file_to_bucket_map_bucket.sh
+[PASS] integration/test_router_flow_2_file_to_bucket_map_bucket.sh
+[run] integration/test_router_flow_3_bucket_to_file_map_bucket.sh
+[PASS] integration/test_router_flow_3_bucket_to_file_map_bucket.sh
+[run] integration/test_sli_compute_sli_metrics_live.sh
+[PASS] integration/test_sli_compute_sli_metrics_live.sh
+[run] integration/test_sli_compute_sli_metrics.sh
+[PASS] integration/test_sli_compute_sli_metrics.sh
+[run] integration/test_sli_emit_curl_local.sh
+[PASS] integration/test_sli_emit_curl_local.sh
+[run] integration/test_sli_emit_curl_workflow.sh
+[PASS] integration/test_sli_emit_curl_workflow.sh
+[run] integration/test_sli_emit_js_workflow.sh
+[PASS] integration/test_sli_emit_js_workflow.sh
+[run] integration/test_sli_emit_metric.sh
+[PASS] integration/test_sli_emit_metric.sh
+[run] integration/test_sli_integration.sh
+[PASS] integration/test_sli_integration.sh
+[run] integration/test_sli_ratio_simulator.sh
+[PASS] integration/test_sli_ratio_simulator.sh
+[run] integration/test_sli_scheduled_workflows.sh
+[PASS] integration/test_sli_scheduled_workflows.sh
+=== integration summary: 18 scripts, 18 passed, 0 failed ===
+
+========================================
+TOTAL: 43 scripts, 43 passed, 0 failed
+========================================
+RESULT: PASS

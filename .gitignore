@@ -10,3 +10,8 @@ tests/integration/oci_logs_curl_*.json
 tests/integration/test_run_emit_curl_local_*.log
 tests/integration/oci_logs_emit_curl_local_*.json
 progress/integration_runs/curl_*/
+
+logs/
+tests/integration/oci_logs_*.json
+tests/integration/oci_metric_*.json
+tests/integration/test_run_*.log

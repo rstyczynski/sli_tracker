@@ -1,0 +1,6 @@
+{
+  "endpoint": "/health",
+  "body": {
+    "status": "UP"
+  }
+}

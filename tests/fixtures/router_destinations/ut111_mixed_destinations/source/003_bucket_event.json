@@ -1,0 +1,11 @@
+{
+  "body": {
+    "type": "com.oraclecloud.objectstorage.createobject",
+    "data": {
+      "resourceName": "artifact.zip",
+      "additionalDetails": {
+        "bucketName": "incoming"
+      }
+    }
+  }
+}

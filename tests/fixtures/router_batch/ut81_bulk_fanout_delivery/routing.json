@@ -13,7 +13,7 @@
       },
       "destination": {
         "type": "oci_log",
-        "directory": "oci_log/github_events"
+        "name": "github_events"
       }
     },
     {
@@ -29,7 +29,7 @@
       },
       "destination": {
         "type": "oci_metric",
-        "directory": "oci_metric/workflow_status"
+        "name": "workflow_status"
       }
     }
   ]

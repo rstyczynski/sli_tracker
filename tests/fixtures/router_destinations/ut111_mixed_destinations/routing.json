@@ -1,0 +1,79 @@
+{
+  "adapters": {
+    "oci_logging:github_events":      { "logId": "log-1" },
+    "oci_monitoring:health_signal":   { "compartmentId": "compartment-1" },
+    "oci_object_storage:raw_events":  { "bucket": "incoming", "prefix": "events/" },
+    "oci_object_storage:mappings":    { "bucket": "sli-mappings", "prefix": "jsonata/" },
+    "file_system:audit_copy":         { "directory": "audit/events" },
+    "oci_logging:pipeline_errors":    { "logId": "error-log-1" }
+  },
+  "mapping": {
+    "type": "oci_object_storage",
+    "name": "mappings"
+  },
+  "dead_letter": {
+    "type": "oci_logging",
+    "name": "pipeline_errors"
+  },
+  "routes": [
+    {
+      "id": "workflow_to_logging",
+      "match": {
+        "headers": {
+          "X-GitHub-Event": "workflow_run"
+        }
+      },
+      "transform": {
+        "mapping": "./mapping_log.jsonata"
+      },
+      "destination": {
+        "type": "oci_logging",
+        "name": "github_events"
+      }
+    },
+    {
+      "id": "health_to_monitoring",
+      "match": {
+        "endpoint": "/health"
+      },
+      "transform": {
+        "mapping": "./mapping_metric.jsonata"
+      },
+      "destination": {
+        "type": "oci_monitoring",
+        "name": "health_signal"
+      }
+    },
+    {
+      "id": "bucket_to_object_storage",
+      "match": {
+        "schema": {
+          "path": "type",
+          "equals": "com.oraclecloud.objectstorage.createobject"
+        }
+      },
+      "transform": {
+        "mapping": "./mapping_bucket.jsonata"
+      },
+      "destination": {
+        "type": "oci_object_storage",
+        "name": "raw_events"
+      }
+    },
+    {
+      "id": "audit_to_file",
+      "match": {
+        "required_fields": [
+          "audit.id"
+        ]
+      },
+      "transform": {
+        "mapping": "./mapping_file.jsonata"
+      },
+      "destination": {
+        "type": "file_system",
+        "name": "audit_copy"
+      }
+    }
+  ]
+}

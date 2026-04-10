@@ -13,7 +13,7 @@
       },
       "destination": {
         "type": "oci_log",
-        "directory": "oci_log/one"
+        "name": "one"
       }
     },
     {
@@ -29,7 +29,7 @@
       },
       "destination": {
         "type": "oci_log",
-        "directory": "oci_log/two"
+        "name": "two"
       }
     }
   ]

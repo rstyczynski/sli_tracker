@@ -1,0 +1,14 @@
+{
+  "name": "sli-router-passthrough-fn",
+  "private": true,
+  "version": "0.0.1",
+  "type": "commonjs",
+  "dependencies": {
+    "@fnproject/fdk": "^0.0.95",
+    "ajv": "^8.18.0",
+    "jsonata": "^2.1.0",
+    "oci-common": "^2.126.2",
+    "oci-objectstorage": "^2.127.0"
+  }
+}
+

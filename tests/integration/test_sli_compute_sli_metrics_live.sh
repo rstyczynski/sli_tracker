@@ -13,6 +13,11 @@ TOOL="${REPO_ROOT}/tools/sli_compute_sli_metrics.js"
 
 OCI_INT_PROFILE="${SLI_INTEGRATION_OCI_PROFILE:-SLI_TEST}"
 
+if [[ "${SLI_SKIP_COMPUTE_METRICS_LIVE:-}" == "1" ]]; then
+  echo "SKIP: SLI_SKIP_COMPUTE_METRICS_LIVE=1 (Monitoring ingest latency / CI without live metrics)"
+  exit 0
+fi
+
 if ! command -v oci >/dev/null 2>&1; then
   echo "SKIP: oci CLI not found (required to resolve tenancy OCID + auth gate)"
   exit 0
@@ -59,13 +64,17 @@ SLI_OUTCOME=failure bash "${ACTION_DIR}/emit_curl.sh" >/dev/null
 # Query back with dimension filter workflow_name (maps to workflow.name in metric dims)
 DIM_WORKFLOW_NAME="SLI-20 live ${MARKER}"
 
-echo "=== Poll live SLI compute (up to 5 min) ==="
+_POLL_ATTEMPTS="${SLI_METRICS_LIVE_POLL_ATTEMPTS:-20}"
+_POLL_SLEEP="${SLI_METRICS_LIVE_POLL_SLEEP_SEC:-30}"
+echo "=== Poll live SLI compute (attempts=${_POLL_ATTEMPTS}, sleep=${_POLL_SLEEP}s) ==="
 attempt=0
-while [[ $attempt -lt 10 ]]; do
+while [[ $attempt -lt "$_POLL_ATTEMPTS" ]]; do
   attempt=$((attempt + 1))
-  sleep 30
+  sleep "$_POLL_SLEEP"
+  # Use 1m resolution: 1d buckets often omit same-day / just-ingested custom metric points in summarizeMetricsData.
   out="$("$TOOL" \
     --window-days 1 \
+    --mql-resolution 1m \
     --namespace sli_tracker \
     --metric-name outcome \
     --compartment-id "$TENANCY_OCID" \
@@ -87,9 +96,9 @@ PY
     echo "PASS: live SLI query returned total=2 success=1 sli=0.5"
     exit 0
   fi
-  echo "# not ready yet (total_count=$total), attempt $attempt/10"
+  echo "# not ready yet (total_count=$total), attempt $attempt/${_POLL_ATTEMPTS}"
 done
 
-echo "FAIL: live SLI query did not observe 2 datapoints within polling window"
+echo "FAIL: live SLI query did not observe 2 datapoints within polling window (tune SLI_METRICS_LIVE_POLL_* or set SLI_SKIP_COMPUTE_METRICS_LIVE=1)"
 exit 1
 

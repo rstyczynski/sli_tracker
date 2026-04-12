@@ -13,7 +13,8 @@ Model works on a GitHub repository interacting with OCI tenancy where events are
 cd "$(git rev-parse --show-toplevel)"
 
 export NAME_PREFIX="sli_quickstart"
-export SLI_OCI_LOG_URI="//sli-events/github-actions"
+# Use /SLI_tracker/... so the log group is created in compartment SLI_tracker (not tenancy root).
+export SLI_OCI_LOG_URI="/SLI_tracker/sli-events/github-actions"
 source ./tools/ensure_oci_resources.sh
 ensure_sli_log_resources "$(pwd)" "${SLI_INTEGRATION_OCI_PROFILE:-DEFAULT}" "$NAME_PREFIX" "$SLI_OCI_LOG_URI"
 
@@ -179,6 +180,20 @@ To start or continue a development cycle, invoke the RUP Manager:
 All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifacts are stored under `progress/sprint_<N>/`.
 
 ## Recent updates
+
+### Sprint 27 — Fan-out `workflow_run` to OCI Logging (SLI-44) (YOLO)
+
+**RUP / `PLAN.md` contract:** **`Test: unit, integration`** (both Phase **A2** and **A3** required). **`Regression: unit`**.
+
+**Status:** done — all RUP phases complete; SLI-44 adapter shipped and tested.
+
+Adds **SLI-44** on top of Sprint 26: third **`fanout`** path for `workflow_run` into **OCI Logging**, keeping bucket + Monitoring behavior. `oci_logging_adapter.js` is registered via config-driven adapter list; `workflow_run_log.jsonata` logs **all** workflow_run actions (no conclusion filter). Runtime injects `OCI_LOGGING_LOG_ID` from Fn config. Unit assertions UT-SLI44-1/2 in `test_fn_passthrough_router.sh`. Artifacts: **`progress/sprint_27/sprint_27_setup.md`**, **`sprint_27_design.md`**, **`sprint_27_implementation.md`**, **`sprint_27_tests.md`**. Backlog: **`BACKLOG.md` (SLI-44)**.
+
+**Quality gates:** A2 unit 1/1 PASS; A3 integration 1/1 PASS; B2 regression 14/14 PASS — see **`progress/sprint_27/sprint_27_tests.md`**.
+
+**Traceability:** **`progress/backlog/SLI-44/`**
+
+---
 
 ### Sprint 26 — Fan-out `workflow_run` to OCI Monitoring (SLI-41) (YOLO)
 

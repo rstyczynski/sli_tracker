@@ -351,3 +351,18 @@ Backlog Items:
 Bug fixes:
 
 * SLI-41-1. `test_fn_apigw_object_storage_passthrough.sh` did not POST `workflow_run` or assert Monitoring ingest (only Object Storage smoke paths).
+
+## Sprint 27 - Fan-out workflow_run to OCI Logging (SLI-44)
+
+Status: Done
+Mode: YOLO
+Test: unit, integration
+Regression: unit
+
+**RUP quality gate contract (mandatory):** Phase A must run **both** **A2 unit** and **A3 integration** (`rup_manager_simplified.md`). This sprint’s `Test` line is **only** `unit` and `integration` — there is **no** smoke gate unless `Test` explicitly lists smoke. Bootstrap used placeholders; when SLI-44 is implemented, **A3 must include a real OCI-touching integration script** (not unit-only).
+
+Extend the public router stack so GitHub `workflow_run` deliveries also fan out to **OCI Logging** (searchable log entries) alongside the existing Object Storage archive and OCI Monitoring metrics (**SLI-41**). Inception, design, and RUP gates are under `progress/sprint_27/`; adapter implementation is tracked in `sprint_27_implementation.md`.
+
+Backlog Items:
+
+* SLI-44. Fan-out `workflow_run` to OCI Logging in addition to Object Storage and Monitoring

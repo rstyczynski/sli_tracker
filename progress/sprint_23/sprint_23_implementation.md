@@ -161,7 +161,7 @@ BN="$(jq -r '.bucket.name // empty' "$STATE_FILE")"
 ./tools/list_github_ingest_prefixes.sh "$NS" "$BN" --limit 5
 ```
 
-**`list_github_ingest_prefixes.sh`** prints the newest objects under each **`ingest/github/<event>/`** prefix, a **`ingest/dead_letter/`** section, then a merged timeline: **`ingest/github/*`** plus **`ingest/dead_letter/*`** plus flat **`ingest/<file>`** keys (exactly one segment after **`ingest/`**, e.g. **`ingest/fn-….json`**). A single list on **`ingest/`** alone is not used for that merged block because the API’s first page is often dominated by **`fn-*`** keys and omits deeper prefixes.
+**`list_github_ingest_prefixes.sh`** prints **object names only** (one full path per line, newest first under each prefix): each **`ingest/github/<event>/`**, **`ingest/dead_letter/`**, then a merged block combining **`ingest/github/*`**, **`ingest/dead_letter/*`**, and flat **`ingest/<file>`** keys. It uses **small `oci` list limits** and a **temp-file `jq` merge** so large buckets do not hang the shell or exceed argument limits.
 
 ## Tests
 

@@ -342,6 +342,12 @@ Sprint 26 ships `github_workflow_run_to_bucket` (`exclusive`) and `github_workfl
 
 Test: documentation and/or schema notes describe the composition rule with a fixture example; if validation is added, a conflicting definition (two exclusives, same priority, same match) fails load with a clear message.
 
+### SLI-47. Component-scoped test manifests and test working directory enforcement
+
+Regression gates run the full test suite regardless of sprint scope, mixing unrelated components (router, emit, OCI setup, install) and leaving temporary files in the project root because tests run from an arbitrary working directory. Add per-component manifest files under `tests/manifests/`, a `--component` flag to `tests/run.sh`, and a `Regression scope:` field to PLAN.md sprint entries so each sprint can declare which component its regression covers. All test scripts must run with `tests/` as their working directory so no state or temp files appear in the project root.
+
+Test: `bash tests/run.sh --unit --component router` runs exactly the 14 router-component scripts and nothing else; `--component nonexistent` exits non-zero with a clear error; no files are created outside `tests/` during a run.
+
 ### SLI-46. Include delivery receipt from every adapter in the router response
 
 `processEnvelope` discards the return value of each adapter's `onRoute`, so the caller only sees the transformed output sent to each destination, not what the destination confirmed. Each entry in the `deliveries` array should also carry the adapter receipt (for example the Object Storage object name, the Logging entry id, or the Monitoring batch result) so the caller can verify where data actually landed. The receipt must be collected from every matched route and returned as an array — one element per delivery.

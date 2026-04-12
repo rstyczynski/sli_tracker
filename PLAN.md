@@ -358,6 +358,7 @@ Status: Done
 Mode: YOLO
 Test: unit, integration
 Regression: unit
+Regression scope: router
 
 **RUP quality gate contract (mandatory):** Phase A must run **both** **A2 unit** and **A3 integration** (`rup_manager_simplified.md`). This sprint’s `Test` line is **only** `unit` and `integration` — there is **no** smoke gate unless `Test` explicitly lists smoke. Bootstrap used placeholders; when SLI-44 is implemented, **A3 must include a real OCI-touching integration script** (not unit-only).
 
@@ -372,3 +373,17 @@ Backlog Items:
 Bug fixes:
 
 * SLI-44-1. `workflow_run_log.jsonata` not uploaded to Object Storage; `OCI_LOGGING_LOG_ID` not injected into Fn config.
+
+## Sprint 28 - Component-scoped test manifests (SLI-47)
+
+Status: Progress
+Mode: YOLO
+Test: unit
+Regression: unit
+Regression scope: router
+
+Add per-component manifest files under `tests/manifests/`, a `--component` flag to `tests/run.sh`, a `Regression scope:` field to PLAN.md, and enforce that all tests run from the `tests/` working directory. Updates `rup_manager_simplified.md` to document the new contract.
+
+Backlog Items:
+
+* SLI-47. Component-scoped test manifests and test working directory enforcement

@@ -304,3 +304,15 @@ Test: at least two real or synthetic GitHub delivery families are stored under d
 Inbound headers already decide which route matches, but objects written on a successful path are built from the transformed body only, while dead-letter objects still carry the full envelope including headers. The product needs an explicit ruling on whether success-path storage should expose any header context for audit or correlation, because blind forwarding risks secrets and surprises consumers who today expect plain webhook JSON in the object body. Further detail belongs in sprint elaboration, not in the backlog item.
 
 Test: sprint design records the decision; any code change has automated tests for the agreed stored payload, or no code change with that outcome noted in sprint artifacts.
+
+### SLI-38. Optional router support for header-driven Object Storage prefix templates
+
+Today each GitHub event family needs its own static adapter entry and route in `routing.json`. Some operators may later want one configuration pattern that maps `X-GitHub-Event` values to distinct prefixes without duplicating adapters for every event name. That would require new product design for sanitization, collisions, and schema. This item stays deferred until there is a concrete operator need.
+
+Test: backlog or sprint note records deferral or, if implemented later, unit tests cover agreed prefix rules.
+
+### SLI-39. Header matching rules in the routing specification
+
+Envelope routing already consults inbound header metadata, but the routing definition contract does not yet fully describe which header match forms are supported, how values are compared, and what combinations remain invalid or undefined. Operators and reviewers need that behavior captured in the authoritative routing specification and reflected in validation so definitions stay portable across transports and misconfigurations are caught at load time instead of only under live traffic.
+
+Test: the routing specification and JSON Schema describe the same header matching capabilities as the router; invalid header match clauses fail definition load with clear errors, while definitions using only supported rules continue to validate and route as today.

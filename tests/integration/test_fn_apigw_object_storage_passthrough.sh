@@ -6,7 +6,7 @@
 # **FN_FORCE_DEPLOY=true** only when the handler changed.
 # Router configuration in **Object Storage** (not bundled in the image): `config/routing.json` and
 # `config/passthrough.jsonata` by default, uploaded from **tests/fixtures/fn_router_passthrough/** during **cycle_apigw_router_passthrough.sh**.
-# Routing includes GitHub **`X-GitHub-Event`** paths under **`ingest/github/<event>/`** (see Sprint 23 / SLI-36).
+# Routing: GitHub **`X-GitHub-Event`** → **`ingest/github/<event>/`**; POSTs without that header → **`ingest/no_github_event/`** (Sprint 23 / SLI-36).
 #
 # Does **not** tear down API GW / VCN / Fn app (same idea as not deleting buckets after every test).
 # Sprint-end cleanup: **tests/cleanup_router_apigw_stack.sh** (and **tests/cleanup_sli_buckets.sh** for sli-* buckets).
@@ -84,7 +84,7 @@ url="${base}${path}"
 OBJ="it-${TS}.json"
 _payload=$(jq -n --arg fn "$OBJ" '{body: {integration: true, marker: "sli-35"}, source_meta: {file_name: $fn}}')
 
-echo "=== POST (deterministic object ingest/${OBJ}) ==="
+echo "=== POST (deterministic object ingest/no_github_event/${OBJ}) ==="
 _resp=$(mktemp)
 _http=$(command -p curl 2>/dev/null || true)
 [ -z "${_http:-}" ] && _http=$(command -v curl 2>/dev/null || true)
@@ -114,7 +114,7 @@ fi
 rm -f "$_resp"
 
 echo "=== Verify object in bucket (with retries) ==="
-_object_path="ingest/${OBJ}"
+_object_path="ingest/no_github_event/${OBJ}"
 _ok=0
 for _i in $(seq 1 12); do
   if oci os object get \

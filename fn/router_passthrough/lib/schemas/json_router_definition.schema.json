@@ -77,6 +77,14 @@
             "type": "string",
             "minLength": 1
           }
+        },
+        "headers_absent": {
+          "type": "array",
+          "description": "Each named header must be absent or empty for the route to match (case-insensitive names).",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },

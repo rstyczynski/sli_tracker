@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # List newest object names under router ingest prefixes (filenames only, no JSON bodies).
 #
+# The "## ingest/" section lists only the catch-all *root* of that prefix: object keys matching
+# ingest/<one segment> (no further /). That uses oci object list --prefix ingest/ --delimiter /
+# so it matches Object Storage semantics, not "every key starting with ingest/".
+#
 # Usage:
 #   OCI_CLI_PROFILE=DEFAULT SLI_OS_NAMESPACE=myns SLI_INGEST_BUCKET=mybucket \
 #     ./tools/list_github_ingest_prefixes.sh [--limit N]
@@ -48,19 +52,33 @@ strip_leading_nonjson() {
 }
 
 # Return JSON array of object summaries (OCI --query data --raw-output), or [].
+# Optional third arg: any non-empty value adds --delimiter / (direct children of prefix only).
 fetch_data_array() {
   local prefix="$1"
   local lim="${2:-$LIST_CAP}"
+  local shallow="${3:-}"
   local raw
   raw=$(
-    oci os object list \
-      --namespace-name "$NS" \
-      --bucket-name "$BUCKET" \
-      --prefix "$prefix" \
-      --limit "$lim" \
-      --fields 'name,timeCreated' \
-      --query 'data' \
-      --raw-output 2>/dev/null | strip_leading_nonjson
+    if [[ -n "$shallow" ]]; then
+      oci os object list \
+        --namespace-name "$NS" \
+        --bucket-name "$BUCKET" \
+        --prefix "$prefix" \
+        --delimiter / \
+        --limit "$lim" \
+        --fields 'name,timeCreated' \
+        --query 'data' \
+        --raw-output 2>/dev/null | strip_leading_nonjson
+    else
+      oci os object list \
+        --namespace-name "$NS" \
+        --bucket-name "$BUCKET" \
+        --prefix "$prefix" \
+        --limit "$lim" \
+        --fields 'name,timeCreated' \
+        --query 'data' \
+        --raw-output 2>/dev/null | strip_leading_nonjson
+    fi
   ) || true
   raw="${raw//$'\r'/}"
   if [[ -z "${raw//[:space:]}" ]] || [[ "$raw" == 'null' ]]; then
@@ -87,7 +105,7 @@ print_names_newest_from_array() {
   ' 2>/dev/null || echo "  (list jq error)" >&2
 }
 
-for ev in ping push workflow_run pull_request; do
+for ev in ping push workflow_run workflow_job pull_request check_suite; do
   pref="ingest/github/${ev}/"
   echo "## ${pref}"
   arr=$(fetch_data_array "$pref" "$LIST_CAP")
@@ -106,9 +124,26 @@ print_names_newest_from_array "$arr_dl" "$LIMIT" | while IFS= read -r line || [[
 done
 echo
 
-echo "## ingest/"
-arr_ingest=$(fetch_data_array "ingest/" "$LIST_CAP")
-print_names_newest_from_array "$arr_ingest" "$LIMIT" | while IFS= read -r line || [[ -n "$line" ]]; do
+echo "## ingest/no_github_event/"
+arr_ngh=$(fetch_data_array "ingest/no_github_event/" "$LIST_CAP")
+print_names_newest_from_array "$arr_ngh" "$LIMIT" | while IFS= read -r line || [[ -n "$line" ]]; do
   [[ -z "$line" ]] && continue
   printf '%s\n' "$line"
 done
+echo
+
+echo "## ingest/"
+# Shallow list: only keys ingest/<leaf> (OCI --delimiter /), not ingest/github/…
+arr_ingest_root=$(fetch_data_array "ingest/" "$LIST_CAP" shallow)
+_tmp_root=$(mktemp "${TMPDIR:-/tmp}/list-ingest-root.XXXXXX")
+print_names_newest_from_array "$arr_ingest_root" "$LIMIT" >"$_tmp_root"
+_shown=0
+while IFS= read -r line || [[ -n "$line" ]]; do
+  [[ -z "$line" ]] && continue
+  printf '%s\n' "$line"
+  _shown=1
+done < "$_tmp_root"
+rm -f "$_tmp_root"
+if [[ "$_shown" -eq 0 ]]; then
+  echo "  (no objects at ingest/ root — keys must look like ingest/<file> with no extra /)"
+fi

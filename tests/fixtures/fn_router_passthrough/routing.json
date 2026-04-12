@@ -4,6 +4,10 @@
       "bucket": "REPLACED_AT_RUNTIME",
       "prefix": "ingest/"
     },
+    "oci_object_storage:no_github_event": {
+      "bucket": "REPLACED_AT_RUNTIME",
+      "prefix": "ingest/no_github_event/"
+    },
     "oci_object_storage:dead_letter": {
       "bucket": "REPLACED_AT_RUNTIME",
       "prefix": "ingest/dead_letter/"
@@ -20,9 +24,21 @@
       "bucket": "REPLACED_AT_RUNTIME",
       "prefix": "ingest/github/workflow_run/"
     },
+    "oci_object_storage:github_workflow_job": {
+      "bucket": "REPLACED_AT_RUNTIME",
+      "prefix": "ingest/github/workflow_job/"
+    },
     "oci_object_storage:github_pull_request": {
       "bucket": "REPLACED_AT_RUNTIME",
       "prefix": "ingest/github/pull_request/"
+    },
+    "oci_object_storage:github_check_suite": {
+      "bucket": "REPLACED_AT_RUNTIME",
+      "prefix": "ingest/github/check_suite/"
+    },
+    "oci_object_storage:github_deployment_status": {
+      "bucket": "REPLACED_AT_RUNTIME",
+      "prefix": "ingest/github/deployment_status/"
     }
   },
   "dead_letter": {
@@ -82,6 +98,23 @@
       }
     },
     {
+      "id": "github_workflow_job_to_bucket",
+      "mode": "exclusive",
+      "priority": 40,
+      "match": {
+        "headers": {
+          "x-github-event": "workflow_job"
+        }
+      },
+      "transform": {
+        "mapping": "./passthrough.jsonata"
+      },
+      "destination": {
+        "type": "oci_object_storage",
+        "name": "github_workflow_job"
+      }
+    },
+    {
       "id": "github_pull_request_to_bucket",
       "mode": "exclusive",
       "priority": 40,
@@ -96,6 +129,55 @@
       "destination": {
         "type": "oci_object_storage",
         "name": "github_pull_request"
+      }
+    },
+    {
+      "id": "github_check_suite_to_bucket",
+      "mode": "exclusive",
+      "priority": 40,
+      "match": {
+        "headers": {
+          "x-github-event": "check_suite"
+        }
+      },
+      "transform": {
+        "mapping": "./passthrough.jsonata"
+      },
+      "destination": {
+        "type": "oci_object_storage",
+        "name": "github_check_suite"
+      }
+    },
+    {
+      "id": "github_deployment_status_to_bucket",
+      "mode": "exclusive",
+      "priority": 40,
+      "match": {
+        "headers": {
+          "x-github-event": "deployment_status"
+        }
+      },
+      "transform": {
+        "mapping": "./passthrough.jsonata"
+      },
+      "destination": {
+        "type": "oci_object_storage",
+        "name": "github_deployment_status"
+      }
+    },
+    {
+      "id": "no_github_event_to_bucket",
+      "mode": "exclusive",
+      "priority": 5,
+      "match": {
+        "headers_absent": ["x-github-event"]
+      },
+      "transform": {
+        "mapping": "./passthrough.jsonata"
+      },
+      "destination": {
+        "type": "oci_object_storage",
+        "name": "no_github_event"
       }
     },
     {

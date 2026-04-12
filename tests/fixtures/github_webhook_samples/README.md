@@ -7,4 +7,4 @@ Minimal JSON bodies shaped like GitHub webhook delivery payloads. They are **not
 - **`workflow_run.json`** — `X-GitHub-Event: workflow_run`
 - **`pull_request.json`** — `X-GitHub-Event: pull_request`
 
-The router fixture `tests/fixtures/fn_router_passthrough/routing.json` routes these event types to separate Object Storage prefixes under `ingest/github/<event>/`.
+The router fixture `tests/fixtures/fn_router_passthrough/routing.json` routes the samples above plus **`X-GitHub-Event: workflow_job`**, **`check_suite`**, and other listed GitHub headers to separate Object Storage prefixes under **`ingest/github/<event>/`**.

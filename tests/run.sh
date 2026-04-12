@@ -71,13 +71,17 @@ run_suite() {
     printf '[info] logs: %s\n' "$LOG_DIR"
 
     if [[ "$suite_name" == "integration" ]]; then
-        if [[ -x "$SCRIPT_DIR/cleanup_sli_buckets.sh" ]]; then
-            printf '[pre] integration cleanup: deleting sli-* buckets in /SLI_tracker\n'
-            local cleanup_log
-            cleanup_log="${LOG_DIR}/${ts}_${suite_name}_cleanup_sli_buckets.log"
-            bash "$SCRIPT_DIR/cleanup_sli_buckets.sh" >"$cleanup_log" 2>&1
+        if [[ -n "${SLI_INTEGRATION_PRECLEAN:-}" ]]; then
+            if [[ -x "$SCRIPT_DIR/cleanup_sli_buckets.sh" ]]; then
+                printf '[pre] integration cleanup: deleting sli-* buckets in /SLI_tracker (SLI_INTEGRATION_PRECLEAN set)\n'
+                local cleanup_log
+                cleanup_log="${LOG_DIR}/${ts}_${suite_name}_cleanup_sli_buckets.log"
+                bash "$SCRIPT_DIR/cleanup_sli_buckets.sh" >"$cleanup_log" 2>&1
+            else
+                printf '[warn] integration cleanup script not executable: %s\n' "$SCRIPT_DIR/cleanup_sli_buckets.sh"
+            fi
         else
-            printf '[warn] integration cleanup script not executable: %s\n' "$SCRIPT_DIR/cleanup_sli_buckets.sh"
+            printf '[pre] integration cleanup skipped (set SLI_INTEGRATION_PRECLEAN=1 to enable)\n'
         fi
     fi
 

@@ -77,6 +77,43 @@ function normalizeHeaders(headers) {
     return normalized;
 }
 
+/** True if the header is present with a non-empty value (string or first array element). */
+function headerPresentNonEmpty(headers, keyLower) {
+    const v = headers[keyLower];
+    if (v === undefined || v === null) {
+        return false;
+    }
+    if (Array.isArray(v)) {
+        return v.length > 0 && String(v[0]).trim() !== '';
+    }
+    return String(v).trim() !== '';
+}
+
+/** First non-empty scalar string for a header value (arrays often come from HTTP stacks). */
+function headerValueForMatch(headers, keyLower) {
+    const v = headers[keyLower];
+    if (v === undefined || v === null) {
+        return undefined;
+    }
+    if (Array.isArray(v)) {
+        if (v.length === 0) {
+            return undefined;
+        }
+        const s = String(v[0]).trim();
+        return s === '' ? undefined : s;
+    }
+    const s = String(v).trim();
+    return s === '' ? undefined : s;
+}
+
+function headerMatchEquals(actual, expectedRaw) {
+    if (actual === undefined) {
+        return false;
+    }
+    const expected = String(expectedRaw).trim();
+    return actual.toLowerCase() === expected.toLowerCase();
+}
+
 function schemaErrorMessage(errors) {
     const first = Array.isArray(errors) && errors.length > 0 ? errors[0] : null;
     if (!first) {
@@ -202,7 +239,20 @@ function matchesRoute(envelope, route) {
 
     if (isObject(match.headers)) {
         for (const [key, value] of Object.entries(match.headers)) {
-            if (headers[String(key).toLowerCase()] !== value) {
+            const lk = String(key).toLowerCase();
+            const actual = headerValueForMatch(headers, lk);
+            if (!headerMatchEquals(actual, value)) {
+                return false;
+            }
+        }
+    }
+
+    if (Array.isArray(match.headers_absent)) {
+        for (const key of match.headers_absent) {
+            if (typeof key !== 'string' || key.trim() === '') {
+                return false;
+            }
+            if (headerPresentNonEmpty(headers, String(key).toLowerCase())) {
                 return false;
             }
         }

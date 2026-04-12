@@ -105,6 +105,7 @@ assert_router_error_contains "UT-76 non-object body does not crash and reports n
 assert_router_multi_fixture "UT-78 fanout routes produce multiple outputs"    ut78_fanout_match
 assert_router_multi_fixture "UT-79 exclusive winner and fanout route both selected" ut79_exclusive_plus_fanout
 assert_router_error_contains "UT-80 invalid route mode rejected at definition load" ut80_invalid_mode_definition
+assert_router_fixture        "UT-111 header value comparison is case-insensitive (generic header, BUG-1)" ut111_header_value_case_insensitive
 
 result=$(node - <<NODE
 const fs = require('fs');

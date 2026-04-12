@@ -145,8 +145,6 @@ async function readGetObjectBodyToString(getObjectResponse) {
     return Buffer.concat(chunks).toString('utf8');
 }
 
-const RAW_INGEST_ADAPTER_KEY = 'oci_object_storage:raw_ingest';
-
 /**
  * Inject runtime ingest bucket into the parsed routing object (same bucket the Fn writes to).
  */
@@ -155,8 +153,8 @@ function applyIngestBucketToRoutingObject(obj) {
     if (typeof bucket !== 'string' || bucket.trim() === '') {
         throw new Error('OCI_INGEST_BUCKET must be set (function configuration)');
     }
-    if (!isObject(obj.adapters) || !isObject(obj.adapters[RAW_INGEST_ADAPTER_KEY])) {
-        throw new Error(`routing definition must define adapters["${RAW_INGEST_ADAPTER_KEY}"]`);
+    if (!isObject(obj.adapters)) {
+        throw new Error('routing definition must define adapters');
     }
     const b = bucket.trim();
     for (const [key, val] of Object.entries(obj.adapters)) {
@@ -217,8 +215,9 @@ async function loadRoutingDefinitionForRun(options = {}) {
 }
 
 /**
- * Resolve JSONata mapping text when it is not bundled in the image (Object Storage).
- * Basename `passthrough.jsonata` is loaded from SLI_PASSTHROUGH_OBJECT (default config/passthrough.jsonata).
+ * Resolve JSONata mapping text from Object Storage when not bundled in the image.
+ * Any mappingRef basename is loaded from config/<basename> by default.
+ * Override the full object path with SLI_PASSTHROUGH_OBJECT (kept for backward compatibility).
  */
 function buildLoadMappingFromRef(options) {
     if (typeof options.loadMappingFromRef === 'function') {
@@ -226,16 +225,13 @@ function buildLoadMappingFromRef(options) {
     }
     return async ({ mappingRef }) => {
         const base = path.basename(String(mappingRef));
-        if (base !== 'passthrough.jsonata') {
-            return null;
-        }
         const mappingBucket = (
             process.env.SLI_MAPPING_BUCKET ||
             process.env.SLI_ROUTING_BUCKET ||
             process.env.OCI_INGEST_BUCKET ||
             ''
         ).trim();
-        const mappingObject = (process.env.SLI_PASSTHROUGH_OBJECT || 'config/passthrough.jsonata').trim();
+        const mappingObject = (process.env.SLI_PASSTHROUGH_OBJECT || `config/${base}`).trim();
         if (mappingBucket === '') {
             throw new Error(
                 'Set SLI_MAPPING_BUCKET, SLI_ROUTING_BUCKET, or OCI_INGEST_BUCKET to load passthrough.jsonata from Object Storage, ' +

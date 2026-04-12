@@ -1,0 +1,12 @@
+{
+  "route": {
+    "id": "source_type_github",
+    "destination": {
+      "type": "oci_log",
+      "name": "events"
+    }
+  },
+  "output": {
+    "event": "push"
+  }
+}

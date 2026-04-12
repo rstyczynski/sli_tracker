@@ -1,5 +1,7 @@
 'use strict';
-// Vendored from tools/json_transformer.js
+// tools/json_transformer.js
+// Library: JSON-to-JSON transformation via JSONata mapping expression/object.
+// Sprint 18 / SLI-26
 
 const jsonata = require('jsonata');
 
@@ -43,6 +45,13 @@ function normalizeMapping(mapping) {
     return loadMappingFromObject(mapping);
 }
 
+/**
+ * Apply a mapping to a source document.
+ * @param {any}    source   — parsed JSON source document
+ * @param {object|string} mapping  — mapping object or raw JSONata expression
+ * @returns {Promise<any>}  — transformed document
+ * @throws (async) on invalid JSONata expression or evaluation error
+ */
 async function transform(source, mapping) {
     const normalizedMapping = normalizeMapping(mapping);
     let expr;
@@ -59,4 +68,3 @@ async function transform(source, mapping) {
 }
 
 module.exports = { loadMappingFromObject, normalizeMapping, transform };
-

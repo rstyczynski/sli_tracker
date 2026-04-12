@@ -1,0 +1,8 @@
+{
+  "headers": {
+    "x-source-type": "GitHub"
+  },
+  "body": {
+    "event": "push"
+  }
+}

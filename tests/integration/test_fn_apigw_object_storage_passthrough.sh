@@ -4,6 +4,8 @@
 # Uses a **stable** NAME_PREFIX (default sli-router-passthrough-dev) under compartment **/SLI_tracker**
 # so repeated runs reuse VCN / API GW / DNS — redeploy Fn code with **func.yaml version bump** +
 # **FN_FORCE_DEPLOY=true** only when the handler changed.
+# Router configuration in **Object Storage** (not bundled in the image): `config/routing.json` and
+# `config/passthrough.jsonata` by default, uploaded from **tests/fixtures/fn_router_passthrough/** during **cycle_apigw_router_passthrough.sh**.
 #
 # Does **not** tear down API GW / VCN / Fn app (same idea as not deleting buckets after every test).
 # Sprint-end cleanup: **tests/cleanup_router_apigw_stack.sh** (and **tests/cleanup_sli_buckets.sh** for sli-* buckets).

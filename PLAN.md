@@ -276,13 +276,20 @@ Backlog Items:
 
 ## Sprint 22 - Public OCI Function router to Object Storage (pass-through)
 
-Status: Done
+Status: Fixed
 Mode: YOLO
 Test: unit, integration
 Regression: unit
 
 Create an internet-exposed OCI Function that accepts a routing envelope payload and persists it to OCI Object Storage without transformation. Use the `oci_scaffold` `cycle-apigw` pattern to ensure the public API Gateway exposure and the required OCI resources (compartment, function app, function, gateway, deployment, bucket) are created idempotently for local and CI validation.
 
+**Bugfix cycle (RUP `bugfix-cycle.md`):** post-delivery defects **SLI-35-1** / **SLI-35-2** — router configuration must live in Object Storage, not the Function image. Trace: `progress/sprint_22/sprint_22_bugfixes.md`.
+
 Backlog Items:
 
 * SLI-35. Public OCI Function router to Object Storage (pass-through)
+
+Bug fixes:
+
+* SLI-35-1. `routing.json` was packaged in the Function image instead of being loaded from Object Storage (operator-updatable router configuration).
+* SLI-35-2. `passthrough.jsonata` was packaged in the Function image instead of being loaded from Object Storage (operator-updatable JSONata mapping).

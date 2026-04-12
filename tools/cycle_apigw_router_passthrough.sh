@@ -11,6 +11,10 @@
 #   SLI_FN_CONTEXT (default: sli_tracker) — Fn CLI context name (compartment-id is updated each run)
 #   FN_FUNCTION_NAME, FN_FUNCTION_SRC_DIR (default: ../fn/router_passthrough relative to oci_scaffold/)
 #   FN_ROUTER_AUTO_INGEST_BUCKET=true|false (default: true)
+#   SLI_ROUTING_OBJECT (default: config/routing.json) — object name for routing JSON in the bucket
+#   SLI_ROUTING_BUCKET — override bucket for routing JSON (default: same as ingest bucket)
+#   SLI_PASSTHROUGH_OBJECT (default: config/passthrough.jsonata) — JSONata mapping in the bucket
+#   SLI_MAPPING_BUCKET — override bucket for mapping object (default: same as SLI_ROUTING_BUCKET / ingest)
 #   CYCLE_APIGW_TEST_EXPECT=router|echo (default: router)
 #   CYCLE_APIGW_RUN_TEARDOWN=true — only then runs do/teardown.sh (default: keep stack for Fn redeploys)
 #   FN_OS_POLICY_SKIP=true
@@ -110,6 +114,42 @@ fi
 if [ "${FN_ROUTER_AUTO_INGEST_BUCKET:-}" = "true" ]; then
   ensure-bucket.sh
   export FN_ROUTER_OCI_INGEST_BUCKET="$(_state_get '.bucket.name')"
+  export SLI_ROUTING_OBJECT="${SLI_ROUTING_OBJECT:-config/routing.json}"
+  export SLI_PASSTHROUGH_OBJECT="${SLI_PASSTHROUGH_OBJECT:-config/passthrough.jsonata}"
+  _ns="$(_state_get '.bucket.namespace')"
+  _routing_seed="${REPO_ROOT}/tests/fixtures/fn_router_passthrough/routing.json"
+  _mapping_seed="${REPO_ROOT}/tests/fixtures/fn_router_passthrough/passthrough.jsonata"
+  if [ ! -f "$_routing_seed" ]; then
+    echo "  [ERROR] routing seed missing: $_routing_seed" >&2
+    exit 1
+  fi
+  if [ ! -f "$_mapping_seed" ]; then
+    echo "  [ERROR] mapping seed missing: $_mapping_seed" >&2
+    exit 1
+  fi
+  _routing_bucket="${SLI_ROUTING_BUCKET:-$FN_ROUTER_OCI_INGEST_BUCKET}"
+  _info "Upload routing definition to Object Storage: ${_routing_bucket}/${SLI_ROUTING_OBJECT}"
+  if ! oci os object put \
+    --namespace-name "$_ns" \
+    --bucket-name "$_routing_bucket" \
+    --name "$SLI_ROUTING_OBJECT" \
+    --file "$_routing_seed" \
+    --force >/dev/null; then
+    echo "  [ERROR] oci os object put routing definition failed" >&2
+    exit 1
+  fi
+  _mapping_bucket="${SLI_MAPPING_BUCKET:-$_routing_bucket}"
+  _info "Upload passthrough JSONata to Object Storage: ${_mapping_bucket}/${SLI_PASSTHROUGH_OBJECT}"
+  if ! oci os object put \
+    --namespace-name "$_ns" \
+    --bucket-name "$_mapping_bucket" \
+    --name "$SLI_PASSTHROUGH_OBJECT" \
+    --file "$_mapping_seed" \
+    --force >/dev/null; then
+    echo "  [ERROR] oci os object put passthrough.jsonata failed" >&2
+    exit 1
+  fi
+  _done "Router config objects uploaded (Fn loads via Resource Principal, not from image)"
 fi
 
 # ── setup (network + Fn app + function + apigw) ─────────────────────────────
@@ -143,7 +183,11 @@ if [ -n "${FN_ROUTER_OCI_INGEST_BUCKET:-}" ]; then
   if [ -z "$_cfg_raw" ]; then
     _cfg_raw='null'
   fi
-  if ! _cfg_merged=$(echo "$_cfg_raw" | jq -c --arg b "$FN_ROUTER_OCI_INGEST_BUCKET" '
+  _rb="${SLI_ROUTING_BUCKET:-$FN_ROUTER_OCI_INGEST_BUCKET}"
+  _ro="${SLI_ROUTING_OBJECT:-config/routing.json}"
+  _mb="${SLI_MAPPING_BUCKET:-$_rb}"
+  _po="${SLI_PASSTHROUGH_OBJECT:-config/passthrough.jsonata}"
+  if ! _cfg_merged=$(echo "$_cfg_raw" | jq -c --arg b "$FN_ROUTER_OCI_INGEST_BUCKET" --arg rb "$_rb" --arg ro "$_ro" --arg mb "$_mb" --arg po "$_po" '
     def norm:
       if . == null then {}
       elif type == "string" then (try fromjson catch {})
@@ -154,9 +198,9 @@ if [ -n "${FN_ROUTER_OCI_INGEST_BUCKET:-}" ]; then
           else . end)
       elif type == "object" then (. | map_values(tostring))
       else {} end;
-    norm + {OCI_INGEST_BUCKET: $b}
+    norm + {OCI_INGEST_BUCKET: $b, SLI_ROUTING_BUCKET: $rb, SLI_ROUTING_OBJECT: $ro, SLI_MAPPING_BUCKET: $mb, SLI_PASSTHROUGH_OBJECT: $po}
   '); then
-    _fail "Could not merge Fn config with OCI_INGEST_BUCKET (raw config: ${_cfg_raw})"
+    _fail "Could not merge Fn config (raw config: ${_cfg_raw})"
     exit 1
   fi
 
@@ -173,7 +217,7 @@ if [ -n "${FN_ROUTER_OCI_INGEST_BUCKET:-}" ]; then
     exit 1
   fi
   rm -f "$_cfg_tmp"
-  _done "Fn config OCI_INGEST_BUCKET=$FN_ROUTER_OCI_INGEST_BUCKET"
+  _done "Fn config OCI_INGEST_BUCKET=$FN_ROUTER_OCI_INGEST_BUCKET SLI_ROUTING_BUCKET=$_rb SLI_ROUTING_OBJECT=$_ro SLI_MAPPING_BUCKET=$_mb SLI_PASSTHROUGH_OBJECT=$_po"
 fi
 
 if [ "${FN_ROUTER_AUTO_INGEST_BUCKET:-}" = "true" ]; then

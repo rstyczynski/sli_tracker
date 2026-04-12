@@ -32,4 +32,4 @@ Progress board is a table showing sprint, and backlog items state. It's the only
 | Sprint 20 | implemented           | SLI-32       | tested              |
 | Sprint 21 | implemented           | SLI-33       | tested              |
 | Sprint 21 | implemented           | SLI-34       | tested              |
-| Sprint 22 | implemented           | SLI-35       | tested              |
+| Sprint 22 | fixed                 | SLI-35       | tested              |

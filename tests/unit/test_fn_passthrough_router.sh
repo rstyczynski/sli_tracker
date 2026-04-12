@@ -22,11 +22,20 @@ fi
 
 if ! OUT=$(node <<'NODE'
 const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
 const { runRouter } = require('./router_core');
+const fxDir = path.join(process.cwd(), '..', '..', 'tests', 'fixtures', 'fn_router_passthrough');
+const routingDefinition = JSON.parse(fs.readFileSync(path.join(fxDir, 'routing.json'), 'utf8'));
+const passthroughBody = fs.readFileSync(path.join(fxDir, 'passthrough.jsonata'), 'utf8').trim();
+const loadMappingFromRef = async ({ mappingRef }) =>
+  (path.basename(String(mappingRef)) === 'passthrough.jsonata' ? passthroughBody : null);
 (async () => {
   const calls = [];
   const r = await runRouter({ hello: 'world', n: 42 }, {
     putObject: async (x) => { calls.push(x); },
+    routingDefinition,
+    loadMappingFromRef,
   });
   assert.strictEqual(r.status, 'routed');
   assert.strictEqual(calls.length, 1);
@@ -38,7 +47,7 @@ const { runRouter } = require('./router_core');
   const calls2 = [];
   await runRouter(
     { body: { x: 1 }, source_meta: { file_name: 'fixed-name.json' } },
-    { putObject: async (x) => { calls2.push(x); } }
+    { putObject: async (x) => { calls2.push(x); }, routingDefinition, loadMappingFromRef }
   );
   assert.strictEqual(calls2[0].objectName, 'ingest/fixed-name.json');
   console.log('ok');

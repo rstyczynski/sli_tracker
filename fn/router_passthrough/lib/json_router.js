@@ -257,6 +257,9 @@ function normalizeHandlers(handlers = {}) {
     if (handlers.loadMapping !== undefined && typeof handlers.loadMapping !== 'function') {
         throw new Error('Handler loadMapping must be a function');
     }
+    if (handlers.loadMappingFromRef !== undefined && typeof handlers.loadMappingFromRef !== 'function') {
+        throw new Error('Handler loadMappingFromRef must be a function');
+    }
     return handlers;
 }
 
@@ -268,6 +271,12 @@ async function resolveRouteMapping(route, definition, handlers) {
 
     // Backward-compatible behavior: no mapping source -> treat mappingRef as a file path.
     if (!definition.mapping) {
+        if (handlers && typeof handlers.loadMappingFromRef === 'function') {
+            const resolved = await handlers.loadMappingFromRef({ mappingRef, route, definition });
+            if (resolved != null && resolved !== '') {
+                return resolved;
+            }
+        }
         return loadMapping(mappingRef);
     }
 

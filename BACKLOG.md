@@ -289,6 +289,6 @@ Test: the test runner accepts a manifest filter for regression runs, and a sprin
 
 Expose a public OCI Function endpoint that accepts a routing envelope payload and saves it to an OCI Object Storage bucket without transformation so raw inputs can be replayed and audited later. This enables an internet-facing ingestion point that persists received messages reliably before any downstream processing.
 
-Sprint 22 artifacts: `progress/sprint_22/` (design, implementation, tests, manifests).
+Sprint 22 artifacts: `progress/sprint_22/` (design, implementation, tests, manifests). **Post-delivery bugfix cycle:** **SLI-35-1** / **SLI-35-2** (routing JSON and JSONata mapping must load from Object Storage, not the Function image) — see `progress/sprint_22/sprint_22_bugfixes.md` and `PLAN.md` Sprint 22.
 
 Test: posting a sample envelope to the public endpoint results in an object created in the configured bucket with content matching the request payload.

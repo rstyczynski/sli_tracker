@@ -1,7 +1,6 @@
 'use strict';
 
 const crypto = require('crypto');
-const fs = require('fs');
 const path = require('path');
 const common = require('oci-common');
 const objectstorage = require('oci-objectstorage');
@@ -77,20 +76,129 @@ async function getDefaultObjectStorageClient() {
     return cachedOs;
 }
 
-function loadRoutingDefinitionForRun() {
-    const routingPath = path.join(__dirname, 'routing.json');
-    const raw = fs.readFileSync(routingPath, 'utf8');
-    const obj = JSON.parse(raw);
+async function readGetObjectBodyToString(getObjectResponse) {
+    const stream = getObjectResponse && getObjectResponse.value;
+    if (!stream) {
+        throw new Error('Object Storage getObject returned no body stream');
+    }
+    const chunks = [];
+    // Node OCI SDK returns a Readable stream
+    // eslint-disable-next-line no-restricted-syntax
+    for await (const chunk of stream) {
+        chunks.push(chunk);
+    }
+    return Buffer.concat(chunks).toString('utf8');
+}
+
+const RAW_INGEST_ADAPTER_KEY = 'oci_object_storage:raw_ingest';
+
+/**
+ * Inject runtime ingest bucket into the parsed routing object (same bucket the Fn writes to).
+ */
+function applyIngestBucketToRoutingObject(obj) {
     const bucket = process.env.OCI_INGEST_BUCKET;
     if (typeof bucket !== 'string' || bucket.trim() === '') {
         throw new Error('OCI_INGEST_BUCKET must be set (function configuration)');
     }
-    const adapterKey = 'oci_object_storage:raw_ingest';
-    if (!isObject(obj.adapters) || !isObject(obj.adapters[adapterKey])) {
-        throw new Error(`routing.json must define adapters["${adapterKey}"]`);
+    if (!isObject(obj.adapters) || !isObject(obj.adapters[RAW_INGEST_ADAPTER_KEY])) {
+        throw new Error(`routing definition must define adapters["${RAW_INGEST_ADAPTER_KEY}"]`);
     }
-    obj.adapters[adapterKey].bucket = bucket.trim();
+    obj.adapters[RAW_INGEST_ADAPTER_KEY].bucket = bucket.trim();
     return loadRoutingDefinitionFromObject(obj, { baseDir: __dirname });
+}
+
+/**
+ * Load routing definition: Object Storage (production) or in-memory (tests via options.routingDefinition).
+ *
+ * Env (production):
+ * - SLI_ROUTING_BUCKET — bucket containing routing JSON (defaults to OCI_INGEST_BUCKET)
+ * - SLI_ROUTING_OBJECT — object name (default config/routing.json)
+ */
+async function loadRoutingDefinitionForRun(options = {}) {
+    if (options.routingDefinition !== undefined && options.routingDefinition !== null) {
+        const cloned = JSON.parse(JSON.stringify(options.routingDefinition));
+        return applyIngestBucketToRoutingObject(cloned);
+    }
+
+    const routingBucket = (process.env.SLI_ROUTING_BUCKET || process.env.OCI_INGEST_BUCKET || '').trim();
+    const routingObject = (process.env.SLI_ROUTING_OBJECT || 'config/routing.json').trim();
+    if (routingBucket === '') {
+        throw new Error(
+            'SLI_ROUTING_BUCKET or OCI_INGEST_BUCKET must be set, or pass options.routingDefinition (tests)',
+        );
+    }
+
+    const os = options.getObjectStorage ? await options.getObjectStorage() : await getDefaultObjectStorageClient();
+    let raw;
+    try {
+        const getResp = await os.client.getObject({
+            namespaceName: os.namespaceName,
+            bucketName: routingBucket,
+            objectName: routingObject,
+        });
+        raw = await readGetObjectBodyToString(getResp);
+    } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        throw new Error(
+            `Failed to load routing definition from Object Storage ` +
+                `(bucket=${routingBucket}, object=${routingObject}): ${msg}`,
+        );
+    }
+
+    let obj;
+    try {
+        obj = JSON.parse(raw);
+    } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        throw new Error(`Routing object ${routingObject} is not valid JSON: ${msg}`);
+    }
+
+    return applyIngestBucketToRoutingObject(obj);
+}
+
+/**
+ * Resolve JSONata mapping text when it is not bundled in the image (Object Storage).
+ * Basename `passthrough.jsonata` is loaded from SLI_PASSTHROUGH_OBJECT (default config/passthrough.jsonata).
+ */
+function buildLoadMappingFromRef(options) {
+    if (typeof options.loadMappingFromRef === 'function') {
+        return options.loadMappingFromRef;
+    }
+    return async ({ mappingRef }) => {
+        const base = path.basename(String(mappingRef));
+        if (base !== 'passthrough.jsonata') {
+            return null;
+        }
+        const mappingBucket = (
+            process.env.SLI_MAPPING_BUCKET ||
+            process.env.SLI_ROUTING_BUCKET ||
+            process.env.OCI_INGEST_BUCKET ||
+            ''
+        ).trim();
+        const mappingObject = (process.env.SLI_PASSTHROUGH_OBJECT || 'config/passthrough.jsonata').trim();
+        if (mappingBucket === '') {
+            throw new Error(
+                'Set SLI_MAPPING_BUCKET, SLI_ROUTING_BUCKET, or OCI_INGEST_BUCKET to load passthrough.jsonata from Object Storage, ' +
+                    'or pass options.loadMappingFromRef (local tests)',
+            );
+        }
+        const os = options.getObjectStorage ? await options.getObjectStorage() : await getDefaultObjectStorageClient();
+        let raw;
+        try {
+            const getResp = await os.client.getObject({
+                namespaceName: os.namespaceName,
+                bucketName: mappingBucket,
+                objectName: mappingObject,
+            });
+            raw = await readGetObjectBodyToString(getResp);
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            throw new Error(
+                `Failed to load mapping from Object Storage (bucket=${mappingBucket}, object=${mappingObject}): ${msg}`,
+            );
+        }
+        return raw.trim();
+    };
 }
 
 /**
@@ -98,11 +206,12 @@ function loadRoutingDefinitionForRun() {
  * @param {object} [options]
  * @param {function} [options.getObjectStorage] async () => ({ client, namespaceName })
  * @param {function} [options.putObject] async ({ bucket, objectName, content, contentType }) => void
+ * @param {function} [options.loadMappingFromRef] async ({ mappingRef, route, definition }) => string|null — override OS mapping load (tests)
  */
 async function runRouter(fnInput, options = {}) {
     const parsed = parseFnInput(fnInput);
     const envelope = envelopeFromPayload(parsed);
-    const definition = loadRoutingDefinitionForRun();
+    const definition = await loadRoutingDefinitionForRun(options);
 
     let putObjectImpl = options.putObject;
     if (!putObjectImpl) {
@@ -143,6 +252,7 @@ async function runRouter(fnInput, options = {}) {
 
     const handlers = {
         onRoute: dispatcher.onRoute,
+        loadMappingFromRef: buildLoadMappingFromRef(options),
     };
     if (definition.dead_letter) {
         handlers.onDeadLetter = dispatcher.onDeadLetter;
@@ -156,4 +266,5 @@ module.exports = {
     parseFnInput,
     envelopeFromPayload,
     loadRoutingDefinitionForRun,
+    buildLoadMappingFromRef,
 };

@@ -30,6 +30,7 @@ echo ""
 # shellcheck source=../oci_scaffold/do/oci_scaffold.sh
 export OCI_CLI_PROFILE="$OCI_PROFILE"
 export NAME_PREFIX="sli_cleanup_buckets"
+cd "$SCRIPT_DIR"
 source "${REPO_ROOT}/oci_scaffold/do/oci_scaffold.sh"
 
 COMPARTMENT_OCID="$(_oci_compartment_ocid_by_path "$COMPARTMENT_PATH")"

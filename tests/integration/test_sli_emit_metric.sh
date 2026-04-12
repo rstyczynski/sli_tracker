@@ -201,6 +201,7 @@ if [[ -f "${REPO_ROOT}/oci_scaffold/do/oci_scaffold.sh" ]]; then
   _SLI_LOG_OCID="$(
     set +e
     export NAME_PREFIX="sli_test_sprint6"
+    cd "$SCRIPT_DIR"
     # shellcheck source=../../oci_scaffold/do/oci_scaffold.sh
     source "${REPO_ROOT}/oci_scaffold/do/oci_scaffold.sh" 2>/dev/null || true
     _state_set '.inputs.compartment_path' "/" 2>/dev/null || true

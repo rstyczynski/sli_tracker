@@ -39,6 +39,14 @@
     "oci_object_storage:github_deployment_status": {
       "bucket": "REPLACED_AT_RUNTIME",
       "prefix": "ingest/github/deployment_status/"
+    },
+    "oci_object_storage:github_deployment": {
+      "bucket": "REPLACED_AT_RUNTIME",
+      "prefix": "ingest/github/deployment/"
+    },
+    "oci_object_storage:github_check_run": {
+      "bucket": "REPLACED_AT_RUNTIME",
+      "prefix": "ingest/github/check_run/"
     }
   },
   "dead_letter": {
@@ -146,6 +154,40 @@
       "destination": {
         "type": "oci_object_storage",
         "name": "github_check_suite"
+      }
+    },
+    {
+      "id": "github_deployment_to_bucket",
+      "mode": "exclusive",
+      "priority": 40,
+      "match": {
+        "headers": {
+          "x-github-event": "deployment"
+        }
+      },
+      "transform": {
+        "mapping": "./passthrough.jsonata"
+      },
+      "destination": {
+        "type": "oci_object_storage",
+        "name": "github_deployment"
+      }
+    },
+    {
+      "id": "github_check_run_to_bucket",
+      "mode": "exclusive",
+      "priority": 40,
+      "match": {
+        "headers": {
+          "x-github-event": "check_run"
+        }
+      },
+      "transform": {
+        "mapping": "./passthrough.jsonata"
+      },
+      "destination": {
+        "type": "oci_object_storage",
+        "name": "github_check_run"
       }
     },
     {

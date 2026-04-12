@@ -197,6 +197,38 @@ function readSample(name) {
     'static route for X-GitHub-Event check_suite',
   );
 
+  const deploymentBody = { deployment: { id: 1, task: 'deploy', environment: 'model-env-1' }, action: 'created' };
+  const callsDepl = [];
+  await runRouter(
+    {
+      body: deploymentBody,
+      headers: { 'X-GitHub-Event': 'deployment' },
+      source_meta: { file_name: 'unit-deployment.json' },
+    },
+    { putObject: async (x) => { callsDepl.push(x); }, routingDefinition, loadMappingFromRef },
+  );
+  assert.strictEqual(
+    callsDepl[0].objectName,
+    'ingest/github/deployment/unit-deployment.json',
+    'deployment routes to ingest/github/deployment/',
+  );
+
+  const checkRunBody = { check_run: { id: 1, name: 'CI', status: 'completed', conclusion: 'success' }, action: 'completed' };
+  const callsCheckRun = [];
+  await runRouter(
+    {
+      body: checkRunBody,
+      headers: { 'X-GitHub-Event': 'check_run' },
+      source_meta: { file_name: 'unit-check-run.json' },
+    },
+    { putObject: async (x) => { callsCheckRun.push(x); }, routingDefinition, loadMappingFromRef },
+  );
+  assert.strictEqual(
+    callsCheckRun[0].objectName,
+    'ingest/github/check_run/unit-check-run.json',
+    'check_run routes to ingest/github/check_run/',
+  );
+
   const deploymentStatusBody = { deployment_status: { state: 'success' }, deployment: { id: 1 }, action: 'created' };
   const callsDeplStatus = [];
   await runRouter(

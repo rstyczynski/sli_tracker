@@ -1,0 +1,173 @@
+[info] --manifest mode: filtering to tests listed in progress/sprint_21/regression_tests.manifest
+=== unit tests ===
+[run] unit/test_destination_adapters.sh
+[PASS] UT-111 file adapter resolves logical destination via destinationMap
+[PASS] UT-112 OCI Logging adapter resolves target
+[PASS] UT-113 OCI Monitoring adapter resolves target
+[PASS] UT-114 OCI Object Storage adapter resolves target
+[PASS] UT-115 destination dispatcher routes mixed logical destinations and dead letter
+
+=== destination adapters: 5 tests, 5 passed, 0 failed ===
+[PASS] unit/test_destination_adapters.sh
+[skip] unit/test_emit.sh (not in manifest)
+[run] unit/test_file_adapter.sh
+[PASS] UT-103 file adapter writes fanout destinations
+[PASS] UT-104 file adapter writes dead letter output
+[PASS] UT-105 file adapter writes mixed batch outputs
+
+=== file adapter: 3 tests, 3 passed, 0 failed ===
+[PASS] unit/test_file_adapter.sh
+[run] unit/test_file_source_adapter.sh
+[PASS] UT-106 file source adapter reads JSON files in lexical order
+[PASS] UT-107 file source adapter feeds processEnvelopes mixed batch
+[PASS] UT-108 file source adapter stops on malformed JSON file
+
+=== file source adapter: 3 tests, 3 passed, 0 failed ===
+[PASS] unit/test_file_source_adapter.sh
+[skip] unit/test_install_oci_cli.sh (not in manifest)
+[run] unit/test_json_pipeline_cli.sh
+[PASS] UT-94 transform CLI output piped to router CLI
+[PASS] UT-95 stdin transform CLI piped to router CLI
+[PASS] UT-96 transform CLI failure stops pipeline before router CLI
+
+=== json pipeline CLI: 3 tests, 3 passed, 0 failed ===
+[PASS] unit/test_json_pipeline_cli.sh
+[run] unit/test_json_router_adapters.sh
+[PASS] UT-97 processEnvelope fanout onRoute callbacks
+[PASS] UT-98 processEnvelope mixed exclusive and fanout callbacks
+[PASS] UT-99 processEnvelope no-match goes to onDeadLetter
+[PASS] UT-100 processEnvelope transform failure goes to onDeadLetter
+[PASS] UT-101 processEnvelopes array mixed summary
+[PASS] UT-102 processEnvelopes async iterable
+
+=== json_router adapters: 6 tests, 6 passed, 0 failed ===
+[PASS] unit/test_json_router_adapters.sh
+[run] unit/test_json_router_batch.sh
+[PASS] UT-65 bulk happy-path routing covers header/endpoint/schema/required/priority
+[PASS] UT-66 bulk routing reports unroutable file with filename
+[PASS] UT-67 bulk dead-letter routing covers unknown/transform/invalid-json cases
+[PASS] UT-77 one omnibus batch covers happy paths and dead letters together
+[PASS] UT-81 bulk fanout writes the same source file to multiple destinations
+[PASS] UT-82 bulk exclusive selects one winning destination
+[PASS] UT-83 bulk mixed exclusive and fanout writes selected destinations
+[PASS] UT-72 bulk ambiguous top-priority routes fail with filename
+[PASS] UT-74 invalid routing definition fails before processing
+[PASS] UT-84 invalid dead-letter schema fails before processing
+
+=== json_router bulk: 10 tests, 10 passed, 0 failed ===
+[PASS] unit/test_json_router_batch.sh
+[run] unit/test_json_router_cli.sh
+[PASS] UT-88 router CLI single envelope
+[PASS] UT-89 router CLI stdin envelope
+[PASS] UT-90 router CLI batch summary
+[PASS] UT-90 router CLI batch destinations
+[PASS] UT-91 router CLI missing --routing
+[PASS] UT-92 router CLI missing batch output-dir
+[PASS] UT-93 router CLI malformed envelope JSON
+
+=== json_router CLI: 7 tests, 7 passed, 0 failed ===
+[PASS] unit/test_json_router_cli.sh
+[run] unit/test_json_router_schema.sh
+[PASS] UT-85 routing.json schema accepts valid definition
+[PASS] UT-86 routing.json schema rejects invalid route definition critically
+[PASS] UT-87 routing.json schema rejects invalid dead-letter definition critically
+
+=== json_router schema: 3 tests, 3 passed, 0 failed ===
+[PASS] unit/test_json_router_schema.sh
+[run] unit/test_json_router.sh
+[PASS] UT-57 header-based route selection
+[PASS] UT-58 endpoint-based route selection
+[PASS] UT-59 schema-based route selection
+[PASS] UT-60 required-fields route selection
+[PASS] UT-61 highest-priority route wins
+[PASS] UT-62 no route matched → error
+[PASS] UT-63 ambiguous top-priority routes → error
+[PASS] UT-64 route matched but strict mapping fails
+[PASS] UT-75 invalid schema matcher rejected at definition load
+[PASS] UT-76 non-object body does not crash and reports no route
+[PASS] UT-78 fanout routes produce multiple outputs
+[PASS] UT-79 exclusive winner and fanout route both selected
+[PASS] UT-80 invalid route mode rejected at definition load
+[PASS] UT-109 router accepts routing object variable
+[PASS] UT-110 router accepts preloaded routing variable
+
+=== json_router.js: 15 tests, 15 passed, 0 failed ===
+[PASS] unit/test_json_router.sh
+[run] unit/test_json_transformer_cli.sh
+[PASS] UT-20 --input file
+[PASS] UT-21 stdin
+[PASS] UT-22 --pretty indented
+[PASS] UT-23 unknown flag
+[PASS] UT-24 missing --mapping
+[PASS] UT-25 non-existent mapping
+[PASS] UT-26 non-existent input
+[PASS] UT-27 malformed source JSON
+[PASS] UT-56 strict mapping assertion failure surfaces via CLI
+
+=== json_transform_cli.js: 9 tests, 9 passed, 0 failed ===
+[PASS] unit/test_json_transformer_cli.sh
+[run] unit/test_json_transformer.sh
+[PASS] UT-1  identity mapping
+[PASS] UT-2  field extraction and rename
+[PASS] UT-3  nested field access
+[PASS] UT-4  array transformation
+[PASS] UT-5  conditional expression
+[PASS] UT-6  string concatenation
+[PASS] UT-7  numeric computation
+[PASS] UT-8  github workflow_run → oci log
+[PASS] UT-9  health endpoint → oci metric
+[PASS] UT-28 github workflow_run success → SLI event + duration_s
+[PASS] UT-29 github workflow_run failure → outcome_value=0
+[PASS] UT-30 /health all UP → metric value=1 per component
+[PASS] UT-31 /health db DOWN → db value=0, others value=1
+[PASS] UT-32 github workflow_run → OCI PostMetricData
+[PASS] UT-33 /health all UP → OCI PostMetricData per component
+[PASS] UT-34 /health db DOWN → OCI PostMetricData db=0
+[PASS] UT-35 OCI bucket CloudEvent → log entry + $substringAfter
+[PASS] UT-36 OCI compute CloudEvent → OCI metric with freeformTags
+[PASS] UT-37 OCI PostgreSQL backup CloudEvent → log entry
+[PASS] UT-38 (a1) missing conclusion → outcome absent, outcome_value=0
+[PASS] UT-39 (a2) component missing status → value=0
+[PASS] UT-40 (a3) freeformTags absent → env dimension omitted
+[PASS] UT-41 (b1) division by zero → ratio=null (JSONata does not throw)
+[PASS] UT-42 (b2) undefined function in expression → error
+[PASS] UT-43 (b3) $toMillis on non-ISO string → error
+[PASS] UT-44 (a4) workflow_run key entirely absent → degraded output
+[PASS] UT-45 (a5) components:{} empty → metricData key absent
+[PASS] UT-46 (a6) component status is number not string → value=0
+[PASS] UT-47 (b4) multiply string by number → error
+[PASS] UT-48 (b5) $substringAfter sep not found → full string returned
+[PASS] UT-49 (c1) required workflow_run.conclusion missing → error
+[PASS] UT-50 (c2) required workflow_run.updated_at missing → error
+[PASS] UT-51 (c3) required repository.full_name missing → error
+[PASS] UT-52 (c4) required workflow_run missing → error
+[PASS] UT-53 (c5) required repository missing → error
+[PASS] UT-54 (d1) missing conclusion → fallback value + diagnostics
+[PASS] UT-55 (d2) missing repository full_name → fallback value + diagnostics
+[PASS] UT-10 missing field in source omitted
+[PASS] UT-11 null field value passes through
+[PASS] UT-12 number-to-string coercion
+[PASS] UT-13 empty source with $exists guard
+[PASS] UT-14 source is array at root
+[PASS] UT-15 missing expression field → error
+[PASS] UT-16 expression not a string → error
+[PASS] UT-17 invalid JSONata syntax → error
+[PASS] UT-18 mapping expression not string in memory → error
+[PASS] UT-19 invalid mapping argument type → error
+
+=== json_transformer.js: 47 tests, 47 passed, 0 failed ===
+[PASS] unit/test_json_transformer.sh
+[skip] unit/test_oci_profile_setup_api_key.sh (not in manifest)
+[skip] unit/test_oci_profile_setup.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_api_key_help.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_config_profile_dry.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_config_profile_help.sh (not in manifest)
+[skip] unit/test_sli_compute_sli_metrics.sh (not in manifest)
+[skip] unit/test_sli_ratio_simulator.sh (not in manifest)
+[skip] unit/test_sli_scheduled_workflows.sh (not in manifest)
+=== unit summary: 11 scripts, 11 passed, 0 failed ===
+
+========================================
+TOTAL: 11 scripts, 11 passed, 0 failed
+========================================
+RESULT: PASS

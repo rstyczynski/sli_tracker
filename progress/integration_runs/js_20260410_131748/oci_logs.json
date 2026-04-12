@@ -1,0 +1,842 @@
+[
+  {
+    "data": {
+      "datetime": 1775827130000,
+      "logContent": {
+        "data": {
+          "failure_reasons": {},
+          "outcome": "success",
+          "repo": {
+            "ref": "main",
+            "ref_full": "refs/heads/main",
+            "repository": "rstyczynski/sli_tracker",
+            "repository_id": "1200217885",
+            "sha": "aeeaf6852319a646f7011180d72d2da1be72cf80"
+          },
+          "source": "github-actions/sli-tracker",
+          "timestamp": "2026-04-10T13:18:50Z",
+          "workflow": {
+            "actor": "rstyczynski",
+            "event_name": "schedule",
+            "job": "emit",
+            "name": "SLI-23 — scheduled synthetic emitter (hourly)",
+            "ref": "rstyczynski/sli_tracker/.github/workflows/sli_ratio_simulator.yml@refs/heads/main",
+            "run_attempt": "1",
+            "run_id": "24244773927",
+            "run_number": "35"
+          }
+        },
+        "id": "2026-04-10T13:18:50Z-sli",
+        "oracle": {
+          "compartmentid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+          "ingestedtime": "2026-04-10T13:18:51.355883644Z",
+          "loggroupid": "ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq",
+          "logid": "ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa",
+          "tenantid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a"
+        },
+        "source": "github-actions/sli-tracker",
+        "specversion": "1.0",
+        "time": "2026-04-10T13:18:50Z",
+        "type": "sli-event"
+      }
+    }
+  },
+  {
+    "data": {
+      "datetime": 1775827125000,
+      "logContent": {
+        "data": {
+          "failure_reasons": {},
+          "outcome": "success",
+          "repo": {
+            "ref": "main",
+            "ref_full": "refs/heads/main",
+            "repository": "rstyczynski/sli_tracker",
+            "repository_id": "1200217885",
+            "sha": "aeeaf6852319a646f7011180d72d2da1be72cf80"
+          },
+          "source": "github-actions/sli-tracker",
+          "timestamp": "2026-04-10T13:18:45Z",
+          "workflow": {
+            "actor": "rstyczynski",
+            "event_name": "schedule",
+            "job": "emit",
+            "name": "SLI-23 — scheduled synthetic emitter (hourly)",
+            "ref": "rstyczynski/sli_tracker/.github/workflows/sli_ratio_simulator.yml@refs/heads/main",
+            "run_attempt": "1",
+            "run_id": "24244773927",
+            "run_number": "35"
+          }
+        },
+        "id": "2026-04-10T13:18:45Z-sli",
+        "oracle": {
+          "compartmentid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+          "ingestedtime": "2026-04-10T13:18:46.331585683Z",
+          "loggroupid": "ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq",
+          "logid": "ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa",
+          "tenantid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a"
+        },
+        "source": "github-actions/sli-tracker",
+        "specversion": "1.0",
+        "time": "2026-04-10T13:18:45Z",
+        "type": "sli-event"
+      }
+    }
+  },
+  {
+    "data": {
+      "datetime": 1775827120000,
+      "logContent": {
+        "data": {
+          "failure_reasons": {},
+          "outcome": "success",
+          "repo": {
+            "ref": "main",
+            "ref_full": "refs/heads/main",
+            "repository": "rstyczynski/sli_tracker",
+            "repository_id": "1200217885",
+            "sha": "aeeaf6852319a646f7011180d72d2da1be72cf80"
+          },
+          "source": "github-actions/sli-tracker",
+          "timestamp": "2026-04-10T13:18:40Z",
+          "workflow": {
+            "actor": "rstyczynski",
+            "event_name": "schedule",
+            "job": "emit",
+            "name": "SLI-23 — scheduled synthetic emitter (hourly)",
+            "ref": "rstyczynski/sli_tracker/.github/workflows/sli_ratio_simulator.yml@refs/heads/main",
+            "run_attempt": "1",
+            "run_id": "24244773927",
+            "run_number": "35"
+          }
+        },
+        "id": "2026-04-10T13:18:40Z-sli",
+        "oracle": {
+          "compartmentid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+          "ingestedtime": "2026-04-10T13:18:41.406910841Z",
+          "loggroupid": "ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq",
+          "logid": "ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa",
+          "tenantid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a"
+        },
+        "source": "github-actions/sli-tracker",
+        "specversion": "1.0",
+        "time": "2026-04-10T13:18:40Z",
+        "type": "sli-event"
+      }
+    }
+  },
+  {
+    "data": {
+      "datetime": 1775827115000,
+      "logContent": {
+        "data": {
+          "failure_reasons": {},
+          "outcome": "success",
+          "repo": {
+            "ref": "main",
+            "ref_full": "refs/heads/main",
+            "repository": "rstyczynski/sli_tracker",
+            "repository_id": "1200217885",
+            "sha": "aeeaf6852319a646f7011180d72d2da1be72cf80"
+          },
+          "source": "github-actions/sli-tracker",
+          "timestamp": "2026-04-10T13:18:35Z",
+          "workflow": {
+            "actor": "rstyczynski",
+            "event_name": "schedule",
+            "job": "emit",
+            "name": "SLI-23 — scheduled synthetic emitter (hourly)",
+            "ref": "rstyczynski/sli_tracker/.github/workflows/sli_ratio_simulator.yml@refs/heads/main",
+            "run_attempt": "1",
+            "run_id": "24244773927",
+            "run_number": "35"
+          }
+        },
+        "id": "2026-04-10T13:18:35Z-sli",
+        "oracle": {
+          "compartmentid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+          "ingestedtime": "2026-04-10T13:18:36.354859576Z",
+          "loggroupid": "ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq",
+          "logid": "ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa",
+          "tenantid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a"
+        },
+        "source": "github-actions/sli-tracker",
+        "specversion": "1.0",
+        "time": "2026-04-10T13:18:35Z",
+        "type": "sli-event"
+      }
+    }
+  },
+  {
+    "data": {
+      "datetime": 1775827110000,
+      "logContent": {
+        "data": {
+          "failure_reasons": {},
+          "outcome": "failure",
+          "repo": {
+            "ref": "main",
+            "ref_full": "refs/heads/main",
+            "repository": "rstyczynski/sli_tracker",
+            "repository_id": "1200217885",
+            "sha": "aeeaf6852319a646f7011180d72d2da1be72cf80"
+          },
+          "source": "github-actions/sli-tracker",
+          "timestamp": "2026-04-10T13:18:30Z",
+          "workflow": {
+            "actor": "rstyczynski",
+            "event_name": "schedule",
+            "job": "emit",
+            "name": "SLI-23 — scheduled synthetic emitter (hourly)",
+            "ref": "rstyczynski/sli_tracker/.github/workflows/sli_ratio_simulator.yml@refs/heads/main",
+            "run_attempt": "1",
+            "run_id": "24244773927",
+            "run_number": "35"
+          }
+        },
+        "id": "2026-04-10T13:18:30Z-sli",
+        "oracle": {
+          "compartmentid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+          "ingestedtime": "2026-04-10T13:18:31.327982976Z",
+          "loggroupid": "ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq",
+          "logid": "ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa",
+          "tenantid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a"
+        },
+        "source": "github-actions/sli-tracker",
+        "specversion": "1.0",
+        "time": "2026-04-10T13:18:30Z",
+        "type": "sli-event"
+      }
+    }
+  },
+  {
+    "data": {
+      "datetime": 1775827105000,
+      "logContent": {
+        "data": {
+          "failure_reasons": {},
+          "outcome": "success",
+          "repo": {
+            "ref": "main",
+            "ref_full": "refs/heads/main",
+            "repository": "rstyczynski/sli_tracker",
+            "repository_id": "1200217885",
+            "sha": "aeeaf6852319a646f7011180d72d2da1be72cf80"
+          },
+          "source": "github-actions/sli-tracker",
+          "timestamp": "2026-04-10T13:18:25Z",
+          "workflow": {
+            "actor": "rstyczynski",
+            "event_name": "schedule",
+            "job": "emit",
+            "name": "SLI-23 — scheduled synthetic emitter (hourly)",
+            "ref": "rstyczynski/sli_tracker/.github/workflows/sli_ratio_simulator.yml@refs/heads/main",
+            "run_attempt": "1",
+            "run_id": "24244773927",
+            "run_number": "35"
+          }
+        },
+        "id": "2026-04-10T13:18:25Z-sli",
+        "oracle": {
+          "compartmentid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+          "ingestedtime": "2026-04-10T13:18:26.343319021Z",
+          "loggroupid": "ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq",
+          "logid": "ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa",
+          "tenantid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a"
+        },
+        "source": "github-actions/sli-tracker",
+        "specversion": "1.0",
+        "time": "2026-04-10T13:18:25Z",
+        "type": "sli-event"
+      }
+    }
+  },
+  {
+    "data": {
+      "datetime": 1775827100000,
+      "logContent": {
+        "data": {
+          "failure_reasons": {},
+          "outcome": "success",
+          "repo": {
+            "ref": "main",
+            "ref_full": "refs/heads/main",
+            "repository": "rstyczynski/sli_tracker",
+            "repository_id": "1200217885",
+            "sha": "aeeaf6852319a646f7011180d72d2da1be72cf80"
+          },
+          "source": "github-actions/sli-tracker",
+          "timestamp": "2026-04-10T13:18:20Z",
+          "workflow": {
+            "actor": "rstyczynski",
+            "event_name": "schedule",
+            "job": "emit",
+            "name": "SLI-23 — scheduled synthetic emitter (hourly)",
+            "ref": "rstyczynski/sli_tracker/.github/workflows/sli_ratio_simulator.yml@refs/heads/main",
+            "run_attempt": "1",
+            "run_id": "24244773927",
+            "run_number": "35"
+          }
+        },
+        "id": "2026-04-10T13:18:20Z-sli",
+        "oracle": {
+          "compartmentid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+          "ingestedtime": "2026-04-10T13:18:21.387709147Z",
+          "loggroupid": "ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq",
+          "logid": "ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa",
+          "tenantid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a"
+        },
+        "source": "github-actions/sli-tracker",
+        "specversion": "1.0",
+        "time": "2026-04-10T13:18:20Z",
+        "type": "sli-event"
+      }
+    }
+  },
+  {
+    "data": {
+      "datetime": 1775827095000,
+      "logContent": {
+        "data": {
+          "failure_reasons": {},
+          "outcome": "success",
+          "repo": {
+            "ref": "main",
+            "ref_full": "refs/heads/main",
+            "repository": "rstyczynski/sli_tracker",
+            "repository_id": "1200217885",
+            "sha": "aeeaf6852319a646f7011180d72d2da1be72cf80"
+          },
+          "source": "github-actions/sli-tracker",
+          "timestamp": "2026-04-10T13:18:15Z",
+          "workflow": {
+            "actor": "rstyczynski",
+            "event_name": "schedule",
+            "job": "emit",
+            "name": "SLI-23 — scheduled synthetic emitter (hourly)",
+            "ref": "rstyczynski/sli_tracker/.github/workflows/sli_ratio_simulator.yml@refs/heads/main",
+            "run_attempt": "1",
+            "run_id": "24244773927",
+            "run_number": "35"
+          }
+        },
+        "id": "2026-04-10T13:18:15Z-sli",
+        "oracle": {
+          "compartmentid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+          "ingestedtime": "2026-04-10T13:18:16.341565584Z",
+          "loggroupid": "ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq",
+          "logid": "ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa",
+          "tenantid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a"
+        },
+        "source": "github-actions/sli-tracker",
+        "specversion": "1.0",
+        "time": "2026-04-10T13:18:15Z",
+        "type": "sli-event"
+      }
+    }
+  },
+  {
+    "data": {
+      "datetime": 1775827090000,
+      "logContent": {
+        "data": {
+          "failure_reasons": {},
+          "outcome": "success",
+          "repo": {
+            "ref": "main",
+            "ref_full": "refs/heads/main",
+            "repository": "rstyczynski/sli_tracker",
+            "repository_id": "1200217885",
+            "sha": "aeeaf6852319a646f7011180d72d2da1be72cf80"
+          },
+          "source": "github-actions/sli-tracker",
+          "timestamp": "2026-04-10T13:18:10Z",
+          "workflow": {
+            "actor": "rstyczynski",
+            "event_name": "schedule",
+            "job": "emit",
+            "name": "SLI-23 — scheduled synthetic emitter (hourly)",
+            "ref": "rstyczynski/sli_tracker/.github/workflows/sli_ratio_simulator.yml@refs/heads/main",
+            "run_attempt": "1",
+            "run_id": "24244773927",
+            "run_number": "35"
+          }
+        },
+        "id": "2026-04-10T13:18:10Z-sli",
+        "oracle": {
+          "compartmentid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+          "ingestedtime": "2026-04-10T13:18:11.336214274Z",
+          "loggroupid": "ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq",
+          "logid": "ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa",
+          "tenantid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a"
+        },
+        "source": "github-actions/sli-tracker",
+        "specversion": "1.0",
+        "time": "2026-04-10T13:18:10Z",
+        "type": "sli-event"
+      }
+    }
+  },
+  {
+    "data": {
+      "datetime": 1775827088000,
+      "logContent": {
+        "data": {
+          "failure_reasons": {},
+          "outcome": "failure",
+          "repo": {
+            "ref": "main",
+            "ref_full": "refs/heads/main",
+            "repository": "rstyczynski/sli_tracker",
+            "repository_id": "1200217885",
+            "sha": "aeeaf6852319a646f7011180d72d2da1be72cf80"
+          },
+          "source": "github-actions/sli-tracker",
+          "timestamp": "2026-04-10T13:18:08Z",
+          "workflow": {
+            "actor": "rstyczynski",
+            "event_name": "workflow_dispatch",
+            "job": "emit-js",
+            "name": "MODEL — emit_js (JS action post hook + oci-profile-setup)",
+            "ref": "rstyczynski/sli_tracker/.github/workflows/model-emit-js.yml@refs/heads/main",
+            "run_attempt": "1",
+            "run_id": "24244880115",
+            "run_number": "14"
+          }
+        },
+        "id": "2026-04-10T13:18:08Z-sli",
+        "oracle": {
+          "compartmentid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+          "ingestedtime": "2026-04-10T13:18:08.783696783Z",
+          "loggroupid": "ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq",
+          "logid": "ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa",
+          "tenantid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a"
+        },
+        "source": "github-actions/sli-tracker",
+        "specversion": "1.0",
+        "time": "2026-04-10T13:18:08Z",
+        "type": "sli-event"
+      }
+    }
+  },
+  {
+    "data": {
+      "datetime": 1775827085000,
+      "logContent": {
+        "data": {
+          "failure_reasons": {},
+          "outcome": "success",
+          "repo": {
+            "ref": "main",
+            "ref_full": "refs/heads/main",
+            "repository": "rstyczynski/sli_tracker",
+            "repository_id": "1200217885",
+            "sha": "aeeaf6852319a646f7011180d72d2da1be72cf80"
+          },
+          "source": "github-actions/sli-tracker",
+          "timestamp": "2026-04-10T13:18:05Z",
+          "workflow": {
+            "actor": "rstyczynski",
+            "event_name": "schedule",
+            "job": "emit",
+            "name": "SLI-23 — scheduled synthetic emitter (hourly)",
+            "ref": "rstyczynski/sli_tracker/.github/workflows/sli_ratio_simulator.yml@refs/heads/main",
+            "run_attempt": "1",
+            "run_id": "24244773927",
+            "run_number": "35"
+          }
+        },
+        "id": "2026-04-10T13:18:05Z-sli",
+        "oracle": {
+          "compartmentid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+          "ingestedtime": "2026-04-10T13:18:06.412517652Z",
+          "loggroupid": "ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq",
+          "logid": "ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa",
+          "tenantid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a"
+        },
+        "source": "github-actions/sli-tracker",
+        "specversion": "1.0",
+        "time": "2026-04-10T13:18:05Z",
+        "type": "sli-event"
+      }
+    }
+  },
+  {
+    "data": {
+      "datetime": 1775827083000,
+      "logContent": {
+        "data": {
+          "failure_reasons": {},
+          "outcome": "success",
+          "repo": {
+            "ref": "main",
+            "ref_full": "refs/heads/main",
+            "repository": "rstyczynski/sli_tracker",
+            "repository_id": "1200217885",
+            "sha": "aeeaf6852319a646f7011180d72d2da1be72cf80"
+          },
+          "source": "github-actions/sli-tracker",
+          "timestamp": "2026-04-10T13:18:03Z",
+          "workflow": {
+            "actor": "rstyczynski",
+            "event_name": "workflow_dispatch",
+            "job": "emit-js",
+            "name": "MODEL — emit_js (JS action post hook + oci-profile-setup)",
+            "ref": "rstyczynski/sli_tracker/.github/workflows/model-emit-js.yml@refs/heads/main",
+            "run_attempt": "1",
+            "run_id": "24244877860",
+            "run_number": "13"
+          }
+        },
+        "id": "2026-04-10T13:18:03Z-sli",
+        "oracle": {
+          "compartmentid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+          "ingestedtime": "2026-04-10T13:18:03.787028701Z",
+          "loggroupid": "ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq",
+          "logid": "ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa",
+          "tenantid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a"
+        },
+        "source": "github-actions/sli-tracker",
+        "specversion": "1.0",
+        "time": "2026-04-10T13:18:03Z",
+        "type": "sli-event"
+      }
+    }
+  },
+  {
+    "data": {
+      "datetime": 1775827080000,
+      "logContent": {
+        "data": {
+          "failure_reasons": {},
+          "outcome": "failure",
+          "repo": {
+            "ref": "main",
+            "ref_full": "refs/heads/main",
+            "repository": "rstyczynski/sli_tracker",
+            "repository_id": "1200217885",
+            "sha": "aeeaf6852319a646f7011180d72d2da1be72cf80"
+          },
+          "source": "github-actions/sli-tracker",
+          "timestamp": "2026-04-10T13:18:00Z",
+          "workflow": {
+            "actor": "rstyczynski",
+            "event_name": "schedule",
+            "job": "emit",
+            "name": "SLI-23 — scheduled synthetic emitter (hourly)",
+            "ref": "rstyczynski/sli_tracker/.github/workflows/sli_ratio_simulator.yml@refs/heads/main",
+            "run_attempt": "1",
+            "run_id": "24244773927",
+            "run_number": "35"
+          }
+        },
+        "id": "2026-04-10T13:18:00Z-sli",
+        "oracle": {
+          "compartmentid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+          "ingestedtime": "2026-04-10T13:18:01.328922446Z",
+          "loggroupid": "ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq",
+          "logid": "ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa",
+          "tenantid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a"
+        },
+        "source": "github-actions/sli-tracker",
+        "specversion": "1.0",
+        "time": "2026-04-10T13:18:00Z",
+        "type": "sli-event"
+      }
+    }
+  },
+  {
+    "data": {
+      "datetime": 1775827075000,
+      "logContent": {
+        "data": {
+          "failure_reasons": {},
+          "outcome": "success",
+          "repo": {
+            "ref": "main",
+            "ref_full": "refs/heads/main",
+            "repository": "rstyczynski/sli_tracker",
+            "repository_id": "1200217885",
+            "sha": "aeeaf6852319a646f7011180d72d2da1be72cf80"
+          },
+          "source": "github-actions/sli-tracker",
+          "timestamp": "2026-04-10T13:17:55Z",
+          "workflow": {
+            "actor": "rstyczynski",
+            "event_name": "schedule",
+            "job": "emit",
+            "name": "SLI-23 — scheduled synthetic emitter (hourly)",
+            "ref": "rstyczynski/sli_tracker/.github/workflows/sli_ratio_simulator.yml@refs/heads/main",
+            "run_attempt": "1",
+            "run_id": "24244773927",
+            "run_number": "35"
+          }
+        },
+        "id": "2026-04-10T13:17:55Z-sli",
+        "oracle": {
+          "compartmentid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+          "ingestedtime": "2026-04-10T13:17:56.341444644Z",
+          "loggroupid": "ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq",
+          "logid": "ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa",
+          "tenantid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a"
+        },
+        "source": "github-actions/sli-tracker",
+        "specversion": "1.0",
+        "time": "2026-04-10T13:17:55Z",
+        "type": "sli-event"
+      }
+    }
+  },
+  {
+    "data": {
+      "datetime": 1775827070000,
+      "logContent": {
+        "data": {
+          "failure_reasons": {},
+          "outcome": "failure",
+          "repo": {
+            "ref": "main",
+            "ref_full": "refs/heads/main",
+            "repository": "rstyczynski/sli_tracker",
+            "repository_id": "1200217885",
+            "sha": "aeeaf6852319a646f7011180d72d2da1be72cf80"
+          },
+          "source": "github-actions/sli-tracker",
+          "timestamp": "2026-04-10T13:17:50Z",
+          "workflow": {
+            "actor": "rstyczynski",
+            "event_name": "schedule",
+            "job": "emit",
+            "name": "SLI-23 — scheduled synthetic emitter (hourly)",
+            "ref": "rstyczynski/sli_tracker/.github/workflows/sli_ratio_simulator.yml@refs/heads/main",
+            "run_attempt": "1",
+            "run_id": "24244773927",
+            "run_number": "35"
+          }
+        },
+        "id": "2026-04-10T13:17:50Z-sli",
+        "oracle": {
+          "compartmentid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+          "ingestedtime": "2026-04-10T13:17:51.383126007Z",
+          "loggroupid": "ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq",
+          "logid": "ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa",
+          "tenantid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a"
+        },
+        "source": "github-actions/sli-tracker",
+        "specversion": "1.0",
+        "time": "2026-04-10T13:17:50Z",
+        "type": "sli-event"
+      }
+    }
+  },
+  {
+    "data": {
+      "datetime": 1775827065000,
+      "logContent": {
+        "data": {
+          "failure_reasons": {},
+          "outcome": "success",
+          "repo": {
+            "ref": "main",
+            "ref_full": "refs/heads/main",
+            "repository": "rstyczynski/sli_tracker",
+            "repository_id": "1200217885",
+            "sha": "aeeaf6852319a646f7011180d72d2da1be72cf80"
+          },
+          "source": "github-actions/sli-tracker",
+          "timestamp": "2026-04-10T13:17:45Z",
+          "workflow": {
+            "actor": "rstyczynski",
+            "event_name": "schedule",
+            "job": "emit",
+            "name": "SLI-23 — scheduled synthetic emitter (hourly)",
+            "ref": "rstyczynski/sli_tracker/.github/workflows/sli_ratio_simulator.yml@refs/heads/main",
+            "run_attempt": "1",
+            "run_id": "24244773927",
+            "run_number": "35"
+          }
+        },
+        "id": "2026-04-10T13:17:45Z-sli",
+        "oracle": {
+          "compartmentid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+          "ingestedtime": "2026-04-10T13:17:46.401683764Z",
+          "loggroupid": "ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq",
+          "logid": "ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa",
+          "tenantid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a"
+        },
+        "source": "github-actions/sli-tracker",
+        "specversion": "1.0",
+        "time": "2026-04-10T13:17:45Z",
+        "type": "sli-event"
+      }
+    }
+  },
+  {
+    "data": {
+      "datetime": 1775827060000,
+      "logContent": {
+        "data": {
+          "failure_reasons": {},
+          "outcome": "success",
+          "repo": {
+            "ref": "main",
+            "ref_full": "refs/heads/main",
+            "repository": "rstyczynski/sli_tracker",
+            "repository_id": "1200217885",
+            "sha": "aeeaf6852319a646f7011180d72d2da1be72cf80"
+          },
+          "source": "github-actions/sli-tracker",
+          "timestamp": "2026-04-10T13:17:40Z",
+          "workflow": {
+            "actor": "rstyczynski",
+            "event_name": "schedule",
+            "job": "emit",
+            "name": "SLI-23 — scheduled synthetic emitter (hourly)",
+            "ref": "rstyczynski/sli_tracker/.github/workflows/sli_ratio_simulator.yml@refs/heads/main",
+            "run_attempt": "1",
+            "run_id": "24244773927",
+            "run_number": "35"
+          }
+        },
+        "id": "2026-04-10T13:17:40Z-sli",
+        "oracle": {
+          "compartmentid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+          "ingestedtime": "2026-04-10T13:17:41.333254033Z",
+          "loggroupid": "ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq",
+          "logid": "ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa",
+          "tenantid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a"
+        },
+        "source": "github-actions/sli-tracker",
+        "specversion": "1.0",
+        "time": "2026-04-10T13:17:40Z",
+        "type": "sli-event"
+      }
+    }
+  },
+  {
+    "data": {
+      "datetime": 1775827055000,
+      "logContent": {
+        "data": {
+          "failure_reasons": {},
+          "outcome": "failure",
+          "repo": {
+            "ref": "main",
+            "ref_full": "refs/heads/main",
+            "repository": "rstyczynski/sli_tracker",
+            "repository_id": "1200217885",
+            "sha": "aeeaf6852319a646f7011180d72d2da1be72cf80"
+          },
+          "source": "github-actions/sli-tracker",
+          "timestamp": "2026-04-10T13:17:35Z",
+          "workflow": {
+            "actor": "rstyczynski",
+            "event_name": "schedule",
+            "job": "emit",
+            "name": "SLI-23 — scheduled synthetic emitter (hourly)",
+            "ref": "rstyczynski/sli_tracker/.github/workflows/sli_ratio_simulator.yml@refs/heads/main",
+            "run_attempt": "1",
+            "run_id": "24244773927",
+            "run_number": "35"
+          }
+        },
+        "id": "2026-04-10T13:17:35Z-sli",
+        "oracle": {
+          "compartmentid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+          "ingestedtime": "2026-04-10T13:17:36.405982394Z",
+          "loggroupid": "ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq",
+          "logid": "ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa",
+          "tenantid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a"
+        },
+        "source": "github-actions/sli-tracker",
+        "specversion": "1.0",
+        "time": "2026-04-10T13:17:35Z",
+        "type": "sli-event"
+      }
+    }
+  },
+  {
+    "data": {
+      "datetime": 1775827050000,
+      "logContent": {
+        "data": {
+          "failure_reasons": {},
+          "outcome": "success",
+          "repo": {
+            "ref": "main",
+            "ref_full": "refs/heads/main",
+            "repository": "rstyczynski/sli_tracker",
+            "repository_id": "1200217885",
+            "sha": "aeeaf6852319a646f7011180d72d2da1be72cf80"
+          },
+          "source": "github-actions/sli-tracker",
+          "timestamp": "2026-04-10T13:17:30Z",
+          "workflow": {
+            "actor": "rstyczynski",
+            "event_name": "schedule",
+            "job": "emit",
+            "name": "SLI-23 — scheduled synthetic emitter (hourly)",
+            "ref": "rstyczynski/sli_tracker/.github/workflows/sli_ratio_simulator.yml@refs/heads/main",
+            "run_attempt": "1",
+            "run_id": "24244773927",
+            "run_number": "35"
+          }
+        },
+        "id": "2026-04-10T13:17:30Z-sli",
+        "oracle": {
+          "compartmentid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+          "ingestedtime": "2026-04-10T13:17:31.485237556Z",
+          "loggroupid": "ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq",
+          "logid": "ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa",
+          "tenantid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a"
+        },
+        "source": "github-actions/sli-tracker",
+        "specversion": "1.0",
+        "time": "2026-04-10T13:17:30Z",
+        "type": "sli-event"
+      }
+    }
+  },
+  {
+    "data": {
+      "datetime": 1775827045000,
+      "logContent": {
+        "data": {
+          "failure_reasons": {},
+          "outcome": "success",
+          "repo": {
+            "ref": "main",
+            "ref_full": "refs/heads/main",
+            "repository": "rstyczynski/sli_tracker",
+            "repository_id": "1200217885",
+            "sha": "aeeaf6852319a646f7011180d72d2da1be72cf80"
+          },
+          "source": "github-actions/sli-tracker",
+          "timestamp": "2026-04-10T13:17:25Z",
+          "workflow": {
+            "actor": "rstyczynski",
+            "event_name": "schedule",
+            "job": "emit",
+            "name": "SLI-23 — scheduled synthetic emitter (hourly)",
+            "ref": "rstyczynski/sli_tracker/.github/workflows/sli_ratio_simulator.yml@refs/heads/main",
+            "run_attempt": "1",
+            "run_id": "24244773927",
+            "run_number": "35"
+          }
+        },
+        "id": "2026-04-10T13:17:25Z-sli",
+        "oracle": {
+          "compartmentid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a",
+          "ingestedtime": "2026-04-10T13:17:26.345755689Z",
+          "loggroupid": "ocid1.loggroup.oc1.eu-zurich-1.amaaaaaaknhfuyiajpq42txu7p3qnr7hapi4mkr46bv4tmulv4h36ghuwfpq",
+          "logid": "ocid1.log.oc1.eu-zurich-1.amaaaaaaknhfuyiac44m4tbxdcents5aq5mwjievgutftkzq3aharjcytywa",
+          "tenantid": "ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a"
+        },
+        "source": "github-actions/sli-tracker",
+        "specversion": "1.0",
+        "time": "2026-04-10T13:17:25Z",
+        "type": "sli-event"
+      }
+    }
+  }
+]

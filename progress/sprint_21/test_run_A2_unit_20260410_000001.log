@@ -1,0 +1,73 @@
+[info] --new-only mode: filtering to tests listed in progress/sprint_21/new_tests.manifest
+[info] current implementation filters at script level, not function level
+=== unit tests ===
+[run] unit/test_destination_adapters.sh
+[PASS] UT-111 file adapter resolves logical destination via destinationMap
+[PASS] UT-112 OCI Logging adapter resolves target
+[PASS] UT-113 OCI Monitoring adapter resolves target
+[PASS] UT-114 OCI Object Storage adapter resolves target
+[PASS] UT-115 destination dispatcher routes mixed logical destinations and dead letter
+
+=== destination adapters: 5 tests, 5 passed, 0 failed ===
+[PASS] unit/test_destination_adapters.sh
+[skip] unit/test_emit.sh (not in manifest)
+[run] unit/test_file_adapter.sh
+[PASS] UT-103 file adapter writes fanout destinations
+[PASS] UT-104 file adapter writes dead letter output
+[PASS] UT-105 file adapter writes mixed batch outputs
+
+=== file adapter: 3 tests, 3 passed, 0 failed ===
+[PASS] unit/test_file_adapter.sh
+[skip] unit/test_file_source_adapter.sh (not in manifest)
+[skip] unit/test_install_oci_cli.sh (not in manifest)
+[skip] unit/test_json_pipeline_cli.sh (not in manifest)
+[skip] unit/test_json_router_adapters.sh (not in manifest)
+[run] unit/test_json_router_batch.sh
+[PASS] UT-65 bulk happy-path routing covers header/endpoint/schema/required/priority
+[PASS] UT-66 bulk routing reports unroutable file with filename
+[PASS] UT-67 bulk dead-letter routing covers unknown/transform/invalid-json cases
+[PASS] UT-77 one omnibus batch covers happy paths and dead letters together
+[PASS] UT-81 bulk fanout writes the same source file to multiple destinations
+[PASS] UT-82 bulk exclusive selects one winning destination
+[PASS] UT-83 bulk mixed exclusive and fanout writes selected destinations
+[PASS] UT-72 bulk ambiguous top-priority routes fail with filename
+[PASS] UT-74 invalid routing definition fails before processing
+[PASS] UT-84 invalid dead-letter schema fails before processing
+
+=== json_router bulk: 10 tests, 10 passed, 0 failed ===
+[PASS] unit/test_json_router_batch.sh
+[run] unit/test_json_router_cli.sh
+[PASS] UT-88 router CLI single envelope
+[PASS] UT-89 router CLI stdin envelope
+[PASS] UT-90 router CLI batch summary
+[PASS] UT-90 router CLI batch destinations
+[PASS] UT-91 router CLI missing --routing
+[PASS] UT-92 router CLI missing batch output-dir
+[PASS] UT-93 router CLI malformed envelope JSON
+
+=== json_router CLI: 7 tests, 7 passed, 0 failed ===
+[PASS] unit/test_json_router_cli.sh
+[run] unit/test_json_router_schema.sh
+[PASS] UT-85 routing.json schema accepts valid definition
+[PASS] UT-86 routing.json schema rejects invalid route definition critically
+[PASS] UT-87 routing.json schema rejects invalid dead-letter definition critically
+
+=== json_router schema: 3 tests, 3 passed, 0 failed ===
+[PASS] unit/test_json_router_schema.sh
+[skip] unit/test_json_router.sh (not in manifest)
+[skip] unit/test_json_transformer_cli.sh (not in manifest)
+[skip] unit/test_json_transformer.sh (not in manifest)
+[skip] unit/test_oci_profile_setup_api_key.sh (not in manifest)
+[skip] unit/test_oci_profile_setup.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_api_key_help.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_config_profile_dry.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_config_profile_help.sh (not in manifest)
+[skip] unit/test_sli_compute_sli_metrics.sh (not in manifest)
+[skip] unit/test_sli_ratio_simulator.sh (not in manifest)
+[skip] unit/test_sli_scheduled_workflows.sh (not in manifest)
+=== unit summary: 5 scripts, 5 passed, 0 failed ===
+
+========================================
+TOTAL: 5 scripts, 5 passed, 0 failed
+========================================
+RESULT: PASS

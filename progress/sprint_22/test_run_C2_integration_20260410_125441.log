@@ -1,0 +1,7 @@
+[info] --manifest mode: filtering to tests listed in progress/sprint_22/integration_tests.manifest
+=== integration tests ===
+[info] logs: /Users/rstyczynski/projects/SLI_tracker/logs
+[pre] integration cleanup: deleting sli-* buckets in /SLI_tracker
+[skip] integration/test_api_key_payload_roundtrip.sh (not in manifest)
+[skip] integration/test_config_profile_payload_roundtrip.sh (not in manifest)
+[run] integration/test_fn_apigw_object_storage_passthrough.sh

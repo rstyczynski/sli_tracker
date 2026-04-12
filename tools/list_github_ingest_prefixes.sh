@@ -9,6 +9,11 @@
 # Namespace name: oci os ns get --query data --raw-output
 #
 # The CLI returns list results in arbitrary order; this script sorts by timeCreated in jq.
+#
+# Aggregate "ingest/" view: a single list call with --prefix ingest/ is unsafe because the
+# first page is often name-ordered and fills with ingest/fn-*.json, hiding ingest/github/*.
+# We merge (1) all objects under ingest/github/ and (2) flat keys ingest/<filename> (no
+# further slashes), then sort by time and take --limit.
 
 set -euo pipefail
 
@@ -63,18 +68,44 @@ for ev in "${PREFIXES[@]}"; do
   echo
 done
 
-echo "## ingest/ (latest under prefix ingest/, including ingest/github/*)"
-if ! out=$(oci os object list \
+echo "## ingest/ (merged: ingest/github/* + flat ingest/<file>)"
+gh_out='{"data":[]}'
+if gh_json=$(oci os object list \
+  --namespace-name "$NS" \
+  --bucket-name "$BUCKET" \
+  --prefix "ingest/github/" \
+  --limit 2000 \
+  --fields 'name,size,timeCreated' 2>/dev/null); then
+  gh_out="$gh_json"
+fi
+flat_out='{"data":[]}'
+if flat_json=$(oci os object list \
   --namespace-name "$NS" \
   --bucket-name "$BUCKET" \
   --prefix "ingest/" \
-  --limit 500 \
+  --limit 3000 \
   --fields 'name,size,timeCreated' 2>/dev/null); then
-  echo "  (list failed)"
+  flat_out="$flat_json"
+fi
+if ! merged=$(jq -n --argjson lim "$LIMIT" \
+  --argjson gh "$(echo "$gh_out" | jq '.data // []')" \
+  --argjson raw "$(echo "$flat_out" | jq '.data // []')" '
+  ($raw | map(select((.name | type == "string") and (.name | test("^ingest/[^/]+$"))))) as $flat
+  | ($gh + $flat)
+  | map({name, size, tc: (.["time-created"] // .timeCreated // "")})
+  | unique_by(.name)
+  | sort_by(.tc)
+  | reverse
+  | .[0:$lim][]
+  | .[]
+  | "  \(.tc)  \(.name)  (\(.size) bytes)"
+'); then
+  echo "  (jq merge failed)"
+  echo "$gh_out" | jq . >&2 || true
   exit 0
 fi
-echo "$out" | jq -r --argjson lim "$LIMIT" '
-  [ .data[]? | {name, size, tc: (.["time-created"] // .timeCreated // "")} ]
-  | sort_by(.tc) | reverse | .[0:$lim][]
-  | "  \(.tc)  \(.name)  (\(.size) bytes)"
-' 2>/dev/null || echo "$out" | jq .
+if [[ -z "$(echo "$merged" | tr -d '[:space:]')" ]]; then
+  echo "  (no objects matched)"
+else
+  printf '%s\n' "$merged"
+fi

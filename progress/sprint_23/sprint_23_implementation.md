@@ -147,7 +147,7 @@ BN="$(jq -r '.bucket.name // empty' "$STATE_FILE")"
 ./tools/list_github_ingest_prefixes.sh "$NS" "$BN" --limit 5
 ```
 
-**`list_github_ingest_prefixes.sh`** prints the newest objects (by **`timeCreated`**) under each **`ingest/github/<event>/`** prefix, then the newest objects anywhere under **`ingest/`** (including **`ingest/github/*`** and top-level **`ingest/*.json`**).
+**`list_github_ingest_prefixes.sh`** prints the newest objects (by **`timeCreated`**) under each **`ingest/github/<event>/`** prefix, then a merged timeline: **`oci os object list --prefix ingest/github/`** plus flat keys **`ingest/<file>`** (exactly one path segment after **`ingest/`**, e.g. **`ingest/fn-….json`**). A single list on **`ingest/`** alone is not used for that block because the API’s first page is often dominated by **`fn-*`** keys and omits **`ingest/github/…`**.
 
 ## Tests
 

@@ -311,6 +311,12 @@ Today each GitHub event family needs its own static adapter entry and route in `
 
 Test: backlog or sprint note records deferral or, if implemented later, unit tests cover agreed prefix rules.
 
+### SLI-41. Fan-out workflow_run events to OCI Monitoring metric in addition to Object Storage
+
+GitHub `workflow_run` webhooks are already stored to `ingest/github/workflow_run/` via an exclusive route. A parallel fanout route should also emit the completed run as an OCI Monitoring metric so that workflow duration and outcome are queryable as time-series data without parsing raw JSON from Object Storage. The metric transformation fires only on `action = "completed"` events and emits two datapoints per run: `workflow_run_result` (1=success, 0=failure) and `workflow_run_duration_s` (elapsed seconds), both dimensioned by repository, workflow name, branch, trigger event, and conclusion.
+
+Test: a simulated `workflow_run` completed webhook produces one Object Storage object under `ingest/github/workflow_run/` and one OCI Monitoring POST with the two metric datapoints; a `requested` event produces only the Object Storage object.
+
 ### SLI-40. Avoid reloading routing definition from Object Storage on every invocation
 
 The router function currently fetches `config/routing.json` from Object Storage on every invocation. For high-frequency webhook traffic this adds latency and unnecessary Object Storage API calls. The routing definition changes rarely and should be supplied once — either embedded as a Fn configuration variable or held in a module-level cache that survives across warm invocations — so that cold-start load from Object Storage becomes a fallback rather than the default path.

@@ -138,6 +138,27 @@ function readSample(name) {
   );
   assert.strictEqual(callsWf[0].objectName, 'ingest/github/workflow_run/unit-wf.json');
 
+  const mockFdkCtx = {
+    get httpGateway() {
+      return { headers: { 'X-Github-Event': ['workflow_run'] } };
+    },
+  };
+  const callsWfGw = [];
+  await runRouter(
+    { body: wfBody, source_meta: { file_name: 'unit-wf-gw.json' } },
+    {
+      putObject: async (x) => { callsWfGw.push(x); },
+      routingDefinition,
+      loadMappingFromRef,
+      fdkContext: mockFdkCtx,
+    },
+  );
+  assert.strictEqual(
+    callsWfGw[0].objectName,
+    'ingest/github/workflow_run/unit-wf-gw.json',
+    'FDK httpGateway X-Github-Event classifies raw GitHub body',
+  );
+
   const prBody = readSample('pull_request.json');
   const callsPr = [];
   await runRouter(

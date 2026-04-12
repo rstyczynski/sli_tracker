@@ -65,6 +65,61 @@ function envelopeFromPayload(parsed) {
     throw new Error('Payload must be a JSON object or array (or envelope with .body)');
 }
 
+function headerValueToString(value) {
+    if (value == null) {
+        return null;
+    }
+    if (Array.isArray(value)) {
+        return value.length > 0 ? String(value[0]) : null;
+    }
+    return String(value);
+}
+
+/**
+ * Copy inbound HTTP headers from the Fn FDK (API Gateway → Fn uses Fn-Http-H-* on Context;
+ * ctx.httpGateway exposes the original client headers) into envelope.headers when missing.
+ * Does not overwrite non-empty header values already on the envelope.
+ */
+function mergeHttpGatewayHeadersIntoEnvelope(envelope, fdkContext) {
+    if (!isObject(envelope)) {
+        return;
+    }
+    if (!fdkContext || typeof fdkContext.httpGateway !== 'object' || fdkContext.httpGateway === null) {
+        return;
+    }
+    let gw;
+    try {
+        gw = fdkContext.httpGateway;
+    } catch (_) {
+        return;
+    }
+    const gh = gw && gw.headers;
+    if (!isObject(gh)) {
+        return;
+    }
+
+    const h = isObject(envelope.headers) ? { ...envelope.headers } : {};
+    const hasNonEmpty = new Map();
+    for (const [k, v] of Object.entries(h)) {
+        if (v !== undefined && v !== null && String(v).trim() !== '') {
+            hasNonEmpty.set(String(k).toLowerCase(), true);
+        }
+    }
+
+    for (const [k, vRaw] of Object.entries(gh)) {
+        const lk = String(k).toLowerCase();
+        if (hasNonEmpty.has(lk)) {
+            continue;
+        }
+        const val = headerValueToString(vRaw);
+        if (val != null && val.trim() !== '') {
+            h[lk] = val;
+            hasNonEmpty.set(lk, true);
+        }
+    }
+    envelope.headers = h;
+}
+
 let cachedOs = null;
 
 async function getDefaultObjectStorageClient() {
@@ -212,10 +267,12 @@ function buildLoadMappingFromRef(options) {
  * @param {function} [options.getObjectStorage] async () => ({ client, namespaceName })
  * @param {function} [options.putObject] async ({ bucket, objectName, content, contentType }) => void
  * @param {function} [options.loadMappingFromRef] async ({ mappingRef, route, definition }) => string|null — override OS mapping load (tests)
+ * @param {object} [options.fdkContext] Fn FDK invocation context (second arg to handler) — merges ctx.httpGateway headers for raw POST bodies
  */
 async function runRouter(fnInput, options = {}) {
     const parsed = parseFnInput(fnInput);
     const envelope = envelopeFromPayload(parsed);
+    mergeHttpGatewayHeadersIntoEnvelope(envelope, options.fdkContext);
     const definition = await loadRoutingDefinitionForRun(options);
 
     let putObjectImpl = options.putObject;
@@ -270,6 +327,7 @@ module.exports = {
     runRouter,
     parseFnInput,
     envelopeFromPayload,
+    mergeHttpGatewayHeadersIntoEnvelope,
     loadRoutingDefinitionForRun,
     buildLoadMappingFromRef,
 };

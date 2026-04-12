@@ -342,6 +342,12 @@ Sprint 26 ships `github_workflow_run_to_bucket` (`exclusive`) and `github_workfl
 
 Test: documentation and/or schema notes describe the composition rule with a fixture example; if validation is added, a conflicting definition (two exclusives, same priority, same match) fails load with a clear message.
 
+### SLI-46. Include delivery receipt from every adapter in the router response
+
+`processEnvelope` discards the return value of each adapter's `onRoute`, so the caller only sees the transformed output sent to each destination, not what the destination confirmed. Each entry in the `deliveries` array should also carry the adapter receipt (for example the Object Storage object name, the Logging entry id, or the Monitoring batch result) so the caller can verify where data actually landed. The receipt must be collected from every matched route and returned as an array — one element per delivery.
+
+Test: unit — after routing a fanout envelope, each delivery in the response includes a non-empty `receipt` field matching the value returned by the adapter's `onRoute`.
+
 ### SLI-45. Analyse and fix router fanout behaviour when one delivery fails
 
 In fanout mode `processEnvelope` iterates routes sequentially and wraps the entire loop in a single `try/catch`. A throw from any single adapter's `onRoute` — for example, an OCI Monitoring timestamp-validation rejection — aborts all remaining deliveries and routes the message to dead letter, discarding completed deliveries (Object Storage write, Logging entry) that may have already succeeded. Analyse the current control flow in `json_router.js` (`processEnvelope`) and `destination_dispatcher.js`, decide the correct semantics (continue-on-error per fanout route vs abort-all vs partial-success status), and implement the chosen behaviour with unit coverage for the mixed-failure case.

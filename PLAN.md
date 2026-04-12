@@ -342,6 +342,12 @@ Regression: unit
 
 Retry Sprint 24 backlog item after Sprint 25: add `oci_monitoring:github_workflow_run`, fanout route `github_workflow_run_to_metric`, JSONata mapping `workflow_run_metric.jsonata`, enriched webhook fixtures, unit assertions for dual delivery, and cycle-script upload plus Fn config for monitoring compartment/region.
 
+**Bugfix cycle (RUP `bugfix-cycle.md`):** post-delivery defect **SLI-41-1** — integration gate did not exercise `workflow_run` → OCI Monitoring on the deployed Function. Trace: `progress/sprint_26/sprint_26_bugfixes.md`.
+
 Backlog Items:
 
 * SLI-41. Fan-out workflow_run events to OCI Monitoring metric in addition to Object Storage
+
+Bug fixes:
+
+* SLI-41-1. `test_fn_apigw_object_storage_passthrough.sh` did not POST `workflow_run` or assert Monitoring ingest (only Object Storage smoke paths).

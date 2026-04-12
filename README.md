@@ -186,7 +186,7 @@ All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifac
 
 Retries SLI-41 after Sprint 25: the public router fixture adds an **`oci_monitoring:github_workflow_run`** adapter and a **fanout** route **`github_workflow_run_to_metric`** alongside the existing Object Storage route, driven by **`workflow_run_metric.jsonata`** (completed runs only; dual metrics for result and duration). **`tools/cycle_apigw_router_passthrough.sh`** uploads **`config/workflow_run_metric.jsonata`** and merges **`OCI_MONITORING_COMPARTMENT_ID`** / **`OCI_REGION`** into Fn configuration. Unit coverage is in **`tests/unit/test_fn_passthrough_router.sh`**; see **`progress/sprint_26/sprint_26_implementation.md`**.
 
-**Quality gates:** Unit and integration new-code manifest PASS; component unit regression manifest PASS — see **`progress/sprint_26/sprint_26_tests.md`**.
+**Quality gates:** Unit and integration new-code manifest PASS; component unit regression manifest PASS — see **`progress/sprint_26/sprint_26_tests.md`**. Post-delivery integration correction **SLI-41-1** (live `workflow_run` → Monitoring assertion): **`progress/sprint_26/sprint_26_bugfixes.md`**.
 
 **Traceability:** **`progress/backlog/SLI-41/`**
 

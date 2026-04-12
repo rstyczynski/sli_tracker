@@ -61,7 +61,7 @@ for ev in "${PREFIXES[@]}"; do
     continue
   fi
   echo "$out" | jq -r --argjson lim "$LIMIT" '
-    [ .data[]? | {name, size, tc: (.["time-created"] // .timeCreated // "")} ]
+    [ .data[]? | select(type == "object") | {name, size, tc: (.["time-created"] // .timeCreated // "")} ]
     | sort_by(.tc) | reverse | .[0:$lim][]
     | "  \(.tc)  \(.name)  (\(.size) bytes)"
   ' 2>/dev/null || echo "$out" | jq .
@@ -87,9 +87,9 @@ if flat_json=$(oci os object list \
   --fields 'name,size,timeCreated' 2>/dev/null); then
   flat_out="$flat_json"
 fi
-if ! merged=$(jq -n --argjson lim "$LIMIT" \
-  --argjson gh "$(echo "$gh_out" | jq '.data // []')" \
-  --argjson raw "$(echo "$flat_out" | jq '.data // []')" '
+gh_arr=$(echo "$gh_out" | jq -c '[.data[]? | select(type == "object")]' 2>/dev/null || echo '[]')
+raw_arr=$(echo "$flat_out" | jq -c '[.data[]? | select(type == "object")]' 2>/dev/null || echo '[]')
+if ! merged=$(jq -n --argjson lim "$LIMIT" --argjson gh "$gh_arr" --argjson raw "$raw_arr" '
   ($raw | map(select((.name | type == "string") and (.name | test("^ingest/[^/]+$"))))) as $flat
   | ($gh + $flat)
   | map({name, size, tc: (.["time-created"] // .timeCreated // "")})
@@ -102,6 +102,7 @@ if ! merged=$(jq -n --argjson lim "$LIMIT" \
 '); then
   echo "  (jq merge failed)"
   echo "$gh_out" | jq . >&2 || true
+  echo "$flat_out" | jq . >&2 || true
   exit 0
 fi
 if [[ -z "$(echo "$merged" | tr -d '[:space:]')" ]]; then

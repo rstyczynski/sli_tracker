@@ -122,6 +122,8 @@ Below is the **full** routing JSON shipped with this sprint (matches **`tests/fi
 
 **Schema:** validated by **`tools/schemas/json_router_definition.schema.json`**. **Envelope:** JSON with optional **`body`**, **`headers`**, **`endpoint`**, **`source_meta`**; GitHub traffic should include **`X-GitHub-Event`** in **`headers`**. Other GitHub event types not listed above still match the catch-all route and land under **`ingest/`** until you add routes.
 
+**Errors and dead letter:** The shipped **`routing.json` does not define `dead_letter`**. The Function’s **`func.js`** catches failures and returns **`{ "status": "error", "error": "…" }`** to the client — **no Object Storage object is written** for that request. There is therefore **no separate “dead letter prefix”** to inspect unless you extend **`routing.json`** with a **`dead_letter`** destination and redeploy (see **`fn/router_passthrough/router_core.js`** — **`onDeadLetter`** is only attached when **`definition.dead_letter`** is present).
+
 ## Operator CLI — bucket and namespace from scaffold state
 
 Do not hand-edit the ingest bucket name. After **`tools/cycle_apigw_router_passthrough.sh`** (or any run that wrote **`oci_scaffold/state-<NAME_PREFIX>.json`**), read **`.bucket.namespace`** and **`.bucket.name`** from that file — the same fields as **`tests/integration/test_fn_apigw_object_storage_passthrough.sh`**.

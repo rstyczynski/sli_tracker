@@ -119,12 +119,17 @@ if [ "${FN_ROUTER_AUTO_INGEST_BUCKET:-}" = "true" ]; then
   _ns="$(_state_get '.bucket.namespace')"
   _routing_seed="${REPO_ROOT}/tests/fixtures/fn_router_passthrough/routing.json"
   _mapping_seed="${REPO_ROOT}/tests/fixtures/fn_router_passthrough/passthrough.jsonata"
+  _workflow_metric_seed="${REPO_ROOT}/tests/fixtures/fn_router_passthrough/workflow_run_metric.jsonata"
   if [ ! -f "$_routing_seed" ]; then
     echo "  [ERROR] routing seed missing: $_routing_seed" >&2
     exit 1
   fi
   if [ ! -f "$_mapping_seed" ]; then
     echo "  [ERROR] mapping seed missing: $_mapping_seed" >&2
+    exit 1
+  fi
+  if [ ! -f "$_workflow_metric_seed" ]; then
+    echo "  [ERROR] workflow_run metric mapping seed missing: $_workflow_metric_seed" >&2
     exit 1
   fi
   _routing_bucket="${SLI_ROUTING_BUCKET:-$FN_ROUTER_OCI_INGEST_BUCKET}"
@@ -147,6 +152,16 @@ if [ "${FN_ROUTER_AUTO_INGEST_BUCKET:-}" = "true" ]; then
     --file "$_mapping_seed" \
     --force >/dev/null; then
     echo "  [ERROR] oci os object put passthrough.jsonata failed" >&2
+    exit 1
+  fi
+  _info "Upload workflow_run metric JSONata to Object Storage: ${_mapping_bucket}/config/workflow_run_metric.jsonata"
+  if ! oci os object put \
+    --namespace-name "$_ns" \
+    --bucket-name "$_mapping_bucket" \
+    --name "config/workflow_run_metric.jsonata" \
+    --file "$_workflow_metric_seed" \
+    --force >/dev/null; then
+    echo "  [ERROR] oci os object put workflow_run_metric.jsonata failed" >&2
     exit 1
   fi
   _done "Router config objects uploaded (Fn loads via Resource Principal, not from image)"
@@ -187,7 +202,8 @@ if [ -n "${FN_ROUTER_OCI_INGEST_BUCKET:-}" ]; then
   _ro="${SLI_ROUTING_OBJECT:-config/routing.json}"
   _mb="${SLI_MAPPING_BUCKET:-$_rb}"
   _po="${SLI_PASSTHROUGH_OBJECT:-config/passthrough.jsonata}"
-  if ! _cfg_merged=$(echo "$_cfg_raw" | jq -c --arg b "$FN_ROUTER_OCI_INGEST_BUCKET" --arg rb "$_rb" --arg ro "$_ro" --arg mb "$_mb" --arg po "$_po" '
+  _region="${OCI_REGION:-}"
+  if ! _cfg_merged=$(echo "$_cfg_raw" | jq -c --arg b "$FN_ROUTER_OCI_INGEST_BUCKET" --arg rb "$_rb" --arg ro "$_ro" --arg mb "$_mb" --arg po "$_po" --arg mc "$COMPARTMENT_OCID" --arg oci_reg "$_region" '
     def norm:
       if . == null then {}
       elif type == "string" then (try fromjson catch {})
@@ -198,7 +214,15 @@ if [ -n "${FN_ROUTER_OCI_INGEST_BUCKET:-}" ]; then
           else . end)
       elif type == "object" then (. | map_values(tostring))
       else {} end;
-    norm + {OCI_INGEST_BUCKET: $b, SLI_ROUTING_BUCKET: $rb, SLI_ROUTING_OBJECT: $ro, SLI_MAPPING_BUCKET: $mb, SLI_PASSTHROUGH_OBJECT: $po}
+    norm + {
+      OCI_INGEST_BUCKET: $b,
+      SLI_ROUTING_BUCKET: $rb,
+      SLI_ROUTING_OBJECT: $ro,
+      SLI_MAPPING_BUCKET: $mb,
+      SLI_PASSTHROUGH_OBJECT: $po,
+      OCI_MONITORING_COMPARTMENT_ID: $mc,
+      OCI_REGION: $oci_reg
+    }
   '); then
     _fail "Could not merge Fn config (raw config: ${_cfg_raw})"
     exit 1
@@ -217,7 +241,7 @@ if [ -n "${FN_ROUTER_OCI_INGEST_BUCKET:-}" ]; then
     exit 1
   fi
   rm -f "$_cfg_tmp"
-  _done "Fn config OCI_INGEST_BUCKET=$FN_ROUTER_OCI_INGEST_BUCKET SLI_ROUTING_BUCKET=$_rb SLI_ROUTING_OBJECT=$_ro SLI_MAPPING_BUCKET=$_mb SLI_PASSTHROUGH_OBJECT=$_po"
+  _done "Fn config OCI_INGEST_BUCKET=$FN_ROUTER_OCI_INGEST_BUCKET SLI_ROUTING_BUCKET=$_rb SLI_ROUTING_OBJECT=$_ro SLI_MAPPING_BUCKET=$_mb SLI_PASSTHROUGH_OBJECT=$_po OCI_MONITORING_COMPARTMENT_ID=(compartment) OCI_REGION=$_region"
 fi
 
 if [ "${FN_ROUTER_AUTO_INGEST_BUCKET:-}" = "true" ]; then

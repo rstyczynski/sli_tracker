@@ -29,14 +29,21 @@ const fxDir = path.join(process.cwd(), '..', '..', 'tests', 'fixtures', 'fn_rout
 const samplesDir = path.join(process.cwd(), '..', '..', 'tests', 'fixtures', 'github_webhook_samples');
 const routingDefinition = JSON.parse(fs.readFileSync(path.join(fxDir, 'routing.json'), 'utf8'));
 const passthroughBody = fs.readFileSync(path.join(fxDir, 'passthrough.jsonata'), 'utf8').trim();
-const loadMappingFromRef = async ({ mappingRef }) =>
-  (path.basename(String(mappingRef)) === 'passthrough.jsonata' ? passthroughBody : null);
+const metricMappingBody = fs.readFileSync(path.join(fxDir, 'workflow_run_metric.jsonata'), 'utf8').trim();
+const loadMappingFromRef = async ({ mappingRef }) => {
+  const base = path.basename(String(mappingRef));
+  if (base === 'passthrough.jsonata') return passthroughBody;
+  if (base === 'workflow_run_metric.jsonata') return metricMappingBody;
+  return null;
+};
 
 function readSample(name) {
   return JSON.parse(fs.readFileSync(path.join(samplesDir, name), 'utf8'));
 }
 
 (async () => {
+  process.env.OCI_MONITORING_COMPARTMENT_ID = 'ocid1.compartment.oc1..unittest';
+
   const calls = [];
   const r = await runRouter({ hello: 'world', n: 42 }, {
     putObject: async (x) => { calls.push(x); },
@@ -128,15 +135,46 @@ function readSample(name) {
 
   const wfBody = readSample('workflow_run.json');
   const callsWf = [];
+  const metricsWf = [];
   await runRouter(
     {
       body: wfBody,
       headers: { 'X-GitHub-Event': 'workflow_run' },
       source_meta: { file_name: 'unit-wf.json' },
     },
-    { putObject: async (x) => { callsWf.push(x); }, routingDefinition, loadMappingFromRef },
+    {
+      putObject: async (x) => { callsWf.push(x); },
+      postMetricData: async (x) => { metricsWf.push(x); },
+      routingDefinition,
+      loadMappingFromRef,
+    },
   );
   assert.strictEqual(callsWf[0].objectName, 'ingest/github/workflow_run/unit-wf.json');
+  assert.strictEqual(metricsWf.length, 1, 'SLI-41: completed workflow_run posts metrics');
+  assert.strictEqual(metricsWf[0].metricData.length, 2, 'SLI-41: result + duration metrics');
+  assert.strictEqual(metricsWf[0].metricData[0].name, 'workflow_run_result');
+  assert.strictEqual(metricsWf[0].metricData[1].name, 'workflow_run_duration_s');
+  assert.strictEqual(metricsWf[0].metricData[0].compartmentId, 'ocid1.compartment.oc1..unittest');
+  assert.strictEqual(metricsWf[0].metricData[1].datapoints[0].value, 300, 'SLI-41: duration 5 minutes in seconds');
+
+  const wfReq = readSample('workflow_run_requested.json');
+  const callsWfReq = [];
+  const metricsWfReq = [];
+  await runRouter(
+    {
+      body: wfReq,
+      headers: { 'X-GitHub-Event': 'workflow_run' },
+      source_meta: { file_name: 'unit-wf-req.json' },
+    },
+    {
+      putObject: async (x) => { callsWfReq.push(x); },
+      postMetricData: async (x) => { metricsWfReq.push(x); },
+      routingDefinition,
+      loadMappingFromRef,
+    },
+  );
+  assert.strictEqual(callsWfReq[0].objectName, 'ingest/github/workflow_run/unit-wf-req.json');
+  assert.strictEqual(metricsWfReq.length, 0, 'SLI-41: requested run does not emit metrics');
 
   const callsWj = [];
   await runRouter(
@@ -155,10 +193,12 @@ function readSample(name) {
     },
   };
   const callsWfGw = [];
+  const metricsWfGw = [];
   await runRouter(
     { body: wfBody, source_meta: { file_name: 'unit-wf-gw.json' } },
     {
       putObject: async (x) => { callsWfGw.push(x); },
+      postMetricData: async (x) => { metricsWfGw.push(x); },
       routingDefinition,
       loadMappingFromRef,
       fdkContext: mockFdkCtx,
@@ -169,6 +209,9 @@ function readSample(name) {
     'ingest/github/workflow_run/unit-wf-gw.json',
     'FDK httpGateway X-Github-Event classifies raw GitHub body',
   );
+  assert.strictEqual(metricsWfGw.length, 1, 'SLI-41: gateway path still emits metrics for completed run');
+
+  delete process.env.OCI_MONITORING_COMPARTMENT_ID;
 
   const prBody = readSample('pull_request.json');
   const callsPr = [];

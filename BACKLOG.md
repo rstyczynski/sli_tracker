@@ -332,6 +332,6 @@ Test: a routing definition with only `oci_object_storage:*` adapters produces a 
 
 ### SLI-41. Fan-out workflow_run events to OCI Monitoring metric in addition to Object Storage
 
-GitHub `workflow_run` webhooks are currently stored to Object Storage via an exclusive route. The same event should also be emitted as an OCI Monitoring metric so that workflow outcome and duration are queryable as time-series data without parsing raw JSON. Only completed runs carry a conclusive result, so partial-run events must be filtered at the transformation step. Blocked by SLI-42.
+GitHub `workflow_run` webhooks are currently stored to Object Storage via an exclusive route. The same event should also be emitted as an OCI Monitoring metric so that workflow outcome and duration are queryable as time-series data without parsing raw JSON. Only completed runs carry a conclusive result, so partial-run events must be filtered at the transformation step. **Delivered:** Sprint 26 (after SLI-42 unblocked adapter registration).
 
 Test: a simulated `workflow_run` completed webhook produces one Object Storage object and one OCI Monitoring metric POST; a `requested` event produces only the Object Storage object.

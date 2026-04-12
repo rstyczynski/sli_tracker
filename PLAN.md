@@ -332,3 +332,16 @@ Make `router_core.js` derive its adapter list from the routing definition keys s
 Backlog Items:
 
 * SLI-42. Config-driven adapter registration in the Fn router core
+
+## Sprint 26 - Fan-out workflow_run to OCI Monitoring (SLI-41 retry)
+
+Status: Done
+Mode: YOLO
+Test: unit, integration
+Regression: unit
+
+Retry Sprint 24 backlog item after Sprint 25: add `oci_monitoring:github_workflow_run`, fanout route `github_workflow_run_to_metric`, JSONata mapping `workflow_run_metric.jsonata`, enriched webhook fixtures, unit assertions for dual delivery, and cycle-script upload plus Fn config for monitoring compartment/region.
+
+Backlog Items:
+
+* SLI-41. Fan-out workflow_run events to OCI Monitoring metric in addition to Object Storage

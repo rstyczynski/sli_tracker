@@ -1,0 +1,35 @@
+action = "completed" and workflow_run.conclusion in ["success","failure","cancelled","timed_out","action_required"]
+? [
+    {
+      "namespace": "github_actions",
+      "name": "workflow_run_result",
+      "dimensions": {
+        "repository": repository.full_name,
+        "workflow":   workflow_run.name,
+        "branch":     workflow_run.head_branch,
+        "event":      workflow_run.event,
+        "conclusion": workflow_run.conclusion
+      },
+      "datapoints": [{
+        "timestamp": workflow_run.updated_at,
+        "value": workflow_run.conclusion = "success" ? 1 : 0
+      }]
+    },
+    {
+      "namespace": "github_actions",
+      "name": "workflow_run_duration_s",
+      "dimensions": {
+        "repository": repository.full_name,
+        "workflow":   workflow_run.name,
+        "branch":     workflow_run.head_branch,
+        "event":      workflow_run.event,
+        "conclusion": workflow_run.conclusion
+      },
+      "metadata": { "unit": "seconds" },
+      "datapoints": [{
+        "timestamp": workflow_run.updated_at,
+        "value": ($toMillis(workflow_run.updated_at) - $toMillis(workflow_run.created_at)) / 1000
+      }]
+    }
+  ]
+: []

@@ -1,0 +1,35 @@
+[info] --new-only mode: filtering to tests listed in progress/sprint_26/new_tests.manifest
+[info] current implementation filters at script level, not function level
+=== unit tests ===
+[info] logs: /Users/rstyczynski/projects/SLI_tracker/logs
+[skip] unit/test_destination_adapters.sh (not in manifest)
+[skip] unit/test_emit.sh (not in manifest)
+[skip] unit/test_file_adapter.sh (not in manifest)
+[skip] unit/test_file_source_adapter.sh (not in manifest)
+[run] unit/test_fn_passthrough_router.sh
+[PASS] unit/test_fn_passthrough_router.sh
+[skip] unit/test_install_oci_cli.sh (not in manifest)
+[skip] unit/test_json_pipeline_cli.sh (not in manifest)
+[skip] unit/test_json_router_adapters.sh (not in manifest)
+[skip] unit/test_json_router_batch.sh (not in manifest)
+[skip] unit/test_json_router_cli.sh (not in manifest)
+[skip] unit/test_json_router_mapping_source.sh (not in manifest)
+[skip] unit/test_json_router_schema.sh (not in manifest)
+[skip] unit/test_json_router.sh (not in manifest)
+[skip] unit/test_json_transformer_cli.sh (not in manifest)
+[skip] unit/test_json_transformer.sh (not in manifest)
+[skip] unit/test_mapping_loader.sh (not in manifest)
+[skip] unit/test_oci_profile_setup_api_key.sh (not in manifest)
+[skip] unit/test_oci_profile_setup.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_api_key_help.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_config_profile_dry.sh (not in manifest)
+[skip] unit/test_setup_oci_github_access_config_profile_help.sh (not in manifest)
+[skip] unit/test_sli_compute_sli_metrics.sh (not in manifest)
+[skip] unit/test_sli_ratio_simulator.sh (not in manifest)
+[skip] unit/test_sli_scheduled_workflows.sh (not in manifest)
+=== unit summary: 1 scripts, 1 passed, 0 failed ===
+
+========================================
+TOTAL: 1 scripts, 1 passed, 0 failed
+========================================
+RESULT: PASS

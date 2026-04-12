@@ -47,6 +47,9 @@
     "oci_object_storage:github_check_run": {
       "bucket": "REPLACED_AT_RUNTIME",
       "prefix": "ingest/github/check_run/"
+    },
+    "oci_monitoring:github_workflow_run": {
+      "namespace": "github_actions"
     }
   },
   "dead_letter": {
@@ -102,6 +105,23 @@
       },
       "destination": {
         "type": "oci_object_storage",
+        "name": "github_workflow_run"
+      }
+    },
+    {
+      "id": "github_workflow_run_to_metric",
+      "mode": "fanout",
+      "priority": 40,
+      "match": {
+        "headers": {
+          "x-github-event": "workflow_run"
+        }
+      },
+      "transform": {
+        "mapping": "./workflow_run_metric.jsonata"
+      },
+      "destination": {
+        "type": "oci_monitoring",
         "name": "github_workflow_run"
       }
     },

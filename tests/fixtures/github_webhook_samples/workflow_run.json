@@ -5,8 +5,11 @@
     "name": "CI",
     "status": "completed",
     "conclusion": "success",
+    "event": "push",
     "head_branch": "main",
-    "head_sha": "deadbeef"
+    "head_sha": "deadbeef",
+    "created_at": "2026-04-12T10:00:00Z",
+    "updated_at": "2026-04-12T10:05:00Z"
   },
   "repository": {
     "id": 42,

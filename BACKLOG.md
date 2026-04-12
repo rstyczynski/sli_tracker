@@ -311,11 +311,12 @@ Today each GitHub event family needs its own static adapter entry and route in `
 
 Test: backlog or sprint note records deferral or, if implemented later, unit tests cover agreed prefix rules.
 
-### SLI-41. Fan-out workflow_run events to OCI Monitoring metric in addition to Object Storage
 
-GitHub `workflow_run` webhooks are already stored to `ingest/github/workflow_run/` via an exclusive route. A parallel fanout route should also emit the completed run as an OCI Monitoring metric so that workflow duration and outcome are queryable as time-series data without parsing raw JSON from Object Storage. The metric transformation fires only on `action = "completed"` events and emits two datapoints per run: `workflow_run_result` (1=success, 0=failure) and `workflow_run_duration_s` (elapsed seconds), both dimensioned by repository, workflow name, branch, trigger event, and conclusion. The `oci_monitoring` adapter (`tools/adapters/oci_monitoring_adapter.js`) and the fanout routing mode are already available; this item wires them together for the Fn router and adds the JSONata mapping.
+### SLI-39. Header matching rules in the routing specification
 
-Test: a simulated `workflow_run` completed webhook produces one Object Storage object under `ingest/github/workflow_run/` and one OCI Monitoring POST with the two metric datapoints; a `requested` event produces only the Object Storage object.
+Envelope routing already consults inbound header metadata, but the routing definition contract does not yet fully describe which header match forms are supported, how values are compared, and what combinations remain invalid or undefined. Operators and reviewers need that behavior captured in the authoritative routing specification and reflected in validation so definitions stay portable across transports and misconfigurations are caught at load time instead of only under live traffic.
+
+Test: the routing specification and JSON Schema describe the same header matching capabilities as the router; invalid header match clauses fail definition load with clear errors, while definitions using only supported rules continue to validate and route as today.
 
 ### SLI-40. Avoid reloading routing definition from Object Storage on every invocation
 
@@ -323,8 +324,14 @@ The router function currently fetches `config/routing.json` from Object Storage 
 
 Test: under repeated invocations of a warm container, Object Storage is not called for routing definition fetch; the routed output is identical to the per-invocation baseline.
 
-### SLI-39. Header matching rules in the routing specification
+### SLI-42. Config-driven adapter registration in the Fn router core
 
-Envelope routing already consults inbound header metadata, but the routing definition contract does not yet fully describe which header match forms are supported, how values are compared, and what combinations remain invalid or undefined. Operators and reviewers need that behavior captured in the authoritative routing specification and reflected in validation so definitions stay portable across transports and misconfigurations are caught at load time instead of only under live traffic.
+`router_core.js` currently hardcodes a fixed set of adapters in the dispatcher regardless of what destination types appear in `routing.json`. Adding support for a new destination type therefore requires a code change in addition to a configuration change, coupling adapter wiring to source code. The router core should derive which adapters to activate from the routing definition itself, so that adding a new destination type to `routing.json` is sufficient to enable it. This unblocks SLI-41 and any future destination type.
 
-Test: the routing specification and JSON Schema describe the same header matching capabilities as the router; invalid header match clauses fail definition load with clear errors, while definitions using only supported rules continue to validate and route as today.
+Test: a routing definition with only `oci_object_storage:*` adapters produces a dispatcher with only the Object Storage adapter; adding an `oci_monitoring:*` entry activates the Monitoring adapter automatically, without any code change.
+
+### SLI-41. Fan-out workflow_run events to OCI Monitoring metric in addition to Object Storage
+
+GitHub `workflow_run` webhooks are currently stored to Object Storage via an exclusive route. The same event should also be emitted as an OCI Monitoring metric so that workflow outcome and duration are queryable as time-series data without parsing raw JSON. Only completed runs carry a conclusive result, so partial-run events must be filtered at the transformation step. Blocked by SLI-42.
+
+Test: a simulated `workflow_run` completed webhook produces one Object Storage object and one OCI Monitoring metric POST; a `requested` event produces only the Object Storage object.

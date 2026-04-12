@@ -84,12 +84,44 @@ sprint that explicitly permits `router_core.js` changes.
 
 ---
 
-## Recommended next sprint scope (SLI-41 continuation)
+## Root cause — design deficiency, not missing code
 
-1. Add symlink `fn/router_passthrough/lib/oci_monitoring_adapter.js` → `tools/adapters/oci_monitoring_adapter.js`
+The sprint constraint ("no core changes") exposed a design deficiency: `router_core.js`
+hardcodes its adapter list instead of deriving it from the routing definition. The correct
+fix is **not** to add adapters manually each time — it is to make `router_core.js` react to
+the routing config:
+
+```js
+// Derive required adapter types from definition.adapters keys
+const adapterTypes = new Set(
+    Object.keys(definition.adapters).map(k => k.split(':')[0])
+);
+
+const adapters = [];
+if (adapterTypes.has('oci_object_storage')) adapters.push(createOciObjectStorageAdapter(...));
+if (adapterTypes.has('oci_monitoring'))     adapters.push(createOciMonitoringAdapter(...));
+// future types: oci_logging, file_system, …
+
+const dispatcher = createDestinationDispatcher({ adapters, ... });
+```
+
+Once this is in place, adding `oci_monitoring:github_workflow_run` to `routing.json` is
+sufficient to activate the monitoring adapter — no further `router_core.js` changes needed.
+This is tracked as **SLI-42**.
+
+## Recommended next sprint scope
+
+**Sprint N (SLI-42 prerequisite):** make `router_core.js` config-driven:
+
+1. Symlink `fn/router_passthrough/lib/oci_monitoring_adapter.js` → `tools/adapters/oci_monitoring_adapter.js`
 2. Add `oci-monitoring` to `fn/router_passthrough/package.json`
-3. In `router_core.js`: instantiate `createOciMonitoringAdapter` with a `postMetricData` emit; register alongside `bucketAdapter`
-4. Upload `workflow_run_metric.jsonata` to `config/` in Object Storage
-5. Update `routing.json` with the fanout route and adapter entry
-6. Unit test: mock `postMetricData`, assert metric shape matches mapping design
-7. Integration test: live `workflow_run completed` event → verify OCI Monitoring receives the two datapoints
+3. Replace hardcoded `adapters: [bucketAdapter]` with type-detection loop over `definition.adapters` keys
+4. Add `postMetricData` emit implementation using Resource Principal auth
+5. Unit test: routing definition with only `oci_object_storage:*` → one adapter; add `oci_monitoring:*` → two adapters automatically
+
+**Sprint N+1 (SLI-41, pure config):** once SLI-42 is in place:
+
+1. Add `oci_monitoring:github_workflow_run` adapter entry to `routing.json`
+2. Add fanout route `github_workflow_run_to_metric` to `routing.json`
+3. Upload `workflow_run_metric.jsonata` to `config/` in Object Storage
+4. Unit + integration tests for the new route and metric shape

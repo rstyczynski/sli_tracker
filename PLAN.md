@@ -306,3 +306,29 @@ Route public-router envelopes by `X-GitHub-Event` into separate Object Storage p
 Backlog Items:
 
 * SLI-36. Route GitHub webhook traffic to separate Object Storage prefixes
+
+## Sprint 24 - Fan-out workflow_run to OCI Monitoring (SLI-41)
+
+Status: Failed
+Mode: YOLO
+Test: unit, integration
+Regression: unit
+
+Attempted to deliver SLI-41 as pure routing configuration. Sprint stopped at feasibility check: `router_core.js` hardcodes one adapter (OCI Object Storage) and cannot be extended through configuration alone. Three blockers documented in `progress/sprint_24/sprint_24_implementation.md`. Design deficiency promoted to SLI-42.
+
+Backlog Items:
+
+* SLI-41. Fan-out workflow_run events to OCI Monitoring metric in addition to Object Storage
+
+## Sprint 25 - Config-driven adapter registration (SLI-42)
+
+Status: Done
+Mode: YOLO
+Test: unit, integration
+Regression: unit
+
+Make `router_core.js` derive its adapter list from the routing definition keys so that adding a new destination type to `routing.json` is sufficient to activate it, with no code change. Unblocks SLI-41.
+
+Backlog Items:
+
+* SLI-42. Config-driven adapter registration in the Fn router core

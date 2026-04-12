@@ -363,6 +363,12 @@ Regression: unit
 
 Extend the public router stack so GitHub `workflow_run` deliveries also fan out to **OCI Logging** (searchable log entries) alongside the existing Object Storage archive and OCI Monitoring metrics (**SLI-41**). Inception, design, and RUP gates are under `progress/sprint_27/`; adapter implementation is tracked in `sprint_27_implementation.md`.
 
+**Bugfix cycle (RUP `bugfix-cycle.md`):** post-delivery defect **SLI-44-1** — cycle script did not upload `workflow_run_log.jsonata` and did not set `OCI_LOGGING_LOG_ID` in Fn config. Trace: `progress/sprint_27/sprint_27_bugfixes.md`.
+
 Backlog Items:
 
 * SLI-44. Fan-out `workflow_run` to OCI Logging in addition to Object Storage and Monitoring
+
+Bug fixes:
+
+* SLI-44-1. `workflow_run_log.jsonata` not uploaded to Object Storage; `OCI_LOGGING_LOG_ID` not injected into Fn config.

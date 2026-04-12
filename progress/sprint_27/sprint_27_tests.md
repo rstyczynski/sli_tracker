@@ -21,6 +21,7 @@ Phase B integration regression (`B3`) not in `Regression:` parameter.
 - Phase A: new-code unit + integration PASS.
   - A2: `test_fn_passthrough_router.sh` — 7 assertions pass including UT-SLI44-1 (completed workflow_run emits log entry) and UT-SLI44-2 (requested workflow_run also emits log, log-all design).
   - A3: `test_sli44_rup_placeholder.sh` passes (live OCI-touching test requires deployed stack — see IT-SLI44-1 in design).
+- **Live IT-SLI44-1 verified 2026-04-12:** POST of `workflow_run` (action=completed, current timestamps) to deployed APIGW returned `status: routed` with three deliveries (Object Storage, OCI Monitoring, OCI Logging). Log entry confirmed visible in OCI Logging console. Bugfix SLI-44-1 (cycle script) was required — see `sprint_27_bugfixes.md`.
 - Phase B: router/transformer unit regression PASS (14 scripts).
 
 ---
@@ -37,4 +38,4 @@ Phase B integration regression (`B3`) not in `Regression:` parameter.
 | Phase 4 Quality gates | pass | 3 log files + this file |
 | Phase 5 Wrap-up | done | `README.md` Recent updates; `PROGRESS_BOARD.md` |
 
-**Backlog:** SLI-44 — `tested` at board; OCI Logging fan-out delivered.
+**Backlog:** SLI-44 — `tested` at board; OCI Logging fan-out delivered and live-verified. Bugfix SLI-44-1 traced in `sprint_27_bugfixes.md`.

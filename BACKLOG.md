@@ -311,6 +311,12 @@ Today each GitHub event family needs its own static adapter entry and route in `
 
 Test: backlog or sprint note records deferral or, if implemented later, unit tests cover agreed prefix rules.
 
+### SLI-40. Avoid reloading routing definition from Object Storage on every invocation
+
+The router function currently fetches `config/routing.json` from Object Storage on every invocation. For high-frequency webhook traffic this adds latency and unnecessary Object Storage API calls. The routing definition changes rarely and should be supplied once — either embedded as a Fn configuration variable or held in a module-level cache that survives across warm invocations — so that cold-start load from Object Storage becomes a fallback rather than the default path.
+
+Test: under repeated invocations of a warm container, Object Storage is not called for routing definition fetch; the routed output is identical to the per-invocation baseline.
+
 ### SLI-39. Header matching rules in the routing specification
 
 Envelope routing already consults inbound header metadata, but the routing definition contract does not yet fully describe which header match forms are supported, how values are compared, and what combinations remain invalid or undefined. Operators and reviewers need that behavior captured in the authoritative routing specification and reflected in validation so definitions stay portable across transports and misconfigurations are caught at load time instead of only under live traffic.

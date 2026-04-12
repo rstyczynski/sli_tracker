@@ -5,10 +5,9 @@
 #   OCI_CLI_PROFILE=DEFAULT SLI_OS_NAMESPACE=myns SLI_INGEST_BUCKET=mybucket \
 #     ./tools/list_github_ingest_prefixes.sh [--limit N]
 #
-# Namespace: oci os ns get --query data --raw-output
-#
-# The merged section combines shallow lists (small limits) so the script stays fast;
-# it does not scan the whole bucket.
+# Some shells wrap `oci` and print banner lines to stdout before the JSON document.
+# We strip everything before the first line that starts with '[' or '{' so jq always
+# sees a single JSON value.
 
 set -euo pipefail
 
@@ -38,118 +37,78 @@ fi
 PROFILE="${OCI_CLI_PROFILE:-DEFAULT}"
 export OCI_CLI_PROFILE="$PROFILE"
 
-# Per-prefix list cap (keep responses small; sort client-side by time).
 LIST_CAP=200
 
 echo "# profile=${PROFILE} namespace=${NS} bucket=${BUCKET} limit=${LIMIT}"
 echo
 
-# Newest-first object names only (one path per line).
-print_names_newest() {
-  local json="$1"
+# Drop OCI wrapper noise on stdout; keep from first JSON-looking line to EOF.
+strip_leading_nonjson() {
+  sed -n '/^[[:space:]]*[[{]/,$p'
+}
+
+# Return JSON array of object summaries (OCI --query data --raw-output), or [].
+fetch_data_array() {
+  local prefix="$1"
+  local lim="${2:-$LIST_CAP}"
+  local raw
+  raw=$(
+    oci os object list \
+      --namespace-name "$NS" \
+      --bucket-name "$BUCKET" \
+      --prefix "$prefix" \
+      --limit "$lim" \
+      --fields 'name,timeCreated' \
+      --query 'data' \
+      --raw-output 2>/dev/null | strip_leading_nonjson
+  ) || true
+  raw="${raw//$'\r'/}"
+  if [[ -z "${raw//[:space:]}" ]] || [[ "$raw" == 'null' ]]; then
+    printf '%s\n' '[]'
+    return
+  fi
+  printf '%s\n' "$raw"
+}
+
+# Newest-first object names (input: JSON array of object summaries).
+print_names_newest_from_array() {
+  local arr_json="$1"
   local lim="$2"
-  echo "$json" | jq -r --argjson lim "$lim" '
-    [ .data[]? | select(type == "object") and (.name | type == "string")
+  if ! echo "$arr_json" | jq -e . >/dev/null 2>&1; then
+    echo "  (list parse error: invalid JSON from oci)" >&2
+    return
+  fi
+  echo "$arr_json" | jq -r --argjson lim "$lim" '
+    [ .[]?
+      | select(type == "object" and (.name | type == "string"))
       | {name, tc: (.["time-created"] // .timeCreated // "")} ]
     | sort_by(.tc) | reverse | .[0:$lim][]
     | .name
-  ' 2>/dev/null || echo "  (list parse error)" >&2
+  ' 2>/dev/null || echo "  (list jq error)" >&2
 }
 
 for ev in ping push workflow_run pull_request; do
   pref="ingest/github/${ev}/"
   echo "## ${pref}"
-  if ! out=$(oci os object list \
-    --namespace-name "$NS" \
-    --bucket-name "$BUCKET" \
-    --prefix "$pref" \
-    --limit "$LIST_CAP" \
-    --fields 'name,timeCreated' 2>/dev/null); then
-    echo "  (oci list failed)"
-  else
-    print_names_newest "$out" "$LIMIT" | while IFS= read -r line || [[ -n "$line" ]]; do
-      [[ -z "$line" ]] && continue
-      printf '%s\n' "$line"
-    done
-  fi
+  arr=$(fetch_data_array "$pref" "$LIST_CAP")
+  print_names_newest_from_array "$arr" "$LIMIT" | while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "$line" ]] && continue
+    printf '%s\n' "$line"
+  done
   echo
 done
 
 echo "## ingest/dead_letter/"
-if ! out_dl=$(oci os object list \
-  --namespace-name "$NS" \
-  --bucket-name "$BUCKET" \
-  --prefix "ingest/dead_letter/" \
-  --limit "$LIST_CAP" \
-  --fields 'name,timeCreated' 2>/dev/null); then
-  echo "  (oci list failed)"
-else
-  print_names_newest "$out_dl" "$LIMIT" | while IFS= read -r line || [[ -n "$line" ]]; do
-    [[ -z "$line" ]] && continue
-    printf '%s\n' "$line"
-  done
-fi
+arr_dl=$(fetch_data_array "ingest/dead_letter/" "$LIST_CAP")
+print_names_newest_from_array "$arr_dl" "$LIMIT" | while IFS= read -r line || [[ -n "$line" ]]; do
+  [[ -z "$line" ]] && continue
+  printf '%s\n' "$line"
+done
 echo
 
-echo "## ingest/ (merged newest names: github/* + dead_letter/* + flat ingest/<file>)"
-tmpdir=$(mktemp -d "${TMPDIR:-/tmp}/gh-ingest.XXXXXX")
-cleanup() { rm -rf "$tmpdir"; }
-trap cleanup EXIT
-
-gh_out='{"data":[]}'
-if gh_json=$(oci os object list \
-  --namespace-name "$NS" \
-  --bucket-name "$BUCKET" \
-  --prefix "ingest/github/" \
-  --limit "$LIST_CAP" \
-  --fields 'name,timeCreated' 2>/dev/null); then
-  gh_out="$gh_json"
-fi
-dl_out='{"data":[]}'
-if dl_json=$(oci os object list \
-  --namespace-name "$NS" \
-  --bucket-name "$BUCKET" \
-  --prefix "ingest/dead_letter/" \
-  --limit "$LIST_CAP" \
-  --fields 'name,timeCreated' 2>/dev/null); then
-  dl_out="$dl_json"
-fi
-flat_out='{"data":[]}'
-if flat_json=$(oci os object list \
-  --namespace-name "$NS" \
-  --bucket-name "$BUCKET" \
-  --prefix "ingest/" \
-  --limit 120 \
-  --fields 'name,timeCreated' 2>/dev/null); then
-  flat_out="$flat_json"
-fi
-
-echo "$gh_out" | jq '[.data[]? | select(type == "object")]' >"$tmpdir/gh.json"
-echo "$dl_out" | jq '[.data[]? | select(type == "object")]' >"$tmpdir/dl.json"
-echo "$flat_out" | jq '[.data[]? | select(type == "object")]' >"$tmpdir/flat.json"
-
-_merged_ok=1
-if ! jq -rn --argjson lim "$LIMIT" --slurpfile gh "$tmpdir/gh.json" --slurpfile dl "$tmpdir/dl.json" --slurpfile raw "$tmpdir/flat.json" '
-  ($gh[0] + $dl[0]) as $g
-  | ($raw[0]
-    | map(select((.name | type == "string") and (.name | test("^ingest/[^/]+$"))))) as $flat
-  | ($g + $flat)
-  | map({name, tc: (.["time-created"] // .timeCreated // "")})
-  | unique_by(.name)
-  | sort_by(.tc)
-  | reverse
-  | .[0:$lim][]
-  | .name
-' >"$tmpdir/merged.txt" 2>/dev/null; then
-  _merged_ok=0
-fi
-if [[ "$_merged_ok" -ne 1 ]]; then
-  echo "  (merge failed)"
-elif [[ ! -s "$tmpdir/merged.txt" ]]; then
-  echo "  (no objects matched)"
-else
-  while IFS= read -r line || [[ -n "$line" ]]; do
-    [[ -z "$line" ]] && continue
-    printf '%s\n' "$line"
-  done <"$tmpdir/merged.txt"
-fi
+echo "## ingest/"
+arr_ingest=$(fetch_data_array "ingest/" "$LIST_CAP")
+print_names_newest_from_array "$arr_ingest" "$LIMIT" | while IFS= read -r line || [[ -n "$line" ]]; do
+  [[ -z "$line" ]] && continue
+  printf '%s\n' "$line"
+done

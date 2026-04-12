@@ -298,3 +298,9 @@ Test: posting a sample envelope to the public endpoint results in an object crea
 The public ingest path already receives real GitHub webhook JSON, including large hook setup payloads and smaller push-style bodies, but everything lands under one ingest prefix today. Operators and downstream jobs need each logical event family separated into its own prefix so browsing, retention, and replay stay manageable without unrelated traffic mixed together. Detailed classification rules and routing mechanics will be decided during sprint elaboration.
 
 Test: at least two real or synthetic GitHub delivery families are stored under different object-key prefixes in the configured bucket.
+
+### SLI-37. Decide how inbound HTTP headers should affect successful router deliveries
+
+Inbound headers already decide which route matches, but objects written on a successful path are built from the transformed body only, while dead-letter objects still carry the full envelope including headers. The product needs an explicit ruling on whether success-path storage should expose any header context for audit or correlation, because blind forwarding risks secrets and surprises consumers who today expect plain webhook JSON in the object body. Further detail belongs in sprint elaboration, not in the backlog item.
+
+Test: sprint design records the decision; any code change has automated tests for the agreed stored payload, or no code change with that outcome noted in sprint artifacts.

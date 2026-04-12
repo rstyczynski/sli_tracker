@@ -133,9 +133,11 @@ Below is the **full** routing JSON shipped with this sprint (matches **`tests/fi
 
 **GitHub headers and raw JSON bodies:** GitHub sends **`X-Github-Event`** on the HTTP request. OCI API Gateway forwards those on the Fn invocation as **`Fn-Http-H-*`** headers; the FDK exposes the original names on **`ctx.httpGateway.headers`**. **`router_core`** merges those into **`envelope.headers`** before routing (without overwriting non-empty envelope headers). **Offline tests** that call **`runRouter`** with a bare object and **no** **`fdkContext`** still behave like before: add **`headers`** to the envelope JSON yourself, or pass a mock **`fdkContext`** (see **`tests/unit/test_fn_passthrough_router.sh`**). If neither gateway headers nor envelope headers carry the event, the catch-all stores under **`ingest/`**.
 
+**Headers vs what Object Storage receives (successful route):** **`envelope.headers`** (after the merge above) are used only for **route matching** in **`fn/router_passthrough/lib/json_router.js`** (`matchesRoute` / `normalizeHeaders`). They are **not** copied into the object body on a normal delivery. **`routeTransformAll`** runs **`transform(envelope.body, mapping)`**; the Object Storage **`emit`** hook in **`router_core.js`** persists **`JSON.stringify(output)`** — i.e. the **JSONata result of `envelope.body`**, not the full envelope. With **`passthrough.jsonata`** as **`$`**, the stored file is effectively the parsed **body** alone. To persist gateway or client headers in successful ingest objects **today**, put them in the JSON **body** at the source, or change the router so JSONata receives more than **`body`** (code change).
+
 **Other event types** (for example **`issues`**, **`repository`**) are not listed; they match the catch-all and land under **`ingest/`** until you add routes.
 
-**Errors and dead letter:** **`dead_letter`** points at **`oci_object_storage` / `dead_letter`** → prefix **`ingest/dead_letter/`**. **`processEnvelope`** (`tools/json_router.js`) writes **`{ error, envelope }`** there on failures when **`onDeadLetter`** is set (`router_core.js` enables it from **`definition.dead_letter`**). Examples: **ambiguous exclusive match**, **JSONata transform failure**, **mapping load failure**, **no adapter for a destination**, or **no route matched** when you temporarily remove the catch-all. With the catch-all route above, a normal envelope **always** matches at least one route, so GitHub traffic without any event header (neither gateway nor envelope) is **not** a dead-letter case — it is stored under **`ingest/`** by design. If the handler throws outside **`processEnvelope`**, **`func.js`** still returns **`{ "status": "error", … }`** without an object write.
+**Errors and dead letter:** **`dead_letter`** points at **`oci_object_storage` / `dead_letter`** → prefix **`ingest/dead_letter/`**. **`processEnvelope`** (`tools/json_router.js`), via **`destination_dispatcher.js`** **`onDeadLetter`**, delivers **`{ error, envelope }`** as the adapter **`output`**, so dead-letter objects include the **full envelope** (including **`headers`**) under **`envelope`**, not only the body. Examples: **ambiguous exclusive match**, **JSONata transform failure**, **mapping load failure**, **no adapter for a destination**, or **no route matched** when you temporarily remove the catch-all. With the catch-all route above, a normal envelope **always** matches at least one route, so GitHub traffic without any event header (neither gateway nor envelope) is **not** a dead-letter case — it is stored under **`ingest/`** by design. If the handler throws outside **`processEnvelope`**, **`func.js`** still returns **`{ "status": "error", … }`** without an object write.
 
 ## Operator CLI — bucket and namespace from scaffold state
 
@@ -152,6 +154,8 @@ export SLI_INGEST_BUCKET="$(jq -r '.bucket.name // empty' "$STATE_FILE")"
 export OCI_CLI_PROFILE="${OCI_CLI_PROFILE:-DEFAULT}"
 test -n "$SLI_OS_NAMESPACE" && test -n "$SLI_INGEST_BUCKET" || { echo "state file missing bucket fields" >&2; exit 1; }
 ./tools/list_github_ingest_prefixes.sh --limit 5
+# Fetch one object body (stdout); use --file path to write instead of piping
+./tools/get_ingest_object.sh ingest/github/workflow_run/fn-1775961003716-d1da2413.json | jq .
 ```
 
 Positional equivalent (same values from **`jq`**):
@@ -162,7 +166,13 @@ BN="$(jq -r '.bucket.name // empty' "$STATE_FILE")"
 ./tools/list_github_ingest_prefixes.sh "$NS" "$BN" --limit 5
 ```
 
-**`list_github_ingest_prefixes.sh`** prints **object names only** (one full path per line, newest first under each prefix): each **`ingest/github/<event>/`**, **`ingest/dead_letter/`**, then a merged block combining **`ingest/github/*`**, **`ingest/dead_letter/*`**, and flat **`ingest/<file>`** keys. It uses **small `oci` list limits** and a **temp-file `jq` merge** so large buckets do not hang the shell or exceed argument limits.
+**`list_github_ingest_prefixes.sh`** prints **object names only** (one full path per line, **newest by `time-created` first** within each section, up to **`--limit`**). Sections, in order: **`ingest/github/ping/`**, **`…/push/`**, **`…/workflow_run/`**, **`…/pull_request/`**, **`ingest/dead_letter/`**, then **`ingest/`**. Each section is a single **`oci os object list`** with that prefix (list page size capped at **`LIST_CAP=200`** in the script). The **`ingest/`** block is **not** a synthetic merge: it is whatever the API returns for prefix **`ingest/`** (so keys can include nested paths such as **`ingest/github/...`** as well as flat **`ingest/<file>.json`**), then the same time sort and limit as the other sections.
+
+**`get_ingest_object.sh`** downloads the **raw object body** for one full key (for example a name printed by the list script). It uses the same **`SLI_OS_NAMESPACE`**, **`SLI_INGEST_BUCKET`**, and **`OCI_CLI_PROFILE`**. With no **`--file`**, it uses **`oci os object get --file -`** (body on **stdout**); **`--file /path/to/out.json`** avoids stdout if an **`oci`** wrapper still prints banner text ahead of binary/JSON. Pass **`--help`** for usage.
+
+**Stdout before JSON:** If a shell or **`oci`** wrapper prints banner lines to **stdout** ahead of the JSON document, **`jq` fails** on the combined stream. The script **`strip_leading_nonjson`** keeps output from the first line that looks like JSON (starts with **`[`** or **`{`** after optional whitespace). Prefer wrappers that print only to **stderr**, or a non-noisy login profile, so **`oci --query … --raw-output`** stays a single JSON value.
+
+**`jq` filter:** Use **`select(type == "object" and (.name | type == "string"))`**. The older shape **`select(type == "object") and (.name | …)`** is parsed incorrectly by **`jq`** and yields errors like **Cannot index boolean with string "name"** (and the script would show **`(list jq error)`**).
 
 ## Tests
 

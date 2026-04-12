@@ -1,0 +1,16 @@
+{
+  "action": "completed",
+  "workflow_run": {
+    "id": 1001,
+    "name": "CI",
+    "status": "completed",
+    "conclusion": "success",
+    "head_branch": "main",
+    "head_sha": "deadbeef"
+  },
+  "repository": {
+    "id": 42,
+    "name": "SLI_tracker",
+    "full_name": "acme/SLI_tracker"
+  }
+}

@@ -1,6 +1,6 @@
 schema_version: 20180708
 name: router_passthrough
-version: 0.0.13
+version: 0.0.15
 runtime: node
 build_image: fnproject/node:20-dev
 run_image: fnproject/node:20

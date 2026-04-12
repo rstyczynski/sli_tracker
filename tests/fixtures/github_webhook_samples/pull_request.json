@@ -1,0 +1,21 @@
+{
+  "action": "opened",
+  "number": 7,
+  "pull_request": {
+    "id": 5001,
+    "number": 7,
+    "state": "open",
+    "title": "Sample PR fixture",
+    "head": {
+      "ref": "feature/sample"
+    },
+    "base": {
+      "ref": "main"
+    }
+  },
+  "repository": {
+    "id": 42,
+    "name": "SLI_tracker",
+    "full_name": "acme/SLI_tracker"
+  }
+}

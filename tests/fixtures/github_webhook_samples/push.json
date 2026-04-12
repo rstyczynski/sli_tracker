@@ -1,0 +1,18 @@
+{
+  "ref": "refs/heads/main",
+  "repository": {
+    "id": 99,
+    "name": "SLI_tracker",
+    "full_name": "acme/SLI_tracker",
+    "private": false
+  },
+  "pusher": {
+    "name": "tester"
+  },
+  "head_commit": {
+    "id": "abc123def456",
+    "message": "chore: sample push fixture",
+    "timestamp": "2026-04-10T12:00:00Z"
+  },
+  "commits": []
+}

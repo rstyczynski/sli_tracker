@@ -1,0 +1,23 @@
+{
+  "zen": "Non-blocking is better than blocking.",
+  "hook_id": 1,
+  "hook": {
+    "type": "Repository",
+    "id": 1,
+    "name": "web",
+    "active": true,
+    "events": ["push"],
+    "config": {
+      "content_type": "json",
+      "insecure_ssl": "0",
+      "url": "https://example.invalid/hook"
+    }
+  },
+  "repository": {
+    "id": 42,
+    "node_id": "R_kg",
+    "name": "SLI_tracker",
+    "full_name": "acme/SLI_tracker",
+    "private": false
+  }
+}

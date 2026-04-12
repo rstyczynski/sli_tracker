@@ -180,6 +180,18 @@ All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifac
 
 ## Recent updates
 
+### Sprint 23 — GitHub webhook prefixes on router ingest (SLI-36) (YOLO)
+
+**Status:** implemented + tested
+
+The public `router_passthrough` Function routes deliveries by **`X-GitHub-Event`** into **`ingest/github/ping/`**, **`push/`**, **`workflow_run/`**, and **`pull_request/`** while leaving all other envelopes on **`ingest/`**. Runtime **`router_core`** now fills **`OCI_INGEST_BUCKET`** on every **`oci_object_storage:*`** adapter entry. Synthetic webhook bodies for automated tests live under **`tests/fixtures/github_webhook_samples/`**; operators can list recent ingested objects per prefix with **`tools/list_github_ingest_prefixes.sh`** (documented in **`progress/sprint_23/sprint_23_implementation.md`**).
+
+**Quality gates:** Unit and integration new-code manifest PASS; component unit regression manifest PASS — see **`progress/sprint_23/sprint_23_tests.md`**.
+
+**Traceability:** **`progress/backlog/SLI-36/`**
+
+---
+
 ### Sprint 21 — Universal destinations and component-scoped router regression (SLI-33, SLI-34) (YOLO)
 
 **Status:** implemented + tested

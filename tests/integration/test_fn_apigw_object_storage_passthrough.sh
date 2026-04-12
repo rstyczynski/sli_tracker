@@ -6,6 +6,7 @@
 # **FN_FORCE_DEPLOY=true** only when the handler changed.
 # Router configuration in **Object Storage** (not bundled in the image): `config/routing.json` and
 # `config/passthrough.jsonata` by default, uploaded from **tests/fixtures/fn_router_passthrough/** during **cycle_apigw_router_passthrough.sh**.
+# Routing includes GitHub **`X-GitHub-Event`** paths under **`ingest/github/<event>/`** (see Sprint 23 / SLI-36).
 #
 # Does **not** tear down API GW / VCN / Fn app (same idea as not deleting buckets after every test).
 # Sprint-end cleanup: **tests/cleanup_router_apigw_stack.sh** (and **tests/cleanup_sli_buckets.sh** for sli-* buckets).
@@ -42,8 +43,8 @@ export FN_FUNCTION_NAME="${FN_FUNCTION_NAME:-router_passthrough}"
 export FN_FUNCTION_SRC_DIR="${FN_FUNCTION_SRC_DIR:-../fn/router_passthrough}"
 export FN_ROUTER_AUTO_INGEST_BUCKET=true
 export CYCLE_APIGW_TEST_EXPECT=router
-# Redeploy image only when Fn sources change (bump func.yaml); default false reuses last image.
-export FN_FORCE_DEPLOY="${FN_FORCE_DEPLOY:-false}"
+# After router_core or routing fixture changes, deploy once (bump func.yaml). Default true so CI picks up new routing code.
+export FN_FORCE_DEPLOY="${FN_FORCE_DEPLOY:-true}"
 
 echo "=== npm install (Fn bundle) ==="
 ( cd "$FN_SRC" && npm install >/dev/null )
@@ -98,7 +99,7 @@ _http_code=$("$_http" -sS -o "$_resp" -w "%{http_code}" \
   --data "$_payload" \
   "$url" || true)
 if [[ "$_http_code" != "200" ]]; then
-  echo "FAIL: second POST did not return HTTP 200 (got ${_http_code})" >&2
+  echo "FAIL: POST did not return HTTP 200 (got ${_http_code})" >&2
   cat "$_resp" >&2 || true
   rm -f "$_resp"
   exit 1
@@ -130,6 +131,51 @@ done
 
 if [[ "$_ok" -ne 1 ]]; then
   echo "FAIL: object ${_object_path} missing or body mismatch after retries" >&2
+  exit 1
+fi
+
+PING_OBJ="it-ping-${TS}.json"
+_ping_body=$(jq -c . "${REPO_ROOT}/tests/fixtures/github_webhook_samples/ping.json")
+_payload_ping=$(jq -n --arg fn "$PING_OBJ" --argjson b "$_ping_body" \
+  '{body: $b, headers: {"X-GitHub-Event": "ping"}, source_meta: {file_name: $fn}}')
+
+echo "=== POST GitHub ping-shaped payload (ingest/github/ping/${PING_OBJ}) ==="
+_http_code=$("$_http" -sS -o "$_resp" -w "%{http_code}" \
+  --connect-timeout 30 --max-time 120 \
+  -H "content-type: application/json" \
+  --data "$_payload_ping" \
+  "$url" || true)
+if [[ "$_http_code" != "200" ]]; then
+  echo "FAIL: ping POST did not return HTTP 200 (got ${_http_code})" >&2
+  cat "$_resp" >&2 || true
+  rm -f "$_resp"
+  exit 1
+fi
+if ! jq -e '.status == "routed"' "$_resp" >/dev/null 2>&1; then
+  echo "FAIL: ping response expected .status == routed" >&2
+  cat "$_resp" >&2 || true
+  rm -f "$_resp"
+  exit 1
+fi
+rm -f "$_resp"
+
+_ping_path="ingest/github/ping/${PING_OBJ}"
+_ok_ping=0
+for _i in $(seq 1 12); do
+  if oci os object get \
+    --profile "$OCI_PROFILE" \
+    --namespace-name "$NS" \
+    --bucket-name "$BUCKET" \
+    --name "$_ping_path" \
+    --file - 2>/dev/null | jq -e '.hook_id == 1' >/dev/null 2>&1; then
+    _ok_ping=1
+    break
+  fi
+  sleep 5
+done
+
+if [[ "$_ok_ping" -ne 1 ]]; then
+  echo "FAIL: object ${_ping_path} missing or body mismatch after retries" >&2
   exit 1
 fi
 

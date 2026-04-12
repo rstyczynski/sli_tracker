@@ -276,7 +276,7 @@ Backlog Items:
 
 ## Sprint 22 - Public OCI Function router to Object Storage (pass-through)
 
-Status: Fixed
+Status: Done
 Mode: YOLO
 Test: unit, integration
 Regression: unit
@@ -293,3 +293,16 @@ Bug fixes:
 
 * SLI-35-1. `routing.json` was packaged in the Function image instead of being loaded from Object Storage (operator-updatable router configuration).
 * SLI-35-2. `passthrough.jsonata` was packaged in the Function image instead of being loaded from Object Storage (operator-updatable JSONata mapping).
+
+## Sprint 23 - GitHub webhook prefixes for router ingest (SLI-36)
+
+Status: Done
+Mode: YOLO
+Test: unit, integration
+Regression: unit
+
+Route public-router envelopes by `X-GitHub-Event` into separate Object Storage prefixes under `ingest/github/<event>/`, keep other traffic on `ingest/`, inject bucket credentials for all `oci_object_storage:*` adapters, ship synthetic webhook bodies for tests, and add an operator CLI to list recent objects per prefix.
+
+Backlog Items:
+
+* SLI-36. Route GitHub webhook traffic to separate Object Storage prefixes

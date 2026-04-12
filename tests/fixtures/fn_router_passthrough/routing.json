@@ -3,9 +3,93 @@
     "oci_object_storage:raw_ingest": {
       "bucket": "REPLACED_AT_RUNTIME",
       "prefix": "ingest/"
+    },
+    "oci_object_storage:github_ping": {
+      "bucket": "REPLACED_AT_RUNTIME",
+      "prefix": "ingest/github/ping/"
+    },
+    "oci_object_storage:github_push": {
+      "bucket": "REPLACED_AT_RUNTIME",
+      "prefix": "ingest/github/push/"
+    },
+    "oci_object_storage:github_workflow_run": {
+      "bucket": "REPLACED_AT_RUNTIME",
+      "prefix": "ingest/github/workflow_run/"
+    },
+    "oci_object_storage:github_pull_request": {
+      "bucket": "REPLACED_AT_RUNTIME",
+      "prefix": "ingest/github/pull_request/"
     }
   },
   "routes": [
+    {
+      "id": "github_ping_to_bucket",
+      "mode": "exclusive",
+      "priority": 40,
+      "match": {
+        "headers": {
+          "x-github-event": "ping"
+        }
+      },
+      "transform": {
+        "mapping": "./passthrough.jsonata"
+      },
+      "destination": {
+        "type": "oci_object_storage",
+        "name": "github_ping"
+      }
+    },
+    {
+      "id": "github_push_to_bucket",
+      "mode": "exclusive",
+      "priority": 40,
+      "match": {
+        "headers": {
+          "x-github-event": "push"
+        }
+      },
+      "transform": {
+        "mapping": "./passthrough.jsonata"
+      },
+      "destination": {
+        "type": "oci_object_storage",
+        "name": "github_push"
+      }
+    },
+    {
+      "id": "github_workflow_run_to_bucket",
+      "mode": "exclusive",
+      "priority": 40,
+      "match": {
+        "headers": {
+          "x-github-event": "workflow_run"
+        }
+      },
+      "transform": {
+        "mapping": "./passthrough.jsonata"
+      },
+      "destination": {
+        "type": "oci_object_storage",
+        "name": "github_workflow_run"
+      }
+    },
+    {
+      "id": "github_pull_request_to_bucket",
+      "mode": "exclusive",
+      "priority": 40,
+      "match": {
+        "headers": {
+          "x-github-event": "pull_request"
+        }
+      },
+      "transform": {
+        "mapping": "./passthrough.jsonata"
+      },
+      "destination": {
+        "type": "oci_object_storage",
+        "name": "github_pull_request"
+      }
+    },
     {
       "id": "passthrough_to_object_storage",
       "mode": "exclusive",

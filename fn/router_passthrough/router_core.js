@@ -103,7 +103,12 @@ function applyIngestBucketToRoutingObject(obj) {
     if (!isObject(obj.adapters) || !isObject(obj.adapters[RAW_INGEST_ADAPTER_KEY])) {
         throw new Error(`routing definition must define adapters["${RAW_INGEST_ADAPTER_KEY}"]`);
     }
-    obj.adapters[RAW_INGEST_ADAPTER_KEY].bucket = bucket.trim();
+    const b = bucket.trim();
+    for (const [key, val] of Object.entries(obj.adapters)) {
+        if (String(key).startsWith('oci_object_storage:') && isObject(val)) {
+            val.bucket = b;
+        }
+    }
     return loadRoutingDefinitionFromObject(obj, { baseDir: __dirname });
 }
 

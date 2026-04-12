@@ -292,3 +292,9 @@ Expose a public OCI Function endpoint that accepts a routing envelope payload an
 Sprint 22 artifacts: `progress/sprint_22/` (design, implementation, tests, manifests). **Post-delivery bugfix cycle:** **SLI-35-1** / **SLI-35-2** (routing JSON and JSONata mapping must load from Object Storage, not the Function image) — see `progress/sprint_22/sprint_22_bugfixes.md` and `PLAN.md` Sprint 22.
 
 Test: posting a sample envelope to the public endpoint results in an object created in the configured bucket with content matching the request payload.
+
+### SLI-36. Route GitHub webhook traffic to separate Object Storage prefixes
+
+The public ingest path already receives real GitHub webhook JSON, including large hook setup payloads and smaller push-style bodies, but everything lands under one ingest prefix today. Operators and downstream jobs need each logical event family separated into its own prefix so browsing, retention, and replay stay manageable without unrelated traffic mixed together. Detailed classification rules and routing mechanics will be decided during sprint elaboration.
+
+Test: at least two real or synthetic GitHub delivery families are stored under different object-key prefixes in the configured bucket.

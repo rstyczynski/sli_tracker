@@ -63,7 +63,7 @@ for ev in "${PREFIXES[@]}"; do
   echo
 done
 
-echo "## default ingest/ (latest under ingest/, excluding ingest/github/*)"
+echo "## ingest/ (latest under prefix ingest/, including ingest/github/*)"
 if ! out=$(oci os object list \
   --namespace-name "$NS" \
   --bucket-name "$BUCKET" \
@@ -74,7 +74,7 @@ if ! out=$(oci os object list \
   exit 0
 fi
 echo "$out" | jq -r --argjson lim "$LIMIT" '
-  [ .data[]? | select(.name | startswith("ingest/github/") | not) | {name, size, tc: (.["time-created"] // .timeCreated // "")} ]
+  [ .data[]? | {name, size, tc: (.["time-created"] // .timeCreated // "")} ]
   | sort_by(.tc) | reverse | .[0:$lim][]
   | "  \(.tc)  \(.name)  (\(.size) bytes)"
 ' 2>/dev/null || echo "$out" | jq .

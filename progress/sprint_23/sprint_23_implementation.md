@@ -147,7 +147,7 @@ BN="$(jq -r '.bucket.name // empty' "$STATE_FILE")"
 ./tools/list_github_ingest_prefixes.sh "$NS" "$BN" --limit 5
 ```
 
-**`list_github_ingest_prefixes.sh`** prints the newest objects (by **`timeCreated`**) under each **`ingest/github/<event>/`** prefix, then a short sample of other **`ingest/*`** keys (excluding **`ingest/github/`**) for default-traffic inspection.
+**`list_github_ingest_prefixes.sh`** prints the newest objects (by **`timeCreated`**) under each **`ingest/github/<event>/`** prefix, then the newest objects anywhere under **`ingest/`** (including **`ingest/github/*`** and top-level **`ingest/*.json`**).
 
 ## Tests
 

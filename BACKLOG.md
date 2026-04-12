@@ -324,14 +324,32 @@ The router function currently fetches `config/routing.json` from Object Storage 
 
 Test: under repeated invocations of a warm container, Object Storage is not called for routing definition fetch; the routed output is identical to the per-invocation baseline.
 
+### SLI-41. Fan-out workflow_run events to OCI Monitoring metric in addition to Object Storage
+
+GitHub `workflow_run` webhooks are currently stored to Object Storage via an exclusive route. The same event should also be emitted as an OCI Monitoring metric so that workflow outcome and duration are queryable as time-series data without parsing raw JSON. Only completed runs carry a conclusive result, so partial-run events must be filtered at the transformation step. **Delivered:** Sprint 26 (after SLI-42 unblocked adapter registration).
+
+Test: a simulated `workflow_run` completed webhook produces one Object Storage object and one OCI Monitoring metric POST; a `requested` event produces only the Object Storage object.
+
 ### SLI-42. Config-driven adapter registration in the Fn router core
 
 `router_core.js` currently hardcodes a fixed set of adapters in the dispatcher regardless of what destination types appear in `routing.json`. Adding support for a new destination type therefore requires a code change in addition to a configuration change, coupling adapter wiring to source code. The router core should derive which adapters to activate from the routing definition itself, so that adding a new destination type to `routing.json` is sufficient to enable it. This unblocks SLI-41 and any future destination type.
 
 Test: a routing definition with only `oci_object_storage:*` adapters produces a dispatcher with only the Object Storage adapter; adding an `oci_monitoring:*` entry activates the Monitoring adapter automatically, without any code change.
 
-### SLI-41. Fan-out workflow_run events to OCI Monitoring metric in addition to Object Storage
+### SLI-43. Document and analyze mixed `exclusive` + `fanout` routes that share the same match
 
-GitHub `workflow_run` webhooks are currently stored to Object Storage via an exclusive route. The same event should also be emitted as an OCI Monitoring metric so that workflow outcome and duration are queryable as time-series data without parsing raw JSON. Only completed runs carry a conclusive result, so partial-run events must be filtered at the transformation step. **Delivered:** Sprint 26 (after SLI-42 unblocked adapter registration).
+Sprint 26 ships `github_workflow_run_to_bucket` (`exclusive`) and `github_workflow_run_to_metric` (`fanout`) with the same `X-GitHub-Event: workflow_run` match. Operators may read this as contradictory (“exclusive should block others”). The runtime behavior is **defined** in `fn/router_passthrough/lib/json_router.js` (`selectRoutes` / `resolveExclusiveMatch`): among matched routes, **one** exclusive winner is chosen by highest `priority` (ties among exclusives at the same priority are an error), then **every** matched `fanout` route is appended — so one envelope can yield **one exclusive transform/delivery plus N fanout side effects**. This backlog item captures follow-up work: spell out that contract in operator docs and routing schema guidance, consider optional definition-time warnings when the same match block appears in both modes, and record edge cases (e.g. multiple exclusives at equal priority). Relates to **SLI-28** (delivered library semantics) and **SLI-41** (concrete pattern).
 
-Test: a simulated `workflow_run` completed webhook produces one Object Storage object and one OCI Monitoring metric POST; a `requested` event produces only the Object Storage object.
+Test: documentation and/or schema notes describe the composition rule with a fixture example; if validation is added, a conflicting definition (two exclusives, same priority, same match) fails load with a clear message.
+
+### SLI-45. Analyse and fix router fanout behaviour when one delivery fails
+
+In fanout mode `processEnvelope` iterates routes sequentially and wraps the entire loop in a single `try/catch`. A throw from any single adapter's `onRoute` — for example, an OCI Monitoring timestamp-validation rejection — aborts all remaining deliveries and routes the message to dead letter, discarding completed deliveries (Object Storage write, Logging entry) that may have already succeeded. Analyse the current control flow in `json_router.js` (`processEnvelope`) and `destination_dispatcher.js`, decide the correct semantics (continue-on-error per fanout route vs abort-all vs partial-success status), and implement the chosen behaviour with unit coverage for the mixed-failure case.
+
+Test: unit — a fanout with two routes where one adapter throws must not prevent the other adapter from delivering, and the response status must accurately reflect partial vs full delivery.
+
+### SLI-44. Fan-out `workflow_run` to OCI Logging in addition to Object Storage and Monitoring
+
+Today **SLI-41** delivers `workflow_run` to the ingest bucket (raw JSON) and to OCI Monitoring (completed runs only, via JSONata). Operators may also want **searchable log entries** in OCI Logging for the same events—correlation, free-text search, and retention policies—without replacing the bucket archive or metrics. Extend the public router stack with an **`oci_logging`** (or equivalent) adapter and a **`fanout`** route on the same `X-GitHub-Event: workflow_run` match, using a JSONata mapping that shapes a log record (which fields for in-progress vs completed, PII/size limits, and idempotency are sprint decisions). Fn configuration must carry log group / log OCID (or URI-style discovery consistent with the rest of the repo), IAM policies for the Function resource principal, and cycle-script upload of routing + mapping seeds. Relates to **SLI-41**, **SLI-42**, and **SLI-43** (mixed `exclusive` + multiple `fanout`).
+
+Test: a completed `workflow_run` fixture yields Object Storage object + Monitoring datapoint + **Logging API success** (or equivalent observable); a non-completed run yields bucket object only when the mapping skips Logging/Monitoring the same way as today for metrics.

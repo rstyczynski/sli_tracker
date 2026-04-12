@@ -12,8 +12,8 @@
 #
 # Aggregate "ingest/" view: a single list call with --prefix ingest/ is unsafe because the
 # first page is often name-ordered and fills with ingest/fn-*.json, hiding ingest/github/*.
-# We merge (1) all objects under ingest/github/ and (2) flat keys ingest/<filename> (no
-# further slashes), then sort by time and take --limit.
+# We merge (1) objects under ingest/github/, (2) ingest/dead_letter/, and (3) flat keys
+# ingest/<filename> (no further slashes), then sort by time and take --limit.
 
 set -euo pipefail
 
@@ -68,7 +68,25 @@ for ev in "${PREFIXES[@]}"; do
   echo
 done
 
-echo "## ingest/ (merged: ingest/github/* + flat ingest/<file>)"
+echo "## ingest/dead_letter/"
+pref_dl="ingest/dead_letter/"
+if ! out_dl=$(oci os object list \
+  --namespace-name "$NS" \
+  --bucket-name "$BUCKET" \
+  --prefix "$pref_dl" \
+  --limit 200 \
+  --fields 'name,size,timeCreated' 2>/dev/null); then
+  echo "  (list failed — check auth, bucket, prefix)"
+else
+  echo "$out_dl" | jq -r --argjson lim "$LIMIT" '
+    [ .data[]? | select(type == "object") | {name, size, tc: (.["time-created"] // .timeCreated // "")} ]
+    | sort_by(.tc) | reverse | .[0:$lim][]
+    | "  \(.tc)  \(.name)  (\(.size) bytes)"
+  ' 2>/dev/null || echo "$out_dl" | jq .
+fi
+echo
+
+echo "## ingest/ (merged: ingest/github/* + ingest/dead_letter/* + flat ingest/<file>)"
 gh_out='{"data":[]}'
 if gh_json=$(oci os object list \
   --namespace-name "$NS" \
@@ -77,6 +95,15 @@ if gh_json=$(oci os object list \
   --limit 2000 \
   --fields 'name,size,timeCreated' 2>/dev/null); then
   gh_out="$gh_json"
+fi
+dl_out='{"data":[]}'
+if dl_json=$(oci os object list \
+  --namespace-name "$NS" \
+  --bucket-name "$BUCKET" \
+  --prefix "ingest/dead_letter/" \
+  --limit 500 \
+  --fields 'name,size,timeCreated' 2>/dev/null); then
+  dl_out="$dl_json"
 fi
 flat_out='{"data":[]}'
 if flat_json=$(oci os object list \
@@ -87,7 +114,12 @@ if flat_json=$(oci os object list \
   --fields 'name,size,timeCreated' 2>/dev/null); then
   flat_out="$flat_json"
 fi
-gh_arr=$(echo "$gh_out" | jq -c '[.data[]? | select(type == "object")]' 2>/dev/null || echo '[]')
+gh_arr=$(
+  jq -n \
+    --argjson a "$(echo "$gh_out" | jq '[.data[]? | select(type == "object")]' 2>/dev/null || echo '[]')" \
+    --argjson b "$(echo "$dl_out" | jq '[.data[]? | select(type == "object")]' 2>/dev/null || echo '[]')" \
+    '$a + $b' 2>/dev/null || echo '[]'
+)
 raw_arr=$(echo "$flat_out" | jq -c '[.data[]? | select(type == "object")]' 2>/dev/null || echo '[]')
 if ! merged=$(jq -n --argjson lim "$LIMIT" --argjson gh "$gh_arr" --argjson raw "$raw_arr" '
   ($raw | map(select((.name | type == "string") and (.name | test("^ingest/[^/]+$"))))) as $flat

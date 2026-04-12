@@ -4,6 +4,10 @@
       "bucket": "REPLACED_AT_RUNTIME",
       "prefix": "ingest/"
     },
+    "oci_object_storage:dead_letter": {
+      "bucket": "REPLACED_AT_RUNTIME",
+      "prefix": "ingest/dead_letter/"
+    },
     "oci_object_storage:github_ping": {
       "bucket": "REPLACED_AT_RUNTIME",
       "prefix": "ingest/github/ping/"
@@ -20,6 +24,10 @@
       "bucket": "REPLACED_AT_RUNTIME",
       "prefix": "ingest/github/pull_request/"
     }
+  },
+  "dead_letter": {
+    "type": "oci_object_storage",
+    "name": "dead_letter"
   },
   "routes": [
     {

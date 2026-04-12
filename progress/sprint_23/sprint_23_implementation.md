@@ -18,6 +18,10 @@ Below is the **full** routing JSON shipped with this sprint (matches **`tests/fi
       "bucket": "REPLACED_AT_RUNTIME",
       "prefix": "ingest/"
     },
+    "oci_object_storage:dead_letter": {
+      "bucket": "REPLACED_AT_RUNTIME",
+      "prefix": "ingest/dead_letter/"
+    },
     "oci_object_storage:github_ping": {
       "bucket": "REPLACED_AT_RUNTIME",
       "prefix": "ingest/github/ping/"
@@ -34,6 +38,10 @@ Below is the **full** routing JSON shipped with this sprint (matches **`tests/fi
       "bucket": "REPLACED_AT_RUNTIME",
       "prefix": "ingest/github/pull_request/"
     }
+  },
+  "dead_letter": {
+    "type": "oci_object_storage",
+    "name": "dead_letter"
   },
   "routes": [
     {
@@ -120,9 +128,13 @@ Below is the **full** routing JSON shipped with this sprint (matches **`tests/fi
 }
 ```
 
-**Schema:** validated by **`tools/schemas/json_router_definition.schema.json`**. **Envelope:** JSON with optional **`body`**, **`headers`**, **`endpoint`**, **`source_meta`**; GitHub traffic should include **`X-GitHub-Event`** in **`headers`**. Other GitHub event types not listed above still match the catch-all route and land under **`ingest/`** until you add routes.
+**Schema:** validated by **`tools/schemas/json_router_definition.schema.json`**. **Envelope:** JSON with optional **`body`**, **`headers`**, **`endpoint`**, **`source_meta`**.
 
-**Errors and dead letter:** The shipped **`routing.json` does not define `dead_letter`**. The Function’s **`func.js`** catches failures and returns **`{ "status": "error", "error": "…" }`** to the client — **no Object Storage object is written** for that request. There is therefore **no separate “dead letter prefix”** to inspect unless you extend **`routing.json`** with a **`dead_letter`** destination and redeploy (see **`fn/router_passthrough/router_core.js`** — **`onDeadLetter`** is only attached when **`definition.dead_letter`** is present).
+**Why GitHub-shaped JSON sometimes still lands under `ingest/`:** GitHub routes match **`match.headers["x-github-event"]`**. If the caller (API Gateway integration, curl test, etc.) posts **only the webhook JSON body** and does **not** copy GitHub’s **`X-GitHub-Event`** HTTP header into the envelope’s **`headers`** map, the router never matches the GitHub routes and the catch-all **`passthrough_to_object_storage`** wins — that is **correct routing**, not a mis-route. Re-run **`tests/unit/test_fn_passthrough_router.sh`**: the same push fixture with a header goes to **`ingest/github/push/`**; without a header it goes to **`ingest/`**.
+
+**Other event types** (for example **`issues`**, **`repository`**) are not listed; they match the catch-all and land under **`ingest/`** until you add routes.
+
+**Errors and dead letter:** **`dead_letter`** points at **`oci_object_storage` / `dead_letter`** → prefix **`ingest/dead_letter/`**. **`processEnvelope`** (`tools/json_router.js`) writes **`{ error, envelope }`** there on failures when **`onDeadLetter`** is set (`router_core.js` enables it from **`definition.dead_letter`**). Examples: **ambiguous exclusive match**, **JSONata transform failure**, **mapping load failure**, **no adapter for a destination**, or **no route matched** when you temporarily remove the catch-all. With the catch-all route above, a normal envelope **always** matches at least one route, so mis-classified GitHub traffic (missing **`X-GitHub-Event`**) is **not** a dead-letter case — it is stored under **`ingest/`** by design. If the handler throws outside **`processEnvelope`**, **`func.js`** still returns **`{ "status": "error", … }`** without an object write.
 
 ## Operator CLI — bucket and namespace from scaffold state
 
@@ -149,7 +161,7 @@ BN="$(jq -r '.bucket.name // empty' "$STATE_FILE")"
 ./tools/list_github_ingest_prefixes.sh "$NS" "$BN" --limit 5
 ```
 
-**`list_github_ingest_prefixes.sh`** prints the newest objects (by **`timeCreated`**) under each **`ingest/github/<event>/`** prefix, then a merged timeline: **`oci os object list --prefix ingest/github/`** plus flat keys **`ingest/<file>`** (exactly one path segment after **`ingest/`**, e.g. **`ingest/fn-….json`**). A single list on **`ingest/`** alone is not used for that block because the API’s first page is often dominated by **`fn-*`** keys and omits **`ingest/github/…`**.
+**`list_github_ingest_prefixes.sh`** prints the newest objects under each **`ingest/github/<event>/`** prefix, a **`ingest/dead_letter/`** section, then a merged timeline: **`ingest/github/*`** plus **`ingest/dead_letter/*`** plus flat **`ingest/<file>`** keys (exactly one segment after **`ingest/`**, e.g. **`ingest/fn-….json`**). A single list on **`ingest/`** alone is not used for that merged block because the API’s first page is often dominated by **`fn-*`** keys and omits deeper prefixes.
 
 ## Tests
 

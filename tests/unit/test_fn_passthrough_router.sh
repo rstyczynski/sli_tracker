@@ -80,6 +80,52 @@ function readSample(name) {
   );
   assert.strictEqual(callsPush[0].objectName, 'ingest/github/push/unit-push.json');
 
+  const callsPushNoHdr = [];
+  await runRouter(
+    {
+      body: pushBody,
+      headers: {},
+      source_meta: { file_name: 'unit-push-no-header.json' },
+    },
+    { putObject: async (x) => { callsPushNoHdr.push(x); }, routingDefinition, loadMappingFromRef },
+  );
+  assert.strictEqual(
+    callsPushNoHdr[0].objectName,
+    'ingest/unit-push-no-header.json',
+    'without X-GitHub-Event, catch-all ingest/ is correct',
+  );
+
+  const deadLetterRouting = {
+    adapters: {
+      'oci_object_storage:raw_ingest': { bucket: 'REPLACED_AT_RUNTIME', prefix: 'ingest/' },
+      'oci_object_storage:dead_letter': { bucket: 'REPLACED_AT_RUNTIME', prefix: 'ingest/dead_letter/' },
+      'oci_object_storage:github_push': { bucket: 'REPLACED_AT_RUNTIME', prefix: 'ingest/github/push/' },
+    },
+    dead_letter: { type: 'oci_object_storage', name: 'dead_letter' },
+    routes: [
+      {
+        id: 'github_push_only',
+        mode: 'exclusive',
+        priority: 40,
+        match: { headers: { 'x-github-event': 'push' } },
+        transform: { mapping: './passthrough.jsonata' },
+        destination: { type: 'oci_object_storage', name: 'github_push' },
+      },
+    ],
+  };
+  const callsDl = [];
+  const rdl = await runRouter(
+    { body: { no: 'match' }, headers: {}, source_meta: { file_name: 'dl-no-route.json' } },
+    { putObject: async (x) => { callsDl.push(x); }, routingDefinition: deadLetterRouting, loadMappingFromRef },
+  );
+  assert.strictEqual(rdl.status, 'dead_letter');
+  assert.ok(typeof rdl.error === 'string' && rdl.error.length > 0);
+  assert.strictEqual(callsDl.length, 1);
+  assert.strictEqual(callsDl[0].objectName, 'ingest/dead_letter/dl-no-route.json');
+  const dlPayload = JSON.parse(callsDl[0].content);
+  assert.ok(dlPayload.error);
+  assert.ok(dlPayload.envelope);
+
   const wfBody = readSample('workflow_run.json');
   const callsWf = [];
   await runRouter(

@@ -1,0 +1,3 @@
+unit:test_fn_passthrough_router.sh:SLI-42: oci_object_storage-only routing does not activate monitoring adapter
+unit:test_fn_passthrough_router.sh:SLI-42: oci_monitoring adapter activates automatically when present in routing definition
+unit:test_fn_passthrough_router.sh:SLI-42: empty transform output skips postMetricData

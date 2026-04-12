@@ -18,7 +18,12 @@
 #   CYCLE_APIGW_TEST_EXPECT=router|echo (default: router)
 #   CYCLE_APIGW_RUN_TEARDOWN=true — only then runs do/teardown.sh (default: keep stack for Fn redeploys)
 #   FN_OS_POLICY_SKIP=true
+#   OCI_LOGGING_LOG_ID — OCID of the custom OCI log to fan-out workflow_run events (SLI-44)
 #   OCI_REGION, APIGW_*, FN_FORCE_DEPLOY, etc.
+#
+# When FN_FORCE_DEPLOY=true, ensure-fn_function.sh runs `fn deploy`, which builds via **Docker**
+# (Docker daemon must be running). Errors mentioning Podman are from local Docker↔Podman wiring,
+# not a separate “Fn uses Podman” deploy path.
 set -euo pipefail
 set -E  # ensure ERR trap fires in functions/subshells
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -120,6 +125,7 @@ if [ "${FN_ROUTER_AUTO_INGEST_BUCKET:-}" = "true" ]; then
   _routing_seed="${REPO_ROOT}/tests/fixtures/fn_router_passthrough/routing.json"
   _mapping_seed="${REPO_ROOT}/tests/fixtures/fn_router_passthrough/passthrough.jsonata"
   _workflow_metric_seed="${REPO_ROOT}/tests/fixtures/fn_router_passthrough/workflow_run_metric.jsonata"
+  _workflow_log_seed="${REPO_ROOT}/tests/fixtures/fn_router_passthrough/workflow_run_log.jsonata"
   if [ ! -f "$_routing_seed" ]; then
     echo "  [ERROR] routing seed missing: $_routing_seed" >&2
     exit 1
@@ -130,6 +136,10 @@ if [ "${FN_ROUTER_AUTO_INGEST_BUCKET:-}" = "true" ]; then
   fi
   if [ ! -f "$_workflow_metric_seed" ]; then
     echo "  [ERROR] workflow_run metric mapping seed missing: $_workflow_metric_seed" >&2
+    exit 1
+  fi
+  if [ ! -f "$_workflow_log_seed" ]; then
+    echo "  [ERROR] workflow_run log mapping seed missing: $_workflow_log_seed" >&2
     exit 1
   fi
   _routing_bucket="${SLI_ROUTING_BUCKET:-$FN_ROUTER_OCI_INGEST_BUCKET}"
@@ -162,6 +172,16 @@ if [ "${FN_ROUTER_AUTO_INGEST_BUCKET:-}" = "true" ]; then
     --file "$_workflow_metric_seed" \
     --force >/dev/null; then
     echo "  [ERROR] oci os object put workflow_run_metric.jsonata failed" >&2
+    exit 1
+  fi
+  _info "Upload workflow_run log JSONata to Object Storage: ${_mapping_bucket}/config/workflow_run_log.jsonata"
+  if ! oci os object put \
+    --namespace-name "$_ns" \
+    --bucket-name "$_mapping_bucket" \
+    --name "config/workflow_run_log.jsonata" \
+    --file "$_workflow_log_seed" \
+    --force >/dev/null; then
+    echo "  [ERROR] oci os object put workflow_run_log.jsonata failed" >&2
     exit 1
   fi
   _done "Router config objects uploaded (Fn loads via Resource Principal, not from image)"
@@ -203,7 +223,8 @@ if [ -n "${FN_ROUTER_OCI_INGEST_BUCKET:-}" ]; then
   _mb="${SLI_MAPPING_BUCKET:-$_rb}"
   _po="${SLI_PASSTHROUGH_OBJECT:-config/passthrough.jsonata}"
   _region="${OCI_REGION:-}"
-  if ! _cfg_merged=$(echo "$_cfg_raw" | jq -c --arg b "$FN_ROUTER_OCI_INGEST_BUCKET" --arg rb "$_rb" --arg ro "$_ro" --arg mb "$_mb" --arg po "$_po" --arg mc "$COMPARTMENT_OCID" --arg oci_reg "$_region" '
+  _log_ocid="${OCI_LOGGING_LOG_ID:-}"
+  if ! _cfg_merged=$(echo "$_cfg_raw" | jq -c --arg b "$FN_ROUTER_OCI_INGEST_BUCKET" --arg rb "$_rb" --arg ro "$_ro" --arg mb "$_mb" --arg po "$_po" --arg mc "$COMPARTMENT_OCID" --arg oci_reg "$_region" --arg log_ocid "$_log_ocid" '
     def norm:
       if . == null then {}
       elif type == "string" then (try fromjson catch {})
@@ -222,7 +243,7 @@ if [ -n "${FN_ROUTER_OCI_INGEST_BUCKET:-}" ]; then
       SLI_PASSTHROUGH_OBJECT: $po,
       OCI_MONITORING_COMPARTMENT_ID: $mc,
       OCI_REGION: $oci_reg
-    }
+    } + (if $log_ocid != "" then {OCI_LOGGING_LOG_ID: $log_ocid} else {} end)
   '); then
     _fail "Could not merge Fn config (raw config: ${_cfg_raw})"
     exit 1
@@ -241,7 +262,7 @@ if [ -n "${FN_ROUTER_OCI_INGEST_BUCKET:-}" ]; then
     exit 1
   fi
   rm -f "$_cfg_tmp"
-  _done "Fn config OCI_INGEST_BUCKET=$FN_ROUTER_OCI_INGEST_BUCKET SLI_ROUTING_BUCKET=$_rb SLI_ROUTING_OBJECT=$_ro SLI_MAPPING_BUCKET=$_mb SLI_PASSTHROUGH_OBJECT=$_po OCI_MONITORING_COMPARTMENT_ID=(compartment) OCI_REGION=$_region"
+  _done "Fn config OCI_INGEST_BUCKET=$FN_ROUTER_OCI_INGEST_BUCKET SLI_ROUTING_BUCKET=$_rb SLI_ROUTING_OBJECT=$_ro SLI_MAPPING_BUCKET=$_mb SLI_PASSTHROUGH_OBJECT=$_po OCI_MONITORING_COMPARTMENT_ID=(compartment) OCI_REGION=$_region OCI_LOGGING_LOG_ID=${_log_ocid:-(not set)}"
 fi
 
 if [ "${FN_ROUTER_AUTO_INGEST_BUCKET:-}" = "true" ]; then

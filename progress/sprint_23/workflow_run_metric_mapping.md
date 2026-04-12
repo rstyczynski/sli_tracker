@@ -54,6 +54,7 @@ duration and conclusion are only available after completion.
 ```
 
 `value` for `workflow_run_result`:
+
 - `1` if `conclusion = "success"`
 - `0` for `failure`, `cancelled`, `timed_out`, `action_required`
 - omit event entirely for `skipped` / `neutral` (not an SLI signal)
@@ -102,9 +103,21 @@ action = "completed" and workflow_run.conclusion in ["success","failure","cancel
 
 ---
 
+## Existing adapter
+
+`tools/adapters/oci_monitoring_adapter.js` already implements the pluggable handler API
+(`supports()`, `onRoute()`, `getState()`). It accepts destination types `oci_monitoring` and
+`oci_metric` and delegates actual emission to a caller-supplied `emit` function. The
+`router_passthrough` Fn needs a concrete `emit` implementation that calls the OCI Monitoring
+SDK `postMetricData()` with Resource Principal auth — the same pattern used by the existing
+`oci_object_storage_adapter.js` for `putObject`.
+
+---
+
 ## Routing definition changes required
 
 1. **New adapter** — `oci_monitoring:github_workflow_run`:
+
    ```json
    "oci_monitoring:github_workflow_run": {
      "namespace": "github_actions"
@@ -112,6 +125,7 @@ action = "completed" and workflow_run.conclusion in ["success","failure","cancel
    ```
 
 2. **New fanout route** — alongside the existing exclusive Object Storage route:
+
    ```json
    {
      "id": "github_workflow_run_to_metric",

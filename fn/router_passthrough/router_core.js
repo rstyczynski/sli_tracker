@@ -8,6 +8,7 @@ const objectstorage = require('oci-objectstorage');
 const { loadRoutingDefinitionFromObject, processEnvelope } = require('./lib/json_router');
 const { createDestinationDispatcher } = require('./lib/destination_dispatcher');
 const { createOciObjectStorageAdapter } = require('./lib/oci_object_storage_adapter');
+const { createOciMonitoringAdapter } = require('./lib/oci_monitoring_adapter');
 
 function isObject(value) {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -157,9 +158,13 @@ function applyIngestBucketToRoutingObject(obj) {
         throw new Error('routing definition must define adapters');
     }
     const b = bucket.trim();
+    const compartmentId = (process.env.OCI_MONITORING_COMPARTMENT_ID || '').trim();
     for (const [key, val] of Object.entries(obj.adapters)) {
         if (String(key).startsWith('oci_object_storage:') && isObject(val)) {
             val.bucket = b;
+        }
+        if (String(key).startsWith('oci_monitoring:') && isObject(val) && compartmentId && !val.compartmentId) {
+            val.compartmentId = compartmentId;
         }
     }
     return loadRoutingDefinitionFromObject(obj, { baseDir: __dirname });
@@ -262,6 +267,7 @@ function buildLoadMappingFromRef(options) {
  * @param {object} [options]
  * @param {function} [options.getObjectStorage] async () => ({ client, namespaceName })
  * @param {function} [options.putObject] async ({ bucket, objectName, content, contentType }) => void
+ * @param {function} [options.postMetricData] async ({ metricData }) => void — override OCI Monitoring postMetricData (tests)
  * @param {function} [options.loadMappingFromRef] async ({ mappingRef, route, definition }) => string|null — override OS mapping load (tests)
  * @param {object} [options.fdkContext] Fn FDK invocation context (second arg to handler) — merges ctx.httpGateway headers for raw POST bodies
  */
@@ -285,6 +291,23 @@ async function runRouter(fnInput, options = {}) {
         };
     }
 
+    let postMetricDataImpl = options.postMetricData;
+    if (!postMetricDataImpl) {
+        postMetricDataImpl = async ({ metricData }) => {
+            const monitoringPkg = require('oci-monitoring');
+            const monClient = new monitoringPkg.MonitoringClient({
+                authenticationDetailsProvider: common.ResourcePrincipalAuthenticationDetailsProvider.builder(),
+            });
+            const regionId = (process.env.OCI_REGION || '').trim();
+            if (regionId) {
+                monClient.endpoint = `https://telemetry-ingestion.${regionId}.oraclecloud.com`;
+            }
+            await monClient.postMetricData({
+                postMetricDataDetails: { metricData, batchAtomicity: 'ATOMIC' },
+            });
+        };
+    }
+
     const bucketAdapter = createOciObjectStorageAdapter({
         destinationMap: definition.adapters,
         emit: async ({ output, envelope: env, target }) => {
@@ -303,8 +326,31 @@ async function runRouter(fnInput, options = {}) {
         },
     });
 
+    const adapterTypes = new Set(Object.keys(definition.adapters).map(k => k.split(':')[0]));
+    const adapters = [];
+
+    if (adapterTypes.has('oci_object_storage')) {
+        adapters.push(bucketAdapter);
+    }
+
+    if (adapterTypes.has('oci_monitoring')) {
+        adapters.push(createOciMonitoringAdapter({
+            destinationMap: definition.adapters,
+            emit: async ({ output, target }) => {
+                if (output === undefined || output === null) return;
+                const metricData = Array.isArray(output) ? output : [output];
+                if (metricData.length === 0) return;
+                const enriched = metricData.map(m => ({
+                    compartmentId: target.compartmentId,
+                    ...m,
+                }));
+                await postMetricDataImpl({ metricData: enriched });
+            },
+        }));
+    }
+
     const dispatcher = createDestinationDispatcher({
-        adapters: [bucketAdapter],
+        adapters,
         deadLetterDestination: definition.dead_letter,
     });
 

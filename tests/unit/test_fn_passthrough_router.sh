@@ -376,6 +376,180 @@ else
   ok "BUG-3: routing without oci_object_storage:raw_ingest no longer throws"
 fi
 
+# SLI-42: config-driven adapter registration — only oci_object_storage keys → no monitoring adapter
+if ! OUT4=$(node <<NODE
+const assert = require('assert');
+const { runRouter } = require('./router_core');
+const passthroughBody = '\$';
+const loadMappingFromRef = async () => passthroughBody;
+
+(async () => {
+  process.env.OCI_INGEST_BUCKET = 'ut-fn-router-bucket';
+
+  // Routing with no oci_monitoring adapters: monitoring emit must never be called
+  const osOnlyRouting = {
+    adapters: {
+      'oci_object_storage:ingest': { bucket: 'REPLACED_AT_RUNTIME', prefix: 'ingest/' },
+    },
+    routes: [
+      {
+        id: 'catch_all',
+        mode: 'exclusive',
+        priority: 0,
+        transform: { mapping: './passthrough.jsonata' },
+        destination: { type: 'oci_object_storage', name: 'ingest' },
+      },
+    ],
+  };
+  const putCalls = [];
+  const metricCalls = [];
+  await runRouter(
+    { body: { ev: 1 }, source_meta: { file_name: 'sli42-os-only.json' } },
+    {
+      putObject: async (x) => { putCalls.push(x); },
+      postMetricData: async (x) => { metricCalls.push(x); },
+      routingDefinition: osOnlyRouting,
+      loadMappingFromRef,
+    },
+  );
+  assert.strictEqual(putCalls.length, 1, 'SLI-42: Object Storage emit must fire');
+  assert.strictEqual(metricCalls.length, 0, 'SLI-42: monitoring emit must NOT fire when no oci_monitoring adapter in routing');
+
+  console.log('ok');
+})();
+NODE
+); then
+  fail "SLI-42: oci_object_storage-only routing does not activate monitoring adapter"
+  echo "$OUT4" >&2
+else
+  ok "SLI-42: oci_object_storage-only routing does not activate monitoring adapter"
+fi
+
+# SLI-42: config-driven adapter registration — adding oci_monitoring key activates monitoring adapter
+if ! OUT5=$(node <<NODE
+const assert = require('assert');
+const { runRouter } = require('./router_core');
+const passthroughBody = '\$';
+const loadMappingFromRef = async () => passthroughBody;
+
+(async () => {
+  process.env.OCI_INGEST_BUCKET = 'ut-fn-router-bucket';
+  process.env.OCI_MONITORING_COMPARTMENT_ID = 'ocid1.compartment.oc1..test';
+
+  // Routing with both oci_object_storage and oci_monitoring adapters
+  const fanoutRouting = {
+    adapters: {
+      'oci_object_storage:ingest': { bucket: 'REPLACED_AT_RUNTIME', prefix: 'ingest/' },
+      'oci_monitoring:events': { namespace: 'github_actions' },
+    },
+    routes: [
+      {
+        id: 'store',
+        mode: 'fanout',
+        priority: 10,
+        transform: { mapping: './passthrough.jsonata' },
+        destination: { type: 'oci_object_storage', name: 'ingest' },
+      },
+      {
+        id: 'metric',
+        mode: 'fanout',
+        priority: 10,
+        transform: { mapping: './passthrough.jsonata' },
+        destination: { type: 'oci_monitoring', name: 'events' },
+      },
+    ],
+  };
+  const putCalls = [];
+  const metricCalls = [];
+  const payload = [{ namespace: 'github_actions', name: 'test_metric', datapoints: [{ timestamp: '2026-01-01T00:00:00Z', value: 1 }] }];
+  await runRouter(
+    { body: payload, source_meta: { file_name: 'sli42-fanout.json' } },
+    {
+      putObject: async (x) => { putCalls.push(x); },
+      postMetricData: async (x) => { metricCalls.push(x); },
+      routingDefinition: fanoutRouting,
+      loadMappingFromRef,
+    },
+  );
+  assert.strictEqual(putCalls.length, 1, 'SLI-42 fanout: Object Storage emit must fire');
+  assert.strictEqual(metricCalls.length, 1, 'SLI-42 fanout: monitoring emit must fire when oci_monitoring adapter present');
+  assert.strictEqual(metricCalls[0].metricData[0].compartmentId, 'ocid1.compartment.oc1..test',
+    'SLI-42: compartmentId injected from OCI_MONITORING_COMPARTMENT_ID');
+
+  delete process.env.OCI_MONITORING_COMPARTMENT_ID;
+  console.log('ok');
+})();
+NODE
+); then
+  fail "SLI-42: oci_monitoring adapter activates automatically when present in routing definition"
+  echo "$OUT5" >&2
+else
+  ok "SLI-42: oci_monitoring adapter activates automatically when present in routing definition"
+fi
+
+# SLI-42: monitoring emit skips postMetricData when transform returns empty array
+if ! OUT6=$(node <<NODE
+const assert = require('assert');
+const path = require('path');
+const { runRouter } = require('./router_core');
+
+(async () => {
+  process.env.OCI_INGEST_BUCKET = 'ut-fn-router-bucket';
+  process.env.OCI_MONITORING_COMPARTMENT_ID = 'ocid1.compartment.oc1..test';
+
+  // Mapping returns [] for the monitoring route (simulates non-completed event filter)
+  // Use path.basename to avoid matching 'router_passthrough' directory in the resolved path.
+  const emptyMapping = '[]';
+  const loadMappingFromRef = async ({ mappingRef }) =>
+    path.basename(String(mappingRef)) === 'passthrough.jsonata' ? '\$' : emptyMapping;
+
+  const routingDef = {
+    adapters: {
+      'oci_object_storage:ingest': { bucket: 'REPLACED_AT_RUNTIME', prefix: 'ingest/' },
+      'oci_monitoring:events': { namespace: 'github_actions' },
+    },
+    routes: [
+      {
+        id: 'store',
+        mode: 'fanout',
+        priority: 10,
+        transform: { mapping: './passthrough.jsonata' },
+        destination: { type: 'oci_object_storage', name: 'ingest' },
+      },
+      {
+        id: 'metric',
+        mode: 'fanout',
+        priority: 10,
+        transform: { mapping: './metric.jsonata' },
+        destination: { type: 'oci_monitoring', name: 'events' },
+      },
+    ],
+  };
+  const putCalls = [];
+  const metricCalls = [];
+  await runRouter(
+    { body: { action: 'requested' }, source_meta: { file_name: 'sli42-empty.json' } },
+    {
+      putObject: async (x) => { putCalls.push(x); },
+      postMetricData: async (x) => { metricCalls.push(x); },
+      routingDefinition: routingDef,
+      loadMappingFromRef,
+    },
+  );
+  assert.strictEqual(putCalls.length, 1, 'SLI-42: Object Storage still fires when metric mapping returns []');
+  assert.strictEqual(metricCalls.length, 0, 'SLI-42: postMetricData skipped when transform output is []');
+
+  delete process.env.OCI_MONITORING_COMPARTMENT_ID;
+  console.log('ok');
+})();
+NODE
+); then
+  fail "SLI-42: empty transform output skips postMetricData"
+  echo "$OUT6" >&2
+else
+  ok "SLI-42: empty transform output skips postMetricData"
+fi
+
 echo "=== Summary ==="
 echo "passed: $PASS  failed: $FAIL"
 

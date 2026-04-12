@@ -30,10 +30,12 @@ const samplesDir = path.join(process.cwd(), '..', '..', 'tests', 'fixtures', 'gi
 const routingDefinition = JSON.parse(fs.readFileSync(path.join(fxDir, 'routing.json'), 'utf8'));
 const passthroughBody = fs.readFileSync(path.join(fxDir, 'passthrough.jsonata'), 'utf8').trim();
 const metricMappingBody = fs.readFileSync(path.join(fxDir, 'workflow_run_metric.jsonata'), 'utf8').trim();
+const logMappingBody = fs.readFileSync(path.join(fxDir, 'workflow_run_log.jsonata'), 'utf8').trim();
 const loadMappingFromRef = async ({ mappingRef }) => {
   const base = path.basename(String(mappingRef));
   if (base === 'passthrough.jsonata') return passthroughBody;
   if (base === 'workflow_run_metric.jsonata') return metricMappingBody;
+  if (base === 'workflow_run_log.jsonata') return logMappingBody;
   return null;
 };
 
@@ -136,6 +138,8 @@ function readSample(name) {
   const wfBody = readSample('workflow_run.json');
   const callsWf = [];
   const metricsWf = [];
+  const logsWf = [];
+  process.env.OCI_LOGGING_LOG_ID = 'ocid1.log.oc1..unittest';
   await runRouter(
     {
       body: wfBody,
@@ -145,6 +149,7 @@ function readSample(name) {
     {
       putObject: async (x) => { callsWf.push(x); },
       postMetricData: async (x) => { metricsWf.push(x); },
+      putLogs: async (x) => { logsWf.push(x); },
       routingDefinition,
       loadMappingFromRef,
     },
@@ -156,10 +161,18 @@ function readSample(name) {
   assert.strictEqual(metricsWf[0].metricData[1].name, 'workflow_run_duration_s');
   assert.strictEqual(metricsWf[0].metricData[0].compartmentId, 'ocid1.compartment.oc1..unittest');
   assert.strictEqual(metricsWf[0].metricData[1].datapoints[0].value, 300, 'SLI-41: duration 5 minutes in seconds');
+  assert.strictEqual(logsWf.length, 1, 'UT-SLI44-1: completed workflow_run emits one putLogs call');
+  assert.strictEqual(logsWf[0].logId, 'ocid1.log.oc1..unittest', 'UT-SLI44-1: logId injected from OCI_LOGGING_LOG_ID');
+  assert.strictEqual(logsWf[0].logEntries.length, 1, 'UT-SLI44-1: one log entry per event');
+  const logEntry = JSON.parse(logsWf[0].logEntries[0].data);
+  assert.strictEqual(logEntry.action, 'completed', 'UT-SLI44-1: log entry action field');
+  assert.strictEqual(logEntry.workflow, 'CI', 'UT-SLI44-1: log entry workflow field');
+  assert.strictEqual(logEntry.repository, 'acme/SLI_tracker', 'UT-SLI44-1: log entry repository field');
 
   const wfReq = readSample('workflow_run_requested.json');
   const callsWfReq = [];
   const metricsWfReq = [];
+  const logsWfReq = [];
   await runRouter(
     {
       body: wfReq,
@@ -169,12 +182,18 @@ function readSample(name) {
     {
       putObject: async (x) => { callsWfReq.push(x); },
       postMetricData: async (x) => { metricsWfReq.push(x); },
+      putLogs: async (x) => { logsWfReq.push(x); },
       routingDefinition,
       loadMappingFromRef,
     },
   );
   assert.strictEqual(callsWfReq[0].objectName, 'ingest/github/workflow_run/unit-wf-req.json');
   assert.strictEqual(metricsWfReq.length, 0, 'SLI-41: requested run does not emit metrics');
+  assert.strictEqual(logsWfReq.length, 1, 'UT-SLI44-2: requested workflow_run still emits log (log all actions)');
+  const logEntryReq = JSON.parse(logsWfReq[0].logEntries[0].data);
+  assert.strictEqual(logEntryReq.action, 'requested', 'UT-SLI44-2: log entry action is requested');
+
+  delete process.env.OCI_LOGGING_LOG_ID;
 
   const callsWj = [];
   await runRouter(
@@ -366,6 +385,25 @@ function makeStorage(fetched) {
   assert.strictEqual(fetched2[0], 'config/passthrough.jsonata',
     'BUG-2: passthrough.jsonata backward-compat path broken: ' + fetched2[0]);
 
+  // SLI-41-2: SLI_PASSTHROUGH_OBJECT applies only to passthrough.jsonata (Fn sets it globally)
+  process.env.SLI_PASSTHROUGH_OBJECT = 'config/passthrough.jsonata';
+  const fetched3 = [];
+  const loader3 = buildLoadMappingFromRef({ getObjectStorage: makeStorage(fetched3) });
+  await loader3({ mappingRef: './workflow_run_metric.jsonata' });
+  assert.strictEqual(
+    fetched3[0],
+    'config/workflow_run_metric.jsonata',
+    'SLI-41-2: non-passthrough mapping must ignore SLI_PASSTHROUGH_OBJECT, got ' + fetched3[0],
+  );
+  const fetched4 = [];
+  const loader4 = buildLoadMappingFromRef({ getObjectStorage: makeStorage(fetched4) });
+  await loader4({ mappingRef: './passthrough.jsonata' });
+  assert.strictEqual(
+    fetched4[0],
+    'config/passthrough.jsonata',
+    'SLI-41-2: passthrough mapping must still honor SLI_PASSTHROUGH_OBJECT',
+  );
+
   console.log('ok');
 })();
 NODE
@@ -528,6 +566,54 @@ NODE
   echo "$OUT5" >&2
 else
   ok "SLI-42: oci_monitoring adapter activates automatically when present in routing definition"
+fi
+
+# SLI-44: oci_logging-only routing does not activate logging adapter when key absent
+if ! OUT_SLI44_0=$(node <<NODE
+const assert = require('assert');
+const { runRouter } = require('./router_core');
+const passthroughBody = '\$';
+const loadMappingFromRef = async () => passthroughBody;
+
+(async () => {
+  process.env.OCI_INGEST_BUCKET = 'ut-fn-router-bucket';
+
+  const osOnlyRouting = {
+    adapters: {
+      'oci_object_storage:ingest': { bucket: 'REPLACED_AT_RUNTIME', prefix: 'ingest/' },
+    },
+    routes: [
+      {
+        id: 'catch_all',
+        mode: 'exclusive',
+        priority: 0,
+        transform: { mapping: './passthrough.jsonata' },
+        destination: { type: 'oci_object_storage', name: 'ingest' },
+      },
+    ],
+  };
+  const putCalls = [];
+  const logCalls = [];
+  await runRouter(
+    { body: { ev: 1 }, source_meta: { file_name: 'sli44-os-only.json' } },
+    {
+      putObject: async (x) => { putCalls.push(x); },
+      putLogs: async (x) => { logCalls.push(x); },
+      routingDefinition: osOnlyRouting,
+      loadMappingFromRef,
+    },
+  );
+  assert.strictEqual(putCalls.length, 1, 'SLI-44: Object Storage emit must fire');
+  assert.strictEqual(logCalls.length, 0, 'SLI-44: putLogs must NOT fire when no oci_logging adapter in routing');
+
+  console.log('ok');
+})();
+NODE
+); then
+  fail "SLI-44: oci_object_storage-only routing does not activate logging adapter"
+  echo "$OUT_SLI44_0" >&2
+else
+  ok "SLI-44: oci_object_storage-only routing does not activate logging adapter"
 fi
 
 # SLI-42: monitoring emit skips postMetricData when transform returns empty array

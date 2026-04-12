@@ -9,6 +9,7 @@ const { loadRoutingDefinitionFromObject, processEnvelope } = require('./lib/json
 const { createDestinationDispatcher } = require('./lib/destination_dispatcher');
 const { createOciObjectStorageAdapter } = require('./lib/oci_object_storage_adapter');
 const { createOciMonitoringAdapter } = require('./lib/oci_monitoring_adapter');
+const { createOciLoggingAdapter } = require('./lib/oci_logging_adapter');
 
 function isObject(value) {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -159,12 +160,16 @@ function applyIngestBucketToRoutingObject(obj) {
     }
     const b = bucket.trim();
     const compartmentId = (process.env.OCI_MONITORING_COMPARTMENT_ID || '').trim();
+    const logId = (process.env.OCI_LOGGING_LOG_ID || '').trim();
     for (const [key, val] of Object.entries(obj.adapters)) {
         if (String(key).startsWith('oci_object_storage:') && isObject(val)) {
             val.bucket = b;
         }
         if (String(key).startsWith('oci_monitoring:') && isObject(val) && compartmentId && !val.compartmentId) {
             val.compartmentId = compartmentId;
+        }
+        if (String(key).startsWith('oci_logging:') && isObject(val) && logId) {
+            val.logId = logId;
         }
     }
     return loadRoutingDefinitionFromObject(obj, { baseDir: __dirname });
@@ -222,7 +227,9 @@ async function loadRoutingDefinitionForRun(options = {}) {
 /**
  * Resolve JSONata mapping text from Object Storage when not bundled in the image.
  * Any mappingRef basename is loaded from config/<basename> by default.
- * Override the full object path with SLI_PASSTHROUGH_OBJECT (kept for backward compatibility).
+ * SLI_PASSTHROUGH_OBJECT overrides the Object Storage path **only** for `passthrough.jsonata`
+ * (backward compatibility). Other basenames must never use it — otherwise every route would
+ * load the same file (e.g. raw GitHub payloads posted as “metrics”).
  */
 function buildLoadMappingFromRef(options) {
     if (typeof options.loadMappingFromRef === 'function') {
@@ -236,7 +243,11 @@ function buildLoadMappingFromRef(options) {
             process.env.OCI_INGEST_BUCKET ||
             ''
         ).trim();
-        const mappingObject = (process.env.SLI_PASSTHROUGH_OBJECT || `config/${base}`).trim();
+        const passthroughOverride = (process.env.SLI_PASSTHROUGH_OBJECT || '').trim();
+        const mappingObject =
+            base === 'passthrough.jsonata'
+                ? (passthroughOverride || `config/${base}`).trim()
+                : `config/${base}`.trim();
         if (mappingBucket === '') {
             throw new Error(
                 'Set SLI_MAPPING_BUCKET, SLI_ROUTING_BUCKET, or OCI_INGEST_BUCKET to load passthrough.jsonata from Object Storage, ' +
@@ -268,6 +279,7 @@ function buildLoadMappingFromRef(options) {
  * @param {function} [options.getObjectStorage] async () => ({ client, namespaceName })
  * @param {function} [options.putObject] async ({ bucket, objectName, content, contentType }) => void
  * @param {function} [options.postMetricData] async ({ metricData }) => void — override OCI Monitoring postMetricData (tests)
+ * @param {function} [options.putLogs] async ({ logId, logEntries }) => void — override OCI Logging putLogs (tests)
  * @param {function} [options.loadMappingFromRef] async ({ mappingRef, route, definition }) => string|null — override OS mapping load (tests)
  * @param {object} [options.fdkContext] Fn FDK invocation context (second arg to handler) — merges ctx.httpGateway headers for raw POST bodies
  */
@@ -345,6 +357,50 @@ async function runRouter(fnInput, options = {}) {
                     ...m,
                 }));
                 await postMetricDataImpl({ metricData: enriched });
+            },
+        }));
+    }
+
+    let putLogsImpl = options.putLogs;
+    if (!putLogsImpl) {
+        putLogsImpl = async ({ logId, logEntries }) => {
+            const loggingingestion = require('oci-loggingingestion');
+            const logClient = new loggingingestion.LoggingClient({
+                authenticationDetailsProvider: common.ResourcePrincipalAuthenticationDetailsProvider.builder(),
+            });
+            const regionId = (process.env.OCI_REGION || '').trim();
+            if (regionId) logClient.regionId = regionId;
+            await logClient.putLogs({
+                logId,
+                putLogsDetails: {
+                    specversion: '1.0',
+                    logEntryBatches: [{
+                        source: 'sli-tracker/router_passthrough',
+                        type: 'github-event',
+                        defaultlogentrytime: new Date().toISOString(),
+                        entries: logEntries,
+                    }],
+                },
+            });
+        };
+    }
+
+    if (adapterTypes.has('oci_logging')) {
+        adapters.push(createOciLoggingAdapter({
+            destinationMap: definition.adapters,
+            emit: async ({ output, target }) => {
+                if (output === undefined || output === null) return;
+                const items = Array.isArray(output) ? output : [output];
+                if (items.length === 0) return;
+                const logId = target.logId;
+                if (!logId) return;
+                const now = new Date().toISOString();
+                const logEntries = items.map((e, i) => ({
+                    id: `${Date.now()}-${i}`,
+                    time: now,
+                    data: typeof e === 'string' ? e : JSON.stringify(e),
+                }));
+                await putLogsImpl({ logId, logEntries });
             },
         }));
     }

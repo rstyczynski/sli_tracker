@@ -1,0 +1,12 @@
+{
+  "action":     action,
+  "repository": repository.full_name,
+  "workflow":   workflow_run.name,
+  "branch":     workflow_run.head_branch,
+  "status":     workflow_run.status,
+  "conclusion": workflow_run.conclusion,
+  "event":      workflow_run.event,
+  "run_id":     workflow_run.id,
+  "created_at": workflow_run.created_at,
+  "updated_at": workflow_run.updated_at
+}

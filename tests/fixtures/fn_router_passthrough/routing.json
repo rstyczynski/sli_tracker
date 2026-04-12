@@ -50,6 +50,9 @@
     },
     "oci_monitoring:github_workflow_run": {
       "namespace": "github_actions"
+    },
+    "oci_logging:github_workflow_run": {
+      "logId": "REPLACED_AT_RUNTIME"
     }
   },
   "dead_letter": {
@@ -122,6 +125,23 @@
       },
       "destination": {
         "type": "oci_monitoring",
+        "name": "github_workflow_run"
+      }
+    },
+    {
+      "id": "github_workflow_run_to_log",
+      "mode": "fanout",
+      "priority": 40,
+      "match": {
+        "headers": {
+          "x-github-event": "workflow_run"
+        }
+      },
+      "transform": {
+        "mapping": "./workflow_run_log.jsonata"
+      },
+      "destination": {
+        "type": "oci_logging",
         "name": "github_workflow_run"
       }
     },

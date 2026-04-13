@@ -20,10 +20,13 @@ Suite options (one or more required):
   --all            Run all test suites (smoke + unit + integration)
 
 Filter options:
-  --manifest SPEC  Run only test scripts listed in the given manifest file.
-  --new-only SPEC  Run only test functions listed in the given test spec file.
-                   Used for new-code gates (Test: parameter). Without this flag,
-                   all tests in the suite run (used for regression gates).
+  --manifest SPEC      Run only test scripts listed in the given manifest file.
+                       May be combined with --component (union).
+  --component NAME     Resolve tests/manifests/component_NAME.manifest and use as
+                       manifest filter. Multiple --component flags are additive.
+  --new-only SPEC      Run only test functions listed in the given test spec file.
+                       Used for new-code gates (Test: parameter). Without this flag,
+                       all tests in the suite run (used for regression gates).
 
 Other:
   --help           Show this help message
@@ -39,6 +42,10 @@ Examples:
 
   # Component-scoped regression: run only scripts listed in a manifest
   tests/run.sh --unit --manifest progress/sprint_21/regression_tests.manifest
+
+  # Component-scoped regression using named component:
+  tests/run.sh --unit --component router
+  tests/run.sh --unit --integration --component router
 
   # Full regression
   tests/run.sh --all
@@ -101,7 +108,7 @@ run_suite() {
         local exit_code=0
         local log_file
         log_file="${LOG_DIR}/${ts}_${suite_name}_${script_name%.sh}.log"
-        bash "$script" >"$log_file" 2>&1 || exit_code=$?
+        (cd "$SCRIPT_DIR" && bash "$script") >"$log_file" 2>&1 || exit_code=$?
 
         if [[ "$exit_code" -eq 0 ]]; then
             printf '[PASS] %s/%s\n' "$suite_name" "$script_name"
@@ -133,7 +140,8 @@ RUN_SMOKE=false
 RUN_UNIT=false
 RUN_INTEGRATION=false
 NEW_ONLY_SPEC=""
-MANIFEST_SPEC=""
+MANIFEST_FILES=()
+COMPONENT_NAMES=()
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -155,11 +163,21 @@ while [[ $# -gt 0 ]]; do
             ;;
         --manifest)
             shift
-            MANIFEST_SPEC="${1:-}"
-            if [[ -z "$MANIFEST_SPEC" ]]; then
+            _mf="${1:-}"
+            if [[ -z "$_mf" ]]; then
                 printf 'Error: --manifest requires a manifest file path\n' >&2
                 exit 1
             fi
+            MANIFEST_FILES+=("$_mf")
+            ;;
+        --component)
+            shift
+            _comp="${1:-}"
+            if [[ -z "$_comp" ]]; then
+                printf 'Error: --component requires a component name\n' >&2
+                exit 1
+            fi
+            COMPONENT_NAMES+=("$_comp")
             ;;
         --help)
             usage
@@ -174,19 +192,33 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-declare -A MANIFEST_SCRIPTS
-MANIFEST_FILE="${NEW_ONLY_SPEC:-$MANIFEST_SPEC}"
-if [[ -n "$MANIFEST_FILE" ]]; then
-    if [[ ! -f "$MANIFEST_FILE" ]]; then
-        printf '[error] manifest file not found: %s\n' "$MANIFEST_FILE" >&2
+# Resolve --component names to manifest files
+for _comp in "${COMPONENT_NAMES[@]+"${COMPONENT_NAMES[@]}"}"; do
+    _comp_manifest="${SCRIPT_DIR}/manifests/component_${_comp}.manifest"
+    if [[ ! -f "$_comp_manifest" ]]; then
+        printf '[error] Unknown component "%s": %s not found\n' "$_comp" "$_comp_manifest" >&2
         exit 1
     fi
-    if [[ -n "$NEW_ONLY_SPEC" ]]; then
-        printf '[info] --new-only mode: filtering to tests listed in %s\n' "$MANIFEST_FILE"
-        printf '[info] current implementation filters at script level, not function level\n'
-    else
-        printf '[info] --manifest mode: filtering to tests listed in %s\n' "$MANIFEST_FILE"
+    MANIFEST_FILES+=("$_comp_manifest")
+done
+
+# --new-only is incompatible with --component
+if [[ -n "$NEW_ONLY_SPEC" && ${#COMPONENT_NAMES[@]} -gt 0 ]]; then
+    printf '[error] --new-only and --component are incompatible\n' >&2
+    exit 1
+fi
+
+declare -A MANIFEST_SCRIPTS
+export TESTS_DIR="$SCRIPT_DIR"
+
+if [[ -n "$NEW_ONLY_SPEC" ]]; then
+    _mf="$NEW_ONLY_SPEC"
+    if [[ ! -f "$_mf" ]]; then
+        printf '[error] manifest file not found: %s\n' "$_mf" >&2
+        exit 1
     fi
+    printf '[info] --new-only mode: filtering to tests listed in %s\n' "$_mf"
+    printf '[info] current implementation filters at script level, not function level\n'
     while IFS= read -r line; do
         line="${line%%#*}"
         line="$(echo "$line" | xargs)"
@@ -195,7 +227,35 @@ if [[ -n "$MANIFEST_FILE" ]]; then
         rest="${line#*:}"
         script_name="${rest%%:*}"
         MANIFEST_SCRIPTS["${suite}:${script_name}"]=1
-    done < "$MANIFEST_FILE"
+    done < "$_mf"
+elif [[ ${#MANIFEST_FILES[@]} -gt 0 ]]; then
+    if [[ ${#COMPONENT_NAMES[@]} -gt 0 ]]; then
+        printf '[info] --component mode: %s\n' "${COMPONENT_NAMES[*]}"
+    else
+        printf '[info] --manifest mode\n'
+    fi
+    for _mf in "${MANIFEST_FILES[@]}"; do
+        if [[ ! -f "$_mf" ]]; then
+            printf '[error] manifest file not found: %s\n' "$_mf" >&2
+            exit 1
+        fi
+        printf '[info] loading manifest: %s\n' "$_mf"
+        while IFS= read -r line; do
+            line="${line%%#*}"
+            line="$(echo "$line" | xargs)"
+            [[ -z "$line" ]] && continue
+            suite="${line%%:*}"
+            rest="${line#*:}"
+            script_name="${rest%%:*}"
+            MANIFEST_SCRIPTS["${suite}:${script_name}"]=1
+        done < "$_mf"
+    done
+fi
+
+# MANIFEST_FILE drives the [skip] check in run_suite; set it when any filter is active
+MANIFEST_FILE=""
+if [[ -n "$NEW_ONLY_SPEC" || ${#MANIFEST_FILES[@]} -gt 0 ]]; then
+    MANIFEST_FILE="active"
 fi
 
 TOTAL_SCRIPTS=0

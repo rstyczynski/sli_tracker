@@ -1,0 +1,2 @@
+# Component: install — OCI CLI installation script
+unit:test_install_oci_cli.sh

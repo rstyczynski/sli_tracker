@@ -1,0 +1,8 @@
+# Component: sli-metrics — SLI computation, ratio simulator, scheduled workflows
+unit:test_sli_compute_sli_metrics.sh
+unit:test_sli_ratio_simulator.sh
+unit:test_sli_scheduled_workflows.sh
+integration:test_sli_compute_sli_metrics.sh
+integration:test_sli_compute_sli_metrics_live.sh
+integration:test_sli_ratio_simulator.sh
+integration:test_sli_scheduled_workflows.sh

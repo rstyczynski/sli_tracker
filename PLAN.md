@@ -376,7 +376,7 @@ Bug fixes:
 
 ## Sprint 28 - Component-scoped test manifests (SLI-47)
 
-Status: Progress
+Status: Done
 Mode: YOLO
 Test: unit
 Regression: unit

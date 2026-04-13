@@ -11,7 +11,7 @@ are fully preserved.
 ## Step 0: Detect Mode and Test Parameters (ONCE)
 
 1. Read `PLAN.md` — find the Sprint with `Status: Progress`
-2. Extract `Mode:`, `Test:`, `Regression:` fields. Defaults: `Test: unit, integration`, `Regression: unit, integration`
+2. Extract `Mode:`, `Test:`, `Regression:`, `Regression scope:` fields. Defaults: `Test: unit, integration`, `Regression: unit, integration`. `Regression scope:` is optional — omit for full-suite regression.
 3. Display the combined banner — this is the contract for all phases:
 
 ```text
@@ -63,7 +63,18 @@ instructions from `agent_qualitygate.md` §3:
 
 1. Read the `### Testing Strategy` section and the `Test:` param from the Phase 0 banner
 2. Append a `## Test Specification` section to `sprint_${no}_design.md` (SM-N / UT-N / IT-N + traceability table) — **no separate test_spec.md file**
-3. Append test skeletons to existing files in `tests/smoke/`, `tests/unit/`, `tests/integration/` (one file per component/domain, not per sprint)
+3. Append test skeletons to existing files in `tests/smoke/`, `tests/unit/`, `tests/integration/` (one file per component/domain, not per sprint). Register each new script in the appropriate `tests/manifests/component_<name>.manifest` so it is included in future regression runs for that component. Available components and their manifest files:
+
+   | Component | Manifest file | Covers |
+   | --------- | ------------ | ------ |
+   | `router` | `tests/manifests/component_router.manifest` | json_transformer, json_router, adapters, Fn passthrough |
+   | `emit` | `tests/manifests/component_emit.manifest` | SLI emit scripts |
+   | `oci-setup` | `tests/manifests/component_oci_setup.manifest` | OCI profile and GitHub access setup |
+   | `sli-metrics` | `tests/manifests/component_sli_metrics.manifest` | SLI metric computation and scheduling |
+   | `install` | `tests/manifests/component_install.manifest` | OCI CLI installation |
+
+   Manifest format: `suite:script` (one entry per line, `#` comments allowed). If introducing a new component domain, add `tests/manifests/component_<snake_name>.manifest` and a row above.
+
 4. Write `progress/sprint_${no}/new_tests.manifest` (format: `suite:script[:function]`)
 5. Verify skeletons run and produce expected failures: `tests/run.sh --unit` (and `--smoke` if applicable)
 
@@ -108,7 +119,13 @@ tests/run.sh --<level> [--new-only progress/sprint_${no}/new_tests.manifest] 2>&
 Each must pass before the next. A1 fail = skip A2/A3. `--new-only …manifest` for all A gates.
 
 **Phase B — Regression Gates** (per `Regression:` param, only after Phase A passes):
-B1 smoke, B2 unit, B3 integration. Full suite (no `--new-only`).
+B1 smoke, B2 unit, B3 integration. Full suite (no `--new-only`) unless `Regression scope:` is set — then restrict to that component:
+
+```bash
+tests/run.sh --<level> --component <scope>   # resolves to tests/manifests/component_<scope>.manifest
+```
+
+Multiple `--component` flags are additive (union). `--manifest` and `--component` may be combined. `--new-only` and `--component` are mutually exclusive — use one or the other.
 
 **Retry policy:** Managed: retries 1–4 auto, retry 5 human escalation, 6–10 if approved, after 10 → `failed`.
 YOLO: all 10 auto; integration gates accept ≥80% pass rate with failures documented.
@@ -186,7 +203,7 @@ Sprint: N | Mode: [YOLO|managed] | Status: [implemented|implemented_partially|fa
 [list or "None"]
 
 ## Test Parameters
-- Test: [value]  |  Regression: [value]
+- Test: [value]  |  Regression: [value]  |  Regression scope: [component or omit for full suite]
 - Flaky tests deferred: [list or "None"]
 ```
 

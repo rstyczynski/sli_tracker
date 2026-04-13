@@ -1,0 +1,7 @@
+# Component: emit — SLI event emission (emit.sh, curl, JS, full pipeline)
+unit:test_emit.sh
+integration:test_sli_emit_curl_local.sh
+integration:test_sli_emit_curl_workflow.sh
+integration:test_sli_emit_js_workflow.sh
+integration:test_sli_emit_metric.sh
+integration:test_sli_integration.sh

@@ -1,0 +1,2 @@
+# Sprint 28 (SLI-47) — new-code gates: component flag and manifest tests
+unit:test_run_sh_component.sh

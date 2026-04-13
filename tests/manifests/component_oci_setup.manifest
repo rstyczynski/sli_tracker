@@ -1,0 +1,8 @@
+# Component: oci-setup — OCI CLI profile setup and GitHub access configuration
+unit:test_oci_profile_setup.sh
+unit:test_oci_profile_setup_api_key.sh
+unit:test_setup_oci_github_access_api_key_help.sh
+unit:test_setup_oci_github_access_config_profile_dry.sh
+unit:test_setup_oci_github_access_config_profile_help.sh
+integration:test_api_key_payload_roundtrip.sh
+integration:test_config_profile_payload_roundtrip.sh

@@ -181,6 +181,18 @@ All rules, templates, and procedures come from `RUPStrikesBack/`. Sprint artifac
 
 ## Recent updates
 
+### Sprint 28 — Component-scoped test manifests (SLI-47) (YOLO)
+
+**Status:** done — all RUP phases complete; SLI-47 shipped and tested.
+
+Adds stable per-component manifest files under **`tests/manifests/`** and a **`--component NAME`** flag to `tests/run.sh`. Phase B regression now runs `tests/run.sh --unit --component router` instead of the full suite, isolating only the scripts relevant to the sprint scope. Tests run with `tests/` as the working directory (CWD enforcement via subshell `cd`), preventing artefact scatter in the project root. **`rup_manager_simplified.md`** is the primary deliverable: updated with the component registry table (Phase 2), concrete `--component` command with combination rules (Phase B), and the new `Regression scope:` field (Step 0 + sprint template). Artifacts: **`progress/sprint_28/sprint_28_setup.md`**, **`sprint_28_design.md`**, **`sprint_28_implementation.md`**, **`sprint_28_tests.md`**. Backlog: **`BACKLOG.md` (SLI-47)**.
+
+**Quality gates:** A2 unit 1/1 PASS (8 assertions); B2 regression 14/14 PASS — see **`progress/sprint_28/sprint_28_tests.md`**.
+
+**Traceability:** **`progress/backlog/SLI-47/`**
+
+---
+
 ### Sprint 27 — Fan-out `workflow_run` to OCI Logging (SLI-44) (YOLO)
 
 **RUP / `PLAN.md` contract:** **`Test: unit, integration`** (both Phase **A2** and **A3** required). **`Regression: unit`**.

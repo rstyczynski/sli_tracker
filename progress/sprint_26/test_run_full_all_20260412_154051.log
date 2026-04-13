@@ -1,0 +1,19 @@
+=== smoke tests ===
+[info] logs: /Users/rstyczynski/projects/SLI_tracker/logs
+[run] smoke/test_critical_emit.sh
+[PASS] smoke/test_critical_emit.sh
+=== smoke summary: 1 scripts, 1 passed, 0 failed ===
+
+=== unit tests ===
+[info] logs: /Users/rstyczynski/projects/SLI_tracker/logs
+[run] unit/test_destination_adapters.sh
+[PASS] unit/test_destination_adapters.sh
+[run] unit/test_emit.sh
+[PASS] unit/test_emit.sh
+[run] unit/test_file_adapter.sh
+[PASS] unit/test_file_adapter.sh
+[run] unit/test_file_source_adapter.sh
+[PASS] unit/test_file_source_adapter.sh
+[run] unit/test_fn_passthrough_router.sh
+[PASS] unit/test_fn_passthrough_router.sh
+[run] unit/test_install_oci_cli.sh

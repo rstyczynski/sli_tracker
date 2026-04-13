@@ -219,40 +219,58 @@ done
 
 # ════════════════════════════════════════════════════════════════
 # T6: OCI Logging events — content verification (IT-4)
-# ════════════════════════════════════════════════════════════════
-echo ""
-echo "=== T6: OCI Logging — verify curl events (content) ==="
-sleep 30
-TS_START=$(date -u -v-15M '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date -u --date='-15 min' '+%Y-%m-%dT%H:%M:%SZ')
-TS_END=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
-EVENTS=$(oci logging-search search-logs \
-  --search-query "search \"${TENANCY}/${LOG_GROUP_OCID}/${SLI_LOG_OCID}\" | sort by datetime desc | limit 20" \
-  --time-start "$TS_START" --time-end "$TS_END" \
-  --profile "$OCI_INT_PROFILE" 2>/dev/null | jq '.data.results')
-
-printf '%s\n' "$EVENTS" > "$OCI_LOG_FILE"
-echo "# OCI log captured: $OCI_LOG_FILE"
-
-TOTAL=$(echo "$EVENTS" | jq 'length')
-assert_ge "OCI received at least 2 events (2 runs × 1 job)" "$TOTAL" 2
-
-SUCCESS_CNT=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select(.outcome=="success")] | length')
-FAILURE_CNT=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select(.outcome=="failure")] | length')
-assert_ge "OCI: at least 1 success event" "$SUCCESS_CNT" 1
-assert_ge "OCI: at least 1 failure event" "$FAILURE_CNT" 1
-
-CURL_WF_EVENTS=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select(.workflow.name != null) | select(.workflow.name | test("emit_curl"))] | length')
-assert_ge "OCI: events carry correct workflow.name (contains 'emit_curl')" "$CURL_WF_EVENTS" 2
-
-# ════════════════════════════════════════════════════════════════
 # T7: Failure event carries failure_reasons (IT-5)
 # ════════════════════════════════════════════════════════════════
 echo ""
-echo "=== T7: Failure event carries failure_reasons ==="
-FAIL_REASON_CNT=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select(.outcome=="failure") | select((.failure_reasons // {}) | type == "object" and length > 0)] | length')
-assert_ge "OCI: at least 1 failure event with non-empty failure_reasons" "$FAIL_REASON_CNT" 1
+echo "=== T6/T7: OCI Logging — verify curl events (content + failure_reasons) ==="
+# Logging search can lag workflow completion; poll with a wider window and limit.
+T67_OK=0
+for _t67_try in $(seq 1 8); do
+  if [[ "$_t67_try" -gt 1 ]]; then
+    echo "# T6/T7: OCI log search not satisfied yet — retry ${_t67_try}/8 after 45s …"
+    sleep 45
+  else
+    sleep 45
+  fi
+  TS_START=$(date -u -v-30M '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date -u --date='-30 min' '+%Y-%m-%dT%H:%M:%SZ')
+  TS_END=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+  EVENTS=$(oci logging-search search-logs \
+    --search-query "search \"${TENANCY}/${LOG_GROUP_OCID}/${SLI_LOG_OCID}\" | sort by datetime desc | limit 80" \
+    --time-start "$TS_START" --time-end "$TS_END" \
+    --profile "$OCI_INT_PROFILE" 2>/dev/null | jq '.data.results')
 
-HAS_STEP_MAIN_KEY=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select(.outcome=="failure") | .failure_reasons // {} | keys[] | select(test("STEP_MAIN";"i"))] | length')
+  printf '%s\n' "$EVENTS" > "$OCI_LOG_FILE"
+  echo "# OCI log captured (attempt $_t67_try): $OCI_LOG_FILE"
+
+  TOTAL=$(echo "$EVENTS" | jq 'length')
+  SUCCESS_CNT=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select(.outcome=="success")] | length')
+  FAILURE_CNT=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select(.outcome=="failure")] | length')
+  CURL_WF_EVENTS=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select(.workflow.name != null) | select(.workflow.name | test("emit_curl"; "i"))] | length')
+  FAIL_REASON_CNT=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select(.outcome=="failure") | select((.failure_reasons // {}) | type == "object" and length > 0)] | length')
+  HAS_STEP_MAIN_KEY=$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select(.outcome=="failure") | .failure_reasons // {} | keys[] | select(test("STEP_MAIN";"i"))] | length')
+
+  if [[ "${TOTAL:-0}" -ge 2 ]] \
+    && [[ "${SUCCESS_CNT:-0}" -ge 1 ]] \
+    && [[ "${FAILURE_CNT:-0}" -ge 1 ]] \
+    && [[ "${CURL_WF_EVENTS:-0}" -ge 2 ]] \
+    && [[ "${FAIL_REASON_CNT:-0}" -ge 1 ]] \
+    && [[ "${HAS_STEP_MAIN_KEY:-0}" -ge 1 ]]; then
+    T67_OK=1
+    break
+  fi
+  echo "# T6/T7: totals total=$TOTAL success=$SUCCESS_CNT failure=$FAILURE_CNT curl_name_hits=$CURL_WF_EVENTS fail_reason=$FAIL_REASON_CNT step_main_keys=$HAS_STEP_MAIN_KEY"
+done
+
+if [[ "$T67_OK" -ne 1 ]]; then
+  echo "FAIL: T6/T7 OCI Logging assertions not satisfied after polling (see counts above)" >&2
+  exit 1
+fi
+
+assert_ge "OCI received at least 2 events (2 runs × 1 job)" "$TOTAL" 2
+assert_ge "OCI: at least 1 success event" "$SUCCESS_CNT" 1
+assert_ge "OCI: at least 1 failure event" "$FAILURE_CNT" 1
+assert_ge "OCI: events carry correct workflow.name (contains 'emit_curl', case-insensitive)" "$CURL_WF_EVENTS" 2
+assert_ge "OCI: at least 1 failure event with non-empty failure_reasons" "$FAIL_REASON_CNT" 1
 assert_ge "OCI: failure_reasons contains a STEP_MAIN key" "$HAS_STEP_MAIN_KEY" 1
 
 # ════════════════════════════════════════════════════════════════

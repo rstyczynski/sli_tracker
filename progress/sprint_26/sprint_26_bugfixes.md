@@ -10,7 +10,21 @@
 
 **Files:** `tests/integration/test_fn_apigw_object_storage_passthrough.sh`, `PLAN.md`, `PROGRESS_BOARD.md`
 
-**Verification:** `bash tests/integration/test_fn_apigw_object_storage_passthrough.sh` (with live OCI); `bash -n` on script.
+**Verification:** `tests/run.sh --all` (PASS); `bash -n` on touched scripts. **SLI-41-1 follow-up:** integration POST uses **current UTC** `created_at` / `updated_at` so OCI Monitoring accepts datapoints (fixture times were >2h old). **emit_metric IT-2:** reject tenancy OCID mistaken for log OCID. **emit_curl workflow T6/T7:** poll OCI Logging with wider window and case-insensitive `emit_curl` match.
+
+**Status:** Fixed
+
+---
+
+## SLI-41-2 — `SLI_PASSTHROUGH_OBJECT` forced every mapping to load `passthrough.jsonata`
+
+**Root cause:** `buildLoadMappingFromRef` used `(process.env.SLI_PASSTHROUGH_OBJECT || config/${base})` for **all** basenames. Fn is configured with `SLI_PASSTHROUGH_OBJECT=config/passthrough.jsonata`, so routes such as `workflow_run_metric.jsonata` still fetched passthrough (`$` → raw GitHub body). The Monitoring adapter then received webhook-shaped JSON without top-level `name`, producing dead-letter errors like “metric name can not be null, empty or blank”.
+
+**Fix:** Apply `SLI_PASSTHROUGH_OBJECT` only when the mapping basename is `passthrough.jsonata`; all other mappings load `config/<basename>`.
+
+**Files:** `fn/router_passthrough/router_core.js`, `fn/router_passthrough/func.yaml` (version bump), `tests/unit/test_fn_passthrough_router.sh` (SLI-41-2 assertions)
+
+**Verification:** `bash tests/unit/test_fn_passthrough_router.sh` and `bash tests/integration/test_fn_apigw_object_storage_passthrough.sh` (SLI-41-1 Monitoring poll); optional `./tools/list_monitoring_metrics.sh` with `SLI_OCI_STATE_FILE` (see `progress/sprint_26/sprint_26_tests.md`).
 
 **Status:** Fixed
 
@@ -21,3 +35,4 @@
 | Bug | Description | Files Changed | Status |
 |-----|-------------|---------------|--------|
 | SLI-41-1 | APIGW integration did not validate `workflow_run` metrics end-to-end | `test_fn_apigw_object_storage_passthrough.sh`, `PLAN.md`, `PROGRESS_BOARD.md` | Fixed |
+| SLI-41-2 | Passthrough object path overrode all mapping loads → raw payload to Monitoring | `fn/router_passthrough/router_core.js`, `fn/router_passthrough/func.yaml` | Fixed |

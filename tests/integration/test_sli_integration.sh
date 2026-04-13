@@ -128,8 +128,8 @@ echo ""
 
 export NAME_PREFIX="sli_test_sprint6"
 source "${REPO_ROOT}/tools/ensure_oci_resources.sh"
-ensure_sli_log_resources "$REPO_ROOT" "$OCI_INT_PROFILE" "$NAME_PREFIX" "//sli-events/github-actions"
-ensure_set_github_sli_vars "$REPO" "$SLI_LOG_OCID" "$LOG_GROUP_OCID"
+ensure_sli_log_resources "$REPO_ROOT" "$OCI_INT_PROFILE" "$NAME_PREFIX" "/SLI_tracker/sli-events/github-actions"
+ensure_set_github_sli_vars "$REPO" "$COMPARTMENT_OCID" "$SLI_LOG_OCID" "$LOG_GROUP_OCID"
 
 PASS=0; FAIL=0
 
@@ -161,9 +161,10 @@ fi
 
 echo ""
 echo "=== T0b: OCI resource resolution (oci_scaffold URI-style) ==="
-[[ "$TENANCY"       == ocid1.tenancy.*  ]] && pass "TENANCY resolved: $TENANCY"           || fail "TENANCY invalid"
-[[ "$LOG_GROUP_OCID" == ocid1.loggroup.* ]] && pass "LOG_GROUP_OCID resolved: $LOG_GROUP_OCID" || fail "LOG_GROUP_OCID invalid"
-[[ "$SLI_LOG_OCID"  == ocid1.log.*     ]] && pass "SLI_LOG_OCID resolved: $SLI_LOG_OCID" || fail "SLI_LOG_OCID invalid"
+[[ "$TENANCY"          == ocid1.tenancy.*     ]] && pass "TENANCY resolved: $TENANCY"                     || fail "TENANCY invalid"
+[[ "$COMPARTMENT_OCID" == ocid1.compartment.* ]] && pass "COMPARTMENT_OCID resolved: $COMPARTMENT_OCID"   || fail "COMPARTMENT_OCID invalid"
+[[ "$LOG_GROUP_OCID"   == ocid1.loggroup.*    ]] && pass "LOG_GROUP_OCID resolved: $LOG_GROUP_OCID"       || fail "LOG_GROUP_OCID invalid"
+[[ "$SLI_LOG_OCID"     == ocid1.log.*         ]] && pass "SLI_LOG_OCID resolved: $SLI_LOG_OCID"            || fail "SLI_LOG_OCID invalid"
 
 echo ""
 echo "=== T1: unit tests — emit.sh helper functions ==="

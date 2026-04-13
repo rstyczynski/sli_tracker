@@ -13,6 +13,8 @@
 # Sprint-end cleanup: **tests/cleanup_router_apigw_stack.sh** (and **tests/cleanup_sli_buckets.sh** for sli-* buckets).
 #
 # Requires: oci, fn, jq, curl; OCI auth (same as other integration tests).
+# When FN_FORCE_DEPLOY=true (default), `fn deploy` runs a **Docker** image build — Docker must be
+# available to the Fn CLI (see oci_scaffold/resource/ensure-fn_function.sh header).
 
 set -euo pipefail
 
@@ -210,7 +212,16 @@ else
   fi
 
   _wf_marker="SLI-41-apigw-${TS}"
-  _wf_body=$(jq --arg wf "$_wf_marker" '.workflow_run.name = $wf' "${REPO_ROOT}/tests/fixtures/github_webhook_samples/workflow_run.json")
+  # OCI Monitoring rejects datapoints older than ~2h; fixture timestamps are static — use "now" for ingest.
+  _wf_ts_lines="$(python3 -c "from datetime import datetime, timezone, timedelta
+n = datetime.now(timezone.utc)
+print((n - timedelta(minutes=5)).strftime('%Y-%m-%dT%H:%M:%SZ'))
+print(n.strftime('%Y-%m-%dT%H:%M:%SZ'))")"
+  _wf_created="$(echo "$_wf_ts_lines" | sed -n '1p')"
+  _wf_updated="$(echo "$_wf_ts_lines" | sed -n '2p')"
+  _wf_body=$(jq --arg wf "$_wf_marker" --arg c "$_wf_created" --arg u "$_wf_updated" \
+    '.workflow_run.name = $wf | .workflow_run.created_at = $c | .workflow_run.updated_at = $u' \
+    "${REPO_ROOT}/tests/fixtures/github_webhook_samples/workflow_run.json")
   WF_OBJ="it-wf-metric-${TS}.json"
   _payload_wf=$(jq -n --arg fn "$WF_OBJ" --argjson b "$_wf_body" \
     '{body: $b, headers: {"X-GitHub-Event": "workflow_run"}, source_meta: {file_name: $fn}}')

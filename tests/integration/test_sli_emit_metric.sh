@@ -216,6 +216,11 @@ if [[ -f "${REPO_ROOT}/oci_scaffold/do/oci_scaffold.sh" ]]; then
   # Filter to just the OCID line (oci_scaffold may emit INFO lines alongside the value)
   _SLI_LOG_OCID="$(echo "$_SLI_LOG_OCID" | grep -o 'ocid1\.[^[:space:]]*' | tail -1 || true)"
 fi
+# oci_scaffold stdout noise can yield a tenancy OCID — Logging API needs a log OCID, not tenancy.
+if [[ "${_SLI_LOG_OCID:-}" == *'.tenancy.oc1.'* ]]; then
+  echo "# WARN: resolved value looks like a tenancy OCID, not a log — IT-2 log verify will be skipped"
+  _SLI_LOG_OCID=""
+fi
 
 if [[ -z "$_SLI_LOG_OCID" ]]; then
   echo "# WARN: could not resolve log OCID via oci_scaffold — IT-2 log verification skipped"

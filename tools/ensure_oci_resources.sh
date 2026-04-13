@@ -35,6 +35,8 @@ ensure_sli_log_resources() {
   _state_set '.inputs.name_prefix'      "$NAME_PREFIX"
   _state_set '.inputs.log_group_name'   "$log_group_name"
   _state_set '.inputs.log_name'         "$log_name"
+  # emit.sh / GitHub Actions payloads use CUSTOM logs, not OCISERVICE (Functions) logs.
+  _state_set '.inputs.log_type'         "CUSTOM"
 
   bash "${repo_root}/oci_scaffold/resource/ensure-compartment.sh"
   COMPARTMENT_OCID="$(_state_get '.compartment.ocid')"
@@ -63,12 +65,15 @@ ensure_sli_log_resources() {
   export LOG_GROUP_OCID SLI_LOG_OCID TENANCY COMPARTMENT_OCID
 }
 
+# OCIDs must come from ensure_sli_log_resources exports (or jq the same paths from STATE_FILE).
 ensure_set_github_sli_vars() {
   local repo="${1:?owner/repo}"
-  local log_ocid="${2:?log_ocid}"
-  local log_group_ocid="${3:?log_group_ocid}"
-  gh variable set SLI_OCI_LOG_ID       --body "$log_ocid"       -R "$repo"
-  gh variable set SLI_OCI_LOG_GROUP_ID --body "$log_group_ocid" -R "$repo"
+  local compartment_ocid="${2:?compartment_ocid}"
+  local log_ocid="${3:?log_ocid}"
+  local log_group_ocid="${4:?log_group_ocid}"
+  gh variable set SLI_OCI_COMPARTMENT_ID --body "$compartment_ocid" -R "$repo"
+  gh variable set SLI_OCI_LOG_ID        --body "$log_ocid"        -R "$repo"
+  gh variable set SLI_OCI_LOG_GROUP_ID    --body "$log_group_ocid"  -R "$repo"
 }
 
 ensure_sli_mapping_bucket() {

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # List newest object names under router ingest prefixes (filenames only, no JSON bodies).
+# See also: ./list_monitoring_metrics.sh — OCI Monitoring metric definitions for the same stack.
+# See also: ./validate_router_ingest_and_metrics.sh — newest keys + JSON peek + metric datapoint values.
 #
 # The "## ingest/" section lists only the catch-all *root* of that prefix: object keys matching
 # ingest/<one segment> (no further /). That uses oci object list --prefix ingest/ --delimiter /

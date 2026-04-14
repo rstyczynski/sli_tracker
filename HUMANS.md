@@ -1,6 +1,6 @@
 # Human Operator / Product Owner Guide
 
-Welcome! This document is your starting point as a Product Owner or operator managing AI agents in this RUP-based development project.
+Welcome! This document is your starting point as a Product Owner or operator managing AI agents when using RUPStrikesBack as a submodule.
 
 ## Quick Start
 
@@ -8,9 +8,9 @@ Welcome! This document is your starting point as a Product Owner or operator man
 
 1. **Define your project scope** in `BACKLOG.md`
 2. **Organize iterations** in `PLAN.md`
-3. **Read the complete Product Owner Guide**: `rules/generic/PRODUCT_OWNER_GUIDE*.md`
+3. **Read the complete Product Owner Guide**: `RUPStrikesBack/rules/generic/PRODUCT_OWNER_GUIDE*.md`
 4. **Mark your first Sprint as "Progress"** in `PLAN.md`
-5. **Invoke the agent**: Send `@rup-manager.md` to your AI agent
+5. **Invoke the agent**: Send `@RUPStrikesBack/.claude/commands/rup-manager.md` to your AI agent
 6. **Monitor progress** via `PROGRESS_BOARD.md` and git commits
 
 ### Daily Operation
@@ -28,20 +28,20 @@ Welcome! This document is your starting point as a Product Owner or operator man
 Use these commands to manage your project lifecycle:
 
 ```
-/backlog add <title>              # Add new backlog item
-/backlog list [--status <status>] # List items (filtered)
-/backlog prioritize               # Reorder items
+@RUPStrikesBack/.claude/commands/backlog.md add <title>
+@RUPStrikesBack/.claude/commands/backlog.md list [--status <status>]
+@RUPStrikesBack/.claude/commands/backlog.md prioritize
 
-/sprint create [<N>]              # Create new sprint
-/sprint start [<N>]               # Start sprint (Planned → Progress)
-/sprint status [<N>]              # Show sprint status
-/sprint close [<N>]               # Close sprint after gates pass
+@RUPStrikesBack/.claude/commands/sprint.md create [<N>]
+@RUPStrikesBack/.claude/commands/sprint.md start [<N>]
+@RUPStrikesBack/.claude/commands/sprint.md status [<N>]
+@RUPStrikesBack/.claude/commands/sprint.md close [<N>]
 
-/bug report <title>               # Report bug during sprint
-/bug triage [<BUG-ID>]            # Evaluate for promotion
-/bug list [--sprint <N>]          # List bugs
+@RUPStrikesBack/.claude/commands/bug.md report <title>
+@RUPStrikesBack/.claude/commands/bug.md triage [<BUG-ID>]
+@RUPStrikesBack/.claude/commands/bug.md list [--sprint <N>]
 
-/archive-sprint <N>               # Archive completed sprint
+@RUPStrikesBack/.claude/commands/archive-sprint.md <N>
 ```
 
 ## Your Role
@@ -65,16 +65,16 @@ Use these commands to manage your project lifecycle:
 
 **Full RUP Cycle**:
 ```
-@rup-manager.md
+@RUPStrikesBack/.claude/commands/rup-manager.md
 ```
 
 **Individual Phases**:
 ```
-@agent-contractor.md   # Review scope
-@agent-analyst.md      # Analyze requirements
-@agent-designer.md     # Create design
-@agent-constructor.md  # Implement & test
-@agent-documentor.md   # Document & validate
+@RUPStrikesBack/.claude/commands/agents/agent-contractor.md   # Review scope
+@RUPStrikesBack/.claude/commands/agents/agent-analyst.md      # Analyze requirements
+@RUPStrikesBack/.claude/commands/agents/agent-designer.md     # Create design
+@RUPStrikesBack/.claude/commands/agents/agent-constructor.md  # Implement & test
+@RUPStrikesBack/.claude/commands/agents/agent-documentor.md   # Document & validate
 ```
 
 ### Agent Workflow
@@ -143,12 +143,12 @@ All YOLO decisions are logged in implementation documents for your review.
 
 ## Rules and Guidelines
 
-All detailed rules are in the `rules/` directory:
+All detailed rules are in the `RUPStrikesBack/rules/` directory:
 
-1. **`rules/generic/PRODUCT_OWNER_GUIDE*.md`** - Your complete workflow guide
-2. **`rules/generic/GENERAL_RULES*.md`** - Cooperation rules and file ownership
-3. **`rules/generic/GIT_RULES*.md`** - Git conventions
-4. **`rules/github_actions/GitHub_DEV_RULES*.md`** - Development standards
+1. **`RUPStrikesBack/rules/generic/PRODUCT_OWNER_GUIDE*.md`** - Your complete workflow guide
+2. **`RUPStrikesBack/rules/generic/GENERAL_RULES*.md`** - Cooperation rules and file ownership
+3. **`RUPStrikesBack/rules/generic/GIT_RULES*.md`** - Git conventions
+4. **`RUPStrikesBack/rules/github_actions/GitHub_DEV_RULES*.md`** - Development standards
 
 **Read these files** for complete details on:
 - Sprint state machines
@@ -192,14 +192,14 @@ As Product Owner:
 
 1. ✅ Define scope in `BACKLOG.md`
 2. ✅ Plan iterations in `PLAN.md`
-3. ✅ Read complete guide: `rules/generic/PRODUCT_OWNER_GUIDE*.md`
-4. ✅ Invoke agents: `@rup-manager.md`
+3. ✅ Read complete guide: `RUPStrikesBack/rules/generic/PRODUCT_OWNER_GUIDE*.md`
+4. ✅ Invoke agents: `@RUPStrikesBack/.claude/commands/rup-manager.md`
 5. ✅ Monitor via `PROGRESS_BOARD.md`
 6. ✅ Approve designs when requested
 7. ✅ Answer questions when agents ask
 
-**For complete details**, see `rules/generic/PRODUCT_OWNER_GUIDE*.md`
+**For complete details**, see `RUPStrikesBack/rules/generic/PRODUCT_OWNER_GUIDE*.md`
 
 ---
 
-**Ready to start?** Mark a Sprint as "Progress" in `PLAN.md` and invoke `@rup-manager.md`
+**Ready to start?** Mark a Sprint as "Progress" in `PLAN.md` and invoke `@RUPStrikesBack/.claude/commands/rup-manager.md`

@@ -1,32 +1,32 @@
 # Agent Starting Point
 
-Welcome! This document is your starting point after checking out this project.
+Welcome! This document is your starting point when using RUPStrikesBack as a submodule.
 
 ## Quick Start
 
 To execute a complete development cycle automatically:
 
 ```
-/rup-manager
+@RUPStrikesBack/.claude/commands/rup-manager.md
 ```
 
 ## Management Commands (Version 2.0)
 
 ```
-/backlog add <title>              # Add new backlog item
-/backlog list [--status <status>] # List items (filtered)
-/backlog prioritize               # Reorder items
+@RUPStrikesBack/.claude/commands/backlog.md add <title>
+@RUPStrikesBack/.claude/commands/backlog.md list [--status <status>]
+@RUPStrikesBack/.claude/commands/backlog.md prioritize
 
-/sprint create [<N>]              # Create new sprint
-/sprint start [<N>]               # Start sprint (Planned → Progress)
-/sprint status [<N>]              # Show sprint status
-/sprint close [<N>]               # Close sprint after gates pass
+@RUPStrikesBack/.claude/commands/sprint.md create [<N>]
+@RUPStrikesBack/.claude/commands/sprint.md start [<N>]
+@RUPStrikesBack/.claude/commands/sprint.md status [<N>]
+@RUPStrikesBack/.claude/commands/sprint.md close [<N>]
 
-/bug report <title>               # Report bug during sprint
-/bug triage [<BUG-ID>]            # Evaluate for promotion
-/bug list [--sprint <N>]          # List bugs
+@RUPStrikesBack/.claude/commands/bug.md report <title>
+@RUPStrikesBack/.claude/commands/bug.md triage [<BUG-ID>]
+@RUPStrikesBack/.claude/commands/bug.md list [--sprint <N>]
 
-/archive-sprint <N>               # Archive completed sprint
+@RUPStrikesBack/.claude/commands/archive-sprint.md <N>
 ```
 
 ## Phase Agents
@@ -34,15 +34,15 @@ To execute a complete development cycle automatically:
 To execute individual phases:
 
 ```
-@agent-contractor.md   # Phase 1: Setup (Contracting)
-@agent-analyst.md      # Phase 1: Setup (Inception) — merged with contractor
-@agent-designer.md     # Phase 2: Design + Test Specification
-@agent-constructor.md  # Phase 3: Construction (fills test skeletons, no new tests)
-                       # Phase 4: Quality Gates (executed via rup-manager.md)
-@agent-documentor.md   # Phase 5: Wrap-up
+@RUPStrikesBack/.claude/commands/agents/agent-contractor.md   # Phase 1: Setup (Contracting)
+@RUPStrikesBack/.claude/commands/agents/agent-analyst.md      # Phase 1: Setup (Inception)
+@RUPStrikesBack/.claude/commands/agents/agent-designer.md     # Phase 2: Design + Test Specification
+@RUPStrikesBack/.claude/commands/agents/agent-constructor.md  # Phase 3: Construction
+                                                              # Phase 4: Quality Gates (via rup-manager)
+@RUPStrikesBack/.claude/commands/agents/agent-documentor.md   # Phase 5: Wrap-up
 ```
 
-**Note:** Phase 4 (Quality Gates) is orchestrated by `rup-manager.md` using procedures from `rules/generic/test_procedures.md`. It runs quality gates (A1-A3 new-code, B1-B3 regression) and handles the fix-and-retry loop with the Constructor.
+**Note:** Phase 4 (Quality Gates) is orchestrated by `rup-manager.md` using procedures from `RUPStrikesBack/rules/generic/test_procedures.md`. It runs quality gates (A1-A3 new-code, B1-B3 regression) and handles the fix-and-retry loop with the Constructor.
 
 ## Execution Modes
 
@@ -107,21 +107,21 @@ Backlog Items:
 - `Test:` — `smoke`, `unit`, `integration`, `none` (default: unit, integration)
 - `Regression:` — `smoke`, `unit`, `integration`, `none` (default: unit, integration)
 
-See `rules/generic/sprint_definition.md` for full specification.
+See `RUPStrikesBack/rules/generic/sprint_definition.md` for full specification.
 
 ## Rules (MUST READ)
 
-Before starting any work, you MUST read and understand all rules in `rules/generic` directory.
+Before starting any work, you MUST read and understand all rules in `RUPStrikesBack/rules/generic` directory.
 
-**IMPORTANT**: You MUST comply with all rules without exceptions. If anything is unclear or conflicts, ask immediately. 
+**IMPORTANT**: You MUST comply with all rules without exceptions. If anything is unclear or conflicts, ask immediately.
 
 ## Summary
 
 As an agent:
 
-1. ✅ Read all rules in `rules/generic` directory
-2. ✅ Invoke `@rup-manager.md` for full cycle
-3. ✅ Follow agent instructions from `.claude/commands/agents/`
+1. ✅ Read all rules in `RUPStrikesBack/rules/generic` directory
+2. ✅ Invoke `@RUPStrikesBack/.claude/commands/rup-manager.md` for full cycle
+3. ✅ Follow agent instructions from `RUPStrikesBack/.claude/commands/agents/`
 4. ✅ Ask questions when unclear - NEVER assume
 
-**Ready to start?** Invoke `@rup-manager.md` to begin.
+**Ready to start?** Invoke `@RUPStrikesBack/.claude/commands/rup-manager.md` to begin.

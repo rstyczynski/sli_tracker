@@ -1,70 +1,127 @@
-# AGENTS.md
+# Agent Starting Point
 
-This file is the entry point for all AI agents working in this repository.
+Welcome! This document is your starting point after checking out this project.
 
-## Mandatory Reading Order
+## Quick Start
 
-1. **This file** — discovery index
-2. **PLAN.md** — find active sprint (Status: Progress), extract Mode/Test/Regression
-3. **rup_manager_simplified.md** — execute the 5-phase RUP cycle
-
-## Quick Reference
-
-| Task | Start Here |
-|------|------------|
-| Define backlog item | `PLAN.md` → add to Backlog section |
-| Open a sprint | `PLAN.md` → set Status: Progress, Mode, Test, Regression |
-| Execute sprint | `rup_manager_simplified.md` → follow phases 0-5 |
-| Test definitions | `agent_qualitygate.md` §1-4 |
-| Test execution | `tests/run.sh --help` |
-
-## Key Files
-
-| File | Purpose |
-|------|---------|
-| `PLAN.md` | Backlog items + sprint definitions |
-| `PROGRESS_BOARD.md` | Current state tracking (item/sprint status) |
-| `rup_manager_simplified.md` | Sprint execution process (5 phases) |
-| `agent_qualitygate.md` | Test-first quality gates (smoke/unit/integration) |
-| `tests/run.sh` | Test runner entry point |
-
-## Sprint Execution Summary
+To execute a complete development cycle automatically:
 
 ```
-Step 0: Detect Mode + Test params from PLAN.md → display banner
-Phase 1: Setup (contract + analysis) → sprint_N_setup.md
-Phase 2: Design + test spec + skeletons → sprint_N_design.md
-Phase 3: Construction (fill TODO stubs) → sprint_N_implementation.md
-Phase 4: Quality gates (Phase A + B) → log files + sprint_N_tests.md
-Phase 5: Wrap-up (README + backlog traceability) → commit, push
-Step 6: Final Summary (MANDATORY)
+/rup-manager
 ```
 
-## Test Modes
+## Management Commands (Version 2.0)
 
-| Mode | Directory | Purpose |
-|------|-----------|---------|
-| smoke | `tests/smoke/` | Quick critical check — "is build testable?" |
-| unit | `tests/unit/` | Isolated logic tests with mocks |
-| integration | `tests/integration/` | End-to-end with real infrastructure |
+```
+/backlog add <title>              # Add new backlog item
+/backlog list [--status <status>] # List items (filtered)
+/backlog prioritize               # Reorder items
 
-## Quality Gates
+/sprint create [<N>]              # Create new sprint
+/sprint start [<N>]               # Start sprint (Planned → Progress)
+/sprint status [<N>]              # Show sprint status
+/sprint close [<N>]               # Close sprint after gates pass
 
-- **Phase A** (new-code): A1 smoke → A2 unit → A3 integration (`--new-only`)
-- **Phase B** (regression): B1 smoke → B2 unit → B3 integration (full or `--component`)
+/bug report <title>               # Report bug during sprint
+/bug triage [<BUG-ID>]            # Evaluate for promotion
+/bug list [--sprint <N>]          # List bugs
 
-All gates produce mandatory timestamped logs in `progress/sprint_N/`.
+/archive-sprint <N>               # Archive completed sprint
+```
 
-## Component Manifests
+## Phase Agents
 
-Tests are organized by component for scoped regression:
+To execute individual phases:
 
-| Component | Manifest |
-|-----------|----------|
-| router | `tests/manifests/component_router.manifest` |
-| emit | `tests/manifests/component_emit.manifest` |
-| oci-setup | `tests/manifests/component_oci_setup.manifest` |
-| sli-metrics | `tests/manifests/component_sli_metrics.manifest` |
-| install | `tests/manifests/component_install.manifest` |
+```
+@agent-contractor.md   # Phase 1: Setup (Contracting)
+@agent-analyst.md      # Phase 1: Setup (Inception) — merged with contractor
+@agent-designer.md     # Phase 2: Design + Test Specification
+@agent-constructor.md  # Phase 3: Construction (fills test skeletons, no new tests)
+                       # Phase 4: Quality Gates (executed via rup-manager.md)
+@agent-documentor.md   # Phase 5: Wrap-up
+```
 
-Usage: `tests/run.sh --unit --component router`
+**Note:** Phase 4 (Quality Gates) is orchestrated by `rup-manager.md` using procedures from `rules/generic/test_procedures.md`. It runs quality gates (A1-A3 new-code, B1-B3 regression) and handles the fix-and-retry loop with the Constructor.
+
+## Execution Modes
+
+The RUP process supports two execution modes configured in `PLAN.md`:
+
+### Mode: managed (Default - Interactive)
+
+**Characteristics:**
+- Human-supervised execution
+- Agents ask for clarification on ambiguities
+- Interactive decision-making at each phase
+- Recommended for complex or high-risk sprints
+
+**Behavior:**
+- Wait for design approval
+- Stop for unclear requirements
+- Ask about significant implementation choices
+- Confirm before making major decisions
+
+### Mode: YOLO (Autonomous - "You Only Live Once")
+
+**Characteristics:**
+- Fully autonomous execution
+- Agents make reasonable assumptions for weak problems
+- No human interaction required
+- All decisions logged in implementation docs
+- Recommended for well-understood, low-risk sprints
+
+**Behavior:**
+- Auto-approve designs
+- Make reasonable assumptions (documented)
+- Proceed with partial test success
+- Auto-fix simple issues
+- Only stop for critical failures
+
+**Decision Logging:**
+All YOLO mode decisions are logged in phase documents with:
+- What was ambiguous
+- What assumption was made
+- Rationale for the decision
+- Risk assessment
+
+**Audit Trail:**
+The Mode field in PLAN.md creates a permanent git record showing which sprints were autonomous vs supervised.
+
+**How to Detect Mode and Test Parameters:**
+Read the active Sprint section in PLAN.md:
+```markdown
+## Sprint 20
+
+Status: Progress
+Mode: YOLO
+Test: unit, integration
+Regression: unit
+
+Backlog Items:
+* GH-27. Feature implementation
+```
+
+**Required fields:**
+- `Mode:` — `YOLO` or `managed` (default: managed)
+- `Test:` — `smoke`, `unit`, `integration`, `none` (default: unit, integration)
+- `Regression:` — `smoke`, `unit`, `integration`, `none` (default: unit, integration)
+
+See `rules/generic/sprint_definition.md` for full specification.
+
+## Rules (MUST READ)
+
+Before starting any work, you MUST read and understand all rules in `rules/generic` directory.
+
+**IMPORTANT**: You MUST comply with all rules without exceptions. If anything is unclear or conflicts, ask immediately. 
+
+## Summary
+
+As an agent:
+
+1. ✅ Read all rules in `rules/generic` directory
+2. ✅ Invoke `@rup-manager.md` for full cycle
+3. ✅ Follow agent instructions from `.claude/commands/agents/`
+4. ✅ Ask questions when unclear - NEVER assume
+
+**Ready to start?** Invoke `@rup-manager.md` to begin.

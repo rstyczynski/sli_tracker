@@ -1,0 +1,55 @@
+name: "MODEL — emit (OCI CLI backend)"
+# Dedicated workflow proving sli-event works in OCI CLI mode.
+# Uses install-oci-cli + oci-profile-setup, then emits through emit_oci.sh.
+
+on:
+  workflow_dispatch:
+    inputs:
+      simulate-failure:
+        description: "Force failure (for SLI testing)"
+        type: boolean
+        default: false
+
+jobs:
+  emit-oci-cli:
+    name: "Emit via OCI CLI"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Install OCI CLI"
+        uses: ./.github/actions/install-oci-cli
+
+      - name: "Restore OCI profile"
+        id: oci_profile
+        uses: ./.github/actions/oci-profile-setup
+        with:
+          oci_config_payload: ${{ secrets.OCI_CONFIG_PAYLOAD }}
+          profile: SLI_TEST
+
+      - name: "Main step"
+        id: step-main
+        run: |
+          if [[ "${{ inputs.simulate-failure }}" == "true" ]]; then
+            echo "::error::Simulated failure triggered for SLI testing"
+            exit 1
+          fi
+          echo "Main step completed successfully"
+
+      - name: "SLI Report (OCI CLI backend)"
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        uses: ./.github/actions/sli-event
+        with:
+          outcome: ${{ job.status }}
+          emit-backend: oci-cli
+          steps-json: ${{ toJSON(steps) }}
+          context-json: |
+            {
+              "oci": {
+                "log-id":      "${{ vars.SLI_OCI_LOG_ID }}",
+                "config-file": "~/.oci/config",
+                "profile":     "${{ steps.oci_profile.outputs.profile || 'SLI_TEST' }}"
+              }
+            }

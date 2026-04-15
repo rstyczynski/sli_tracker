@@ -8,7 +8,7 @@ The framework can accept notifications from external systems, receive OCI-native
 
 The system model is shown below.
 
-![SLI Tracker system model](../model/model.jpg)
+<img src="../model/model.jpg" alt="SLI Tracker system model" width="50%">
 
 The editable source is [`model/model.drawio`](../model/model.drawio).
 
@@ -537,11 +537,11 @@ That same separation is what lets the same routing model work locally with file 
 
 Two diagrams below show the same router from two angles. `Router` is the structural view of the major parts.
 
-![Router structural view](../model/router.jpg)
+<img src="../model/router.jpg" alt="Router structural view" width="50%">
 
 `Router runtime` is the behavioral view of how input, route matching, transformation, and destination dispatch execute together.
 
-![Router runtime behavioral view](../model/router_runtime.jpg)
+<img src="../model/router_runtime.jpg" alt="Router runtime behavioral view" width="50%">
 
 Core files:
 

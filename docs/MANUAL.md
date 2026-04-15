@@ -97,7 +97,7 @@ Before going deeper into the architecture, it helps to see the two basic sink ty
 - OCI Monitoring for compact numeric signals
 - OCI Logging for searchable event records
 
-> **Profile note:** The examples in this section use the local `DEFAULT` OCI profile on purpose. At this stage the reader only needs one working authenticated profile to see data arrive in OCI. The repository-specific `SLI_TEST` profile — and the tool that creates it — are introduced in §4.5.
+> **Profile note:** The examples in this section use the local `DEFAULT` OCI profile on purpose. At this stage the reader only needs one working authenticated profile to see data arrive in OCI. The repository-specific `SLI_TEST` profile is introduced later in [Authenticate SLI_TEST](#authenticate-sli_test) and described in more detail in §5.6.
 
 ### 3.0 Prerequisites: OCI Resources
 
@@ -145,7 +145,6 @@ export SLI_OCI_LOG_URI="/SLI_tracker/sli-events/github-actions"
 ensure_sli_log_resources "$(pwd)" DEFAULT "$NAME_PREFIX" "$SLI_OCI_LOG_URI"
 export LOG_ID="$SLI_LOG_OCID"
 export LOG_GROUP_ID="$LOG_GROUP_OCID"
-export COMPARTMENT_OCID="$COMPARTMENT_OCID"
 ```
 
 State is written to `./state-${NAME_PREFIX}.json`. You can read OCIDs from it any time:
@@ -243,7 +242,7 @@ oci logging-ingestion put-logs \
   --log-entry-batches "$LOG_BATCHES"
 ```
 
-This is the first point where the operator can see the whole idea working end to end. The CLI command is not just accepted locally; it creates a real searchable record in OCI Logging. Open the OCI Console, go to the log associated with this deployment, and inspect recent entries. Look for the record with `source` set to `"manual`, and path to `oci-cli`, to confirm that the timestamp and payload match what you injected.
+This is the first point where the operator can see the whole idea working end to end. The CLI command is not just accepted locally; it creates a real searchable record in OCI Logging. Open the OCI Console, go to the log associated with this deployment, and inspect recent entries. Look for records where `source == "manual"` and `path == "oci-cli"` to confirm that the timestamp and payload match what you injected.
 
 Once both `success` and `failure` entries are visible, you have validated the most basic ingestion path: a structured event left your shell, reached OCI, and became queryable operational data.
 
@@ -256,7 +255,7 @@ open "https://cloud.oracle.com/logging/logs/${LOG_ID}/log-groups/${LOG_GROUP_ID}
 
 ### 3.3 Query That Log Category Back and Compute Message-Level SLI
 
-For the manual CLI log examples above, a simple message-level SLI is: `number of success messages / number of messages` The category is identified by the payload fields `source=="manual"` and `path=="oci-cli"`. Wait around 60 seconds for log propagation, and execute log search and SLI computation code for 30 minutes .
+For the manual CLI log examples above, a simple message-level SLI is `number of success messages / number of messages`. The category is identified by the payload fields `source=="manual"` and `path=="oci-cli"`. Wait around 60 seconds for log propagation, then search the last 30 minutes of data and compute the ratio.
 
 ```bash
 # Requires: COMPARTMENT_OCID, LOG_ID, LOG_GROUP_ID exported in §3.0
@@ -299,10 +298,10 @@ If you inserted one success message and one failure message into this category, 
 
 ### 3.4 Inject the Computed SLI as One Derived OCI Metric
 
-After you compute `SLI` from the queried log stream, you can publish that ratio back to OCI Monitoring as a derived metric. Run this in the same shell as the previous snippet, or set `SLI` manually first. In this example the metric carries the dimension `window="30min"` so the reader can see which aggregation window produced the value.
+After you compute `SLI` from the queried log stream, you can publish that ratio back to OCI Monitoring as a derived metric. Run this in the same shell as the previous snippet if you want to reuse the computed value. If `SLI` is not already set, this example falls back to `0.5` so the reader can still exercise the Monitoring path. In this example the metric carries the dimension `window="30min"` so the reader can see which aggregation window produced the value.
 
 ```bash
-# Requires: COMPARTMENT_OCID exported in §3.0; SLI set by §3.3
+# Requires: COMPARTMENT_OCID exported in §3.0; optionally reuse SLI from §3.3
 export OCI_CLI_PROFILE=DEFAULT
 TS="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 SLI="${SLI:-0.5}"
@@ -341,18 +340,19 @@ SLI_METRIC_PAYLOAD="$(jq -nc \
   }]')"
 
 oci monitoring metric-data post \
---endpoint "$OCI_MONITORING_ENDPOINT" \
---metric-data "$SLI_METRIC_PAYLOAD" \
---batch-atomicity ATOMIC 
+  --endpoint "$OCI_MONITORING_ENDPOINT" \
+  --metric-data "$SLI_METRIC_PAYLOAD" \
+  --batch-atomicity ATOMIC \
+  | jq
 ```
 
-This is the metric-side equivalent of the earlier Logging check. The command does not just return success locally; it creates real datapoints in OCI Monitoring that can later drive charts, queries, alarms, and derived SLI calculations. Open the OCI Console, go to Metric Explorer.
+This is the metric-side equivalent of the earlier Logging check. The command does not just return success locally; it creates real datapoints in OCI Monitoring that can later drive charts, queries, alarms, and derived SLI calculations. Open the OCI Console and go to Metric Explorer.
 
 ```bash
 open https://cloud.oracle.com/monitoring/explore?region=$OCI_REGION
 ```
 
-Select compartment `SLI_tracker`, namespace `sli_tracker_manual`, metric name `sli`, and press `Update chart`. You see single dot at the right side of the chart. Press `Show Data Table` to see raw data.
+Select compartment `SLI_tracker`, namespace `sli_tracker_manual`, metric name `sli`, and press `Update chart`. You should see a single point near the right edge of the chart. Press `Show Data Table` to inspect the raw datapoint.
 
 Once those datapoints are visible, you have validated the second half of the telemetry story: the same manual exercise can now produce both searchable event records in Logging and numeric signals in Monitoring.
 
@@ -360,7 +360,7 @@ Once those datapoints are visible, you have validated the second half of the tel
 
 The project later computes SLI from Monitoring data over a sliding time window. The live implementation in [`tools/sli_compute_sli_metrics.js`](../tools/sli_compute_sli_metrics.js) uses Monitoring summary queries over a bounded interval, then derives `success / total` from the returned datapoints. Before going there, it is useful to query the just-inserted manual datapoints directly with OCI CLI and see that they are really present.
 
-The example below searches the last 60 minutes for the metric series created in the previous step. It's equivalent of OC Console search.
+The example below searches the last 60 minutes for the metric series created in the previous step. It is the CLI equivalent of searching for the same series in OCI Metric Explorer.
 
 ```bash
 # Requires: COMPARTMENT_OCID exported in §3.0
@@ -379,24 +379,157 @@ oci monitoring metric-data summarize-metrics-data \
 | jq '.data[]'
 ```
 
-If the data is already visible, each query returns one or more streams with `aggregated-datapoints`. The timestamps should be close to the values you inserted manually. If you do not see anything yet, wait a short while and repeat the command, because Monitoring ingestion is not always immediate.
+If the data is already visible, the query returns one or more streams with `aggregated-datapoints`. The timestamps should be close to the values you inserted manually. If you do not see anything yet, wait a short while and repeat the command, because Monitoring ingestion is not always immediate.
 
 This is a simplified form of the same idea used later for sliding-window SLI computation. Here you only verify that the datapoints exist. Later, the project queries Monitoring over a larger rolling interval and aggregates those datapoints into one operational SLI value.
 
 ## 4. Injection tools Hands-On
 
-As you learnt log and metric injection is not complex, however demanding from configuration point of view. To make operation easier this project provides facilitators for CLI, GitHub workflows. On the other hand reception of events e.g. GitGub webhooks requires automation - receiving service is a must to handle this traffic. As GitHub emits many different events, that we would like to classify and potentially handle in different ways a kind of configurable element must be in place. Here it comes to transformer and router, that can classify incoming messages, transform as needed and forwards to destination systems.
+Direct log and metric injection is conceptually simple, but it quickly becomes configuration-heavy. This project therefore provides several operator-facing entry points: local CLI examples, GitHub workflow examples, and reusable local GitHub Actions.
 
-### 4.1 GitHub Actions SLI Track
+The next step after direct injection is automation. Incoming traffic such as GitHub webhooks cannot be handled manually, so the project also provides transformer and router components that can classify messages, reshape them, and forward them to the right destinations. Before getting there, the operator should first understand how workflow-based OCI authentication works.
 
-GitHub workflows call local actions under [`.github/actions`](../.github/actions). Those actions assemble a structured payload describing a workflow run, its outcome, and failure reasons. The payload can then be pushed to OCI Logging and OCI Monitoring using OCI CLI or direct API call. The latter technique uses `curl` to directly access OCI API.
+### 4.1 Authenticate SLI_TEST
+
+Before playing with workflow examples, prepare the project-specific OCI profile `SLI_TEST`. This is the profile name expected by the workflows in this repository. The recommended starting mode is a browser-authenticated session token, which is safer for operator-driven setup than distributing a long-lived API key.
+
+The session-based setup has three moving parts:
+
+- OCI CLI on the machine where you prepare the profile
+- the local setup script that creates or refreshes `SLI_TEST`
+- the workflow restore action that recreates that profile on GitHub runners
+
+#### 4.1.1. Install OCI CLI locally
+
+The profile setup script calls `oci session authenticate`, so your workstation needs a working OCI CLI first.
+
+If OCI CLI is not installed yet, use Oracle's standard installation path or the helper logic documented in:
+
+- [`.github/actions/install-oci-cli/README.md`](../.github/actions/install-oci-cli/README.md)
+
+On GitHub runners, the same role is handled by the action:
+
+- [`.github/actions/install-oci-cli/action.yml`](../.github/actions/install-oci-cli/action.yml)
+
+Operator meaning:
+
+- locally, OCI CLI is needed to open the browser login flow and create the session token
+- in workflows, `install-oci-cli` makes the `oci` command available before profile restoration and OCI calls
+
+#### 4.1.2. Create or refresh `SLI_TEST` with a browser-authenticated session
+
+Run the operator-side setup script from the repository root:
+
+```bash
+.github/actions/oci-profile-setup/setup_oci_github_access.sh \
+  --account-type session \
+  --profile DEFAULT \
+  --session-profile-name SLI_TEST \
+  --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+```
+
+What this does:
+
+- starts `oci session authenticate`
+- lets you log in through the browser
+- creates a local session profile named `SLI_TEST`
+- packs the needed `~/.oci/config` and `~/.oci/sessions/SLI_TEST` content
+- uploads that payload to the GitHub secret `OCI_CONFIG_PAYLOAD`
+
+This same command is also the refresh command. When the session token expires, run it again to replace the GitHub secret with a fresh session.
+
+After it succeeds, verify locally:
+
+```bash
+oci iam region-subscription list --profile SLI_TEST --auth security_token | jq '.data[0]'
+```
+
+#### 4.1.3. Understand what workflows do with that secret
+
+Workflows do not log in interactively. Instead, they restore and replay the profile you prepared earlier.
+
+The usual pair of workflow steps is:
+
+1. `install-oci-cli`
+2. `oci-profile-setup`
+
+Both are packaged in this repository as local GitHub Actions:
+
+- [`.github/actions/install-oci-cli/action.yml`](../.github/actions/install-oci-cli/action.yml)
+- [`.github/actions/oci-profile-setup/action.yml`](../.github/actions/oci-profile-setup/action.yml)
+
+So workflows use them through `uses: ./.github/actions/...` rather than reimplementing shell logic inline.
+
+`install-oci-cli`:
+
+- installs OCI CLI on the GitHub runner
+- adds `oci` to `PATH`
+- is required for any workflow that uses the `oci-cli` backend
+
+`oci-profile-setup`:
+
+- reads the repository secret `OCI_CONFIG_PAYLOAD`
+- restores `~/.oci/config` and session files on the runner
+- exposes the resolved profile name to later workflow steps
+
+Example workflow pattern:
+
+```yaml
+- name: Install OCI CLI
+  uses: ./.github/actions/install-oci-cli
+
+- name: Restore OCI profile
+  id: oci_profile
+  uses: ./.github/actions/oci-profile-setup
+  with:
+    oci_config_payload: ${{ secrets.OCI_CONFIG_PAYLOAD }}
+    profile: SLI_TEST
+```
+
+Then later steps use:
+
+- `profile: ${{ steps.oci_profile.outputs.profile || 'SLI_TEST' }}`
+
+This is why the profile name matters. The packed profile name and the workflow restore profile must match.
+
+Useful references:
+
+- [`.github/actions/oci-profile-setup/setup_oci_github_access.sh`](../.github/actions/oci-profile-setup/setup_oci_github_access.sh)
+- [`.github/actions/oci-profile-setup/README.md`](../.github/actions/oci-profile-setup/README.md)
+
+#### 4.1.4. Emit monitoring and log data via OCI CLI, direct API, and JS SDK
+
+The OCI profile is the critical prerequisite. OCI CLI itself is only one possible emission backend. This project also provides two alternatives:
+
+- `curl`, which talks directly to OCI APIs
+- JavaScript, which uses the Oracle JS SDK
+
+Those three workflow variants are:
+
+- [`.github/workflows/model-emit.yml`](../.github/workflows/model-emit.yml)
+- [`.github/workflows/model-emit-curl.yml`](../.github/workflows/model-emit-curl.yml)
+- [`.github/workflows/model-emit-js.yml`](../.github/workflows/model-emit-js.yml)
+
+Once `SLI_TEST` is authenticated and the secret is fresh, you can move to workflow examples and expect OCI-backed steps to work without additional local setup.
+
+XXXX EDITED UP TO THIS PLACEHOLDER XXXX
+XXXX EDITED UP TO THIS PLACEHOLDER XXXX
+XXXX EDITED UP TO THIS PLACEHOLDER XXXX
+
+
+### 4.2 GitHub Actions SLI Track
+
+GitHub workflows call local actions under [`.github/actions`](../.github/actions). Those actions assemble a structured payload describing a workflow run, its outcome, and failure reasons. The payload can then be pushed to OCI Logging and OCI Monitoring using OCI CLI or a direct API call. The latter technique uses `curl` against OCI APIs.
 
 Core files:
 
+- [`.github/actions/sli-event/action.yml`](../.github/actions/sli-event/action.yml)
 - [`.github/actions/sli-event-js/action.yml`](../.github/actions/sli-event-js/action.yml)
 - [`.github/actions/sli-event/emit.sh`](../.github/actions/sli-event/emit.sh)
 - [`.github/actions/sli-event/emit_curl.sh`](../.github/actions/sli-event/emit_curl.sh)
 - [`.github/actions/sli-event/emit_oci.sh`](../.github/actions/sli-event/emit_oci.sh)
+
+Open GitHub Actions and inspect the three `MODEL — emit / ...` workflows to see the same event path exercised through different emission backends.
 
 ## 5. Router tools Hands-On
 

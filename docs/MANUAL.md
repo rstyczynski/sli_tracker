@@ -176,13 +176,6 @@ gh variable set SLI_OCI_COMPARTMENT_ID  --body "$COMPARTMENT_OCID" -R "$repo"
 gh variable set SLI_OCI_LOG_GROUP_ID    --body "$LOG_GROUP_ID"     -R "$repo"
 ```
 
-Open the log in the OCI Console to confirm it exists (the region is extracted from the log OCID):
-
-```bash
-REGION=$(echo "$LOG_ID" | cut -d. -f4)
-open "https://cloud.oracle.com/logging/logs/${LOG_ID}/log-groups/${LOG_GROUP_ID}?region=${REGION}"
-```
-
 ### 3.1 Inject One Log Entry into OCI Logging
 
 This should append one JSON log entry to the configured OCI log. The payload is intentionally small and easy to recognize when you query the log later.
@@ -216,10 +209,6 @@ oci logging-ingestion put-logs \
   --log-entry-batches "$LOG_BATCHES"
 ```
 
-Open the OCI Console, navigate to the Logging section, select the log group and log associated with your deployment, and query for recent entries. Locate the entry with the `source` set to `"manual/oci-cli"` and confirm that your log injection is visible with the correct timestamp and payload data.
-
-
-
 ### 3.2 Inject Failure Log Message
 
 To inject a failure event, keep the same shape as the success payload above and change `outcome` to `"failure"`. Include an explicit failure reason so you can spot it easily in OCI Logging.
@@ -251,6 +240,17 @@ oci logging-ingestion put-logs \
   --log-id "$LOG_ID" \
   --specversion "1.0" \
   --log-entry-batches "$LOG_BATCHES"
+```
+
+This is the first point where the operator can see the whole idea working end to end. The CLI command is not just accepted locally; it creates a real searchable record in OCI Logging. Open the OCI Console, go to the log associated with this deployment, and inspect recent entries. Look for the record with `source` set to `"manual`, and path to `oci-cli`, to confirm that the timestamp and payload match what you injected.
+
+Once both `success` and `failure` entries are visible, you have validated the most basic ingestion path: a structured event left your shell, reached OCI, and became queryable operational data.
+
+If you want to jump directly to the log in OCI Console, derive the region from the log OCID and open it:
+
+```bash
+REGION=$(echo "$LOG_ID" | cut -d. -f4)
+open "https://cloud.oracle.com/logging/logs/${LOG_ID}/log-groups/${LOG_GROUP_ID}?region=${REGION}"
 ```
 
 ### 3.3 Query That Log Category Back and Compute Message-Level SLI
@@ -343,71 +343,44 @@ oci monitoring metric-data post \
   | jq
 ```
 
-### 3.5 Inject One Custom Metric into OCI Monitoring
+This is the metric-side equivalent of the earlier Logging check. The command does not just return success locally; it creates real datapoints in OCI Monitoring that can later drive charts, queries, alarms, and derived SLI calculations. Open the OCI Console, go to Metric Explorer.
 
-This should create one `outcome` datapoint in namespace `sli_tracker_manual` with simple dimensions so it is easy to find later.
+```bash
+open https://cloud.oracle.com/monitoring/explore?region=$OCI_REGION
+```
+
+Select compartment `SLI_tracker`, namespace `sli_tracker_manual`, metric name `sli`, and press `Update chart`. You see single dot at the right side of the chart. Press `Show Data Table` to see raw data.
+
+Once those datapoints are visible, you have validated the second half of the telemetry story: the same manual exercise can now produce both searchable event records in Logging and numeric signals in Monitoring.
+
+### 3.5 Search for metric data
+
+The project later computes SLI from Monitoring data over a sliding time window. The live implementation in [`tools/sli_compute_sli_metrics.js`](../tools/sli_compute_sli_metrics.js) uses Monitoring summary queries over a bounded interval, then derives `success / total` from the returned datapoints. Before going there, it is useful to query the just-inserted manual datapoints directly with OCI CLI and see that they are really present.
+
+The example below searches the last 60 minutes for the metric series created in the previous step. It's equivalent of OC Console search.
 
 ```bash
 # Requires: COMPARTMENT_OCID exported in §3.0
-TS="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 export OCI_CLI_PROFILE=DEFAULT
-OCI_REGION="$(
-  oci os ns get --debug 2>&1 \
-    | sed -n 's/.*Endpoint: https:\/\/objectstorage\.\([^.]*\)\..*/\1/p' \
-    | head -1
-)"
-OCI_REALM_SUFFIX="$(
-  oci os ns get --debug 2>&1 \
-    | sed -n 's/.*Endpoint: https:\/\/objectstorage\.[^.]*\.\([^[:space:]]*\).*/\1/p' \
-    | head -1
-)"
-OCI_MONITORING_ENDPOINT="https://telemetry-ingestion.${OCI_REGION}.${OCI_REALM_SUFFIX}"
+TS_START="$(date -u -v-60M '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date -u --date='-60 min' '+%Y-%m-%dT%H:%M:%SZ')"
+TS_END="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
-METRIC_PAYLOAD="$(jq -nc \
-  --arg compartment "$COMPARTMENT_OCID" \
-  --arg ts "$TS" \
-  --argjson sli "${SLI:-1}" \
-  '[
-    {
-      compartmentId: $compartment,
-      namespace: "sli_tracker_manual",
-      name: "outcome",
-      dimensions: {
-        emit_env: "local",
-        source: "manual",
-        path: "oci-cli"
-      },
-      datapoints: [{
-        timestamp: $ts,
-        value: 1
-      }]
-    },
-    {
-      compartmentId: $compartment,
-      namespace: "sli_tracker_manual",
-      name: "sli",
-      dimensions: {
-        source: "manual",
-        path: "oci-cli",
-        window: "30min"
-      },
-      datapoints: [{
-        timestamp: $ts,
-        value: $sli
-      }]
-    }
-  ]')"
-
-oci monitoring metric-data post \
-  --endpoint "$OCI_MONITORING_ENDPOINT" \
-  --metric-data "$METRIC_PAYLOAD" \
-  --batch-atomicity ATOMIC \
-  | jq
+oci monitoring metric-data summarize-metrics-data \
+  --compartment-id "$COMPARTMENT_OCID" \
+  --namespace sli_tracker_manual \
+  --start-time "$TS_START" \
+  --end-time "$TS_END" \
+  --resolution 1m \
+  --query-text 'sli[1m].mean()' \
+  --output json \
+| jq '.data[]'
 ```
 
-Open the OCI Console, then go to Metric Explorer and verify that both metrics are available.
+If the data is already visible, each query returns one or more streams with `aggregated-datapoints`. The timestamps should be close to the values you inserted manually. If you do not see anything yet, wait a short while and repeat the command, because Monitoring ingestion is not always immediate.
 
-## 4. Injection tools and Router Hands-On
+This is a simplified form of the same idea used later for sliding-window SLI computation. Here you only verify that the datapoints exist. Later, the project queries Monitoring over a larger rolling interval and aggregates those datapoints into one operational SLI value.
+
+## 4. Injection tools Hands-On
 
 As you learnt log and metric injection is not complex, however demanding from configuration point of view. To make operation easier this project provides facilitators for CLI, GitHub workflows. On the other hand reception of events e.g. GitGub webhooks requires automation - receiving service is a must to handle this traffic. As GitHub emits many different events, that we would like to classify and potentially handle in different ways a kind of configurable element must be in place. Here it comes to transformer and router, that can classify incoming messages, transform as needed and forwards to destination systems.
 
@@ -422,7 +395,9 @@ Core files:
 - [`.github/actions/sli-event/emit_curl.sh`](../.github/actions/sli-event/emit_curl.sh)
 - [`.github/actions/sli-event/emit_oci.sh`](../.github/actions/sli-event/emit_oci.sh)
 
-### 4.2 Router and Ingest Track
+## 5. Router tools Hands-On
+
+### 5.1 Router and Ingest Track
 
 Incoming JSON payloads can be identified, transformed, and routed to multiple destinations. This part of the project is transport-agnostic at the routing-definition level, then implemented through adapters for file output, OCI Object Storage, OCI Monitoring, and OCI Logging. Routing is defined by a custom data structure shared by CLI and Fn execution, and the transformation uses JSONata mappings.
 
@@ -639,458 +614,7 @@ Adapter code is under for destinations:
 - [`oci_monitoring_adapter.js`](../tools/adapters/oci_monitoring_adapter.js)
 - [`oci_logging_adapter.js`](../tools/adapters/oci_logging_adapter.js)
 
-The operator cookbook in §11.4 (Local Transformation and Routing CLI) shows the same track as hands-on CLI work with complete, runnable bash examples:
-
-- one-envelope local routing
-- `stdin` routing
-- pretty-printed result inspection
-- batch routing
-- source-declared execution
-- production-oriented OCI mapping and destination examples
-
-### 4.3 SLI Calculation Track
-
-The project includes tools that compute rolling-window SLI values from OCI Monitoring metrics. This is the as simple as possible analytical part of the system: it reads collected telemetry and derives higher-level service indicators from it. Simplicity here comes from both a calculation method, and execution, that uses GitHub workflow scheduling.
-
-Core files:
-
-- [`.github/workflows/sli_compute_sli_metrics.yml`](../.github/workflows/sli_compute_sli_metrics.yml)
-- [`tools/sli_compute_sli_metrics.js`](../tools/sli_compute_sli_metrics.js)
-
-### 4.4 Synthetic Event Generator Track
-
-The project also includes tools that generate controlled synthetic outcome streams. These tools are used to validate dashboards, alerts, routing behavior, and SLI calculations under known conditions. On this stage it's a tool to generate synthetic data on a non production platform, however in the future similar technique will be used to push data to a system in an idle period, when users are not generating any traffic.
-
-Core files:
-
-- [`tools/sli_ratio_simulator.sh`](../tools/sli_ratio_simulator.sh)
-- [`.github/workflows/sli_ratio_simulator.yml`](../.github/workflows/sli_ratio_simulator.yml)
-
-### 4.5 OCI Authentication Profiles
-
-This project uses two named OCI profiles:
-
-| Profile | Where used | Lifetime |
-| ------- | ---------- | -------- |
-| `DEFAULT` | Local operator commands, §3 examples | Depends on local key — usually non-expiring API key |
-| `SLI_TEST` | Tests, GitHub Actions workflows, operator cookbook | Session: ~60 min · API key: non-expiring |
-
-`DEFAULT` is the standard OCI CLI profile every operator already has locally. The early examples in §3 use it deliberately — no extra setup required, and it proves that OCI ingestion works before introducing any project-specific tooling.
-
-`SLI_TEST` is the project-standard profile name expected by all tests and workflows in this repository. It is created by a dedicated setup tool and optionally packed into a GitHub secret so CI runners can authenticate to OCI.
-
-#### The Profile Setup Tool
-
-`setup_oci_github_access.sh` is the operator-facing script that creates `SLI_TEST` and (optionally) uploads it to GitHub as a repository secret. It supports two authentication modes.
-
-##### Mode 1 — Session (browser-authenticated token)
-
-Use this for short-lived operator-assisted test sessions. The script runs `oci session authenticate`, which opens a browser for OCI IAM login and produces a time-limited session token. The resulting profile and token files are packed into `OCI_CONFIG_PAYLOAD` and uploaded to GitHub.
-
-```bash
-.github/actions/oci-profile-setup/setup_oci_github_access.sh \
-  --account-type session \
-  --profile DEFAULT \
-  --session-profile-name SLI_TEST \
-  --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
-```
-
-- Token expires after approximately 60 minutes
-- Must be refreshed before the next test session
-- Suitable for interactive work where an operator is present
-
-##### Mode 2 — Config profile (API-key based)
-
-Use this for longer-running tests or fully automated CI. The script mirrors an existing local profile (usually `DEFAULT`) into `SLI_TEST`, copying the API key configuration. The result is packed and uploaded to GitHub in the same way.
-
-```bash
-.github/actions/oci-profile-setup/setup_oci_github_access.sh \
-  --account-type config_profile \
-  --profile DEFAULT \
-  --session-profile-name SLI_TEST \
-  --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
-```
-
-- Token does not expire
-- Copies your local `DEFAULT` private key material into the packed secret — treat the secret accordingly
-- Suitable for unattended pipelines
-
-#### Profile Restoration on CI Runners
-
-On GitHub Actions runners, the packed `OCI_CONFIG_PAYLOAD` secret is unpacked by the restore action:
-
-- [`.github/actions/oci-profile-setup/action.yml`](../.github/actions/oci-profile-setup/action.yml)
-- [`.github/actions/oci-profile-setup/oci_profile_setup.sh`](../.github/actions/oci-profile-setup/oci_profile_setup.sh)
-
-After restoration, the runner has `~/.oci/config` with the `SLI_TEST` profile available for OCI SDK calls and OCI CLI commands.
-
-Full tool reference:
-
-- [`.github/actions/oci-profile-setup/setup_oci_github_access.sh`](../.github/actions/oci-profile-setup/setup_oci_github_access.sh)
-- [`.github/actions/oci-profile-setup/README.md`](../.github/actions/oci-profile-setup/README.md)
-
-## 5. Major Techniques Used in This Project
-
-This section names the main technical patterns a reader needs to understand.
-
-### 5.1 Structured Event Emission from GitHub Actions
-
-The project treats GitHub workflow runs as telemetry sources. Rather than logging plain text, it builds structured JSON payloads containing:
-
-- workflow identity
-- repository and ref metadata
-- run outcome
-- optional domain-specific inputs
-- failure reasons derived from failed steps
-
-This is the core observability technique of the repository.
-
-### 5.2 Backend-Switchable OCI Emission
-
-Emission is not tied to one transport implementation. The repository supports multiple backend styles:
-
-- OCI CLI based emission
-- curl plus request-signing emission
-- JavaScript action based post-step emission
-
-This keeps the payload contract stable while allowing transport changes. It may be beneficial to fully switch to core API accessible via `curl` or Node.js SDK, as it eliminates OCI CLI and python installation steps what saves pipeline execution time.
-
-### 5.3 Telemetry Sinks
-
-The same logical event can be sent to more than one destination:
-
-- OCI Logging for searchable raw events
-- OCI Monitoring for numeric metrics
-- OCI Object Storage Bucket for debug and further use cases.
-
-This is important because logs are better for audit and search, while metrics are better for ratio calculation and alerting. Platform comes with pluggable adapter interface, enabling new sources and destination to be added.
-
-### 5.4 JSONata Transformation
-
-JSONata expressions are used to transform one JSON document into another. This lets the project convert source-specific payloads into destination-specific contracts without hardcoding every variation in application logic.
-
-Relevant files:
-
-- [`tools/json_transform_cli.js`](../tools/json_transform_cli.js)
-- [`tools/mappings/github_workflow_run_to_oci_log.jsonata`](../tools/mappings/github_workflow_run_to_oci_log.jsonata)
-- [`tools/mappings/health_to_oci_metric.jsonata`](../tools/mappings/health_to_oci_metric.jsonata)
-
-### 5.5 Config-Driven Routing
-
-The router identifies payload type, chooses a mapping, and dispatches to one or more destinations based on configuration. This allows new flows to be added by editing routing definitions and mappings instead of rewriting the runtime.
-
-Key concepts:
-
-- source identification
-- exclusive versus fanout routing
-- destination abstraction
-- adapter registration from config
-- dead-letter handling for failures
-
-### 5.6 Adapter-Based Delivery
-
-Destination-specific behavior is isolated behind adapters. This is a major design technique in the repo because it separates routing logic from side effects.
-
-Examples:
-
-- file adapter
-- OCI Object Storage adapter
-- OCI Monitoring adapter
-- OCI Logging adapter
-
-### 5.7 OCI Function as Public Ingest Endpoint
-
-The project includes an OCI Function deployment that accepts public traffic through API Gateway and performs routing plus delivery. This is the bridge between external event producers and OCI-hosted telemetry storage.
-
-### 5.8 Test-First Quality Gates
-
-The repo uses centralized shell-driven test execution with suite and component scoping. Tests are grouped by level:
-
-- smoke
-- unit
-- integration
-
-The test runner supports manifest-based filtering and component-scoped regression, which matters because the repo now contains several semi-independent domains.
-
-Relevant files:
-
-- [`tests/run.sh`](../tests/run.sh)
-- [`tests/manifests/component_router.manifest`](../tests/manifests/component_router.manifest)
-- [`tests/unit/README.md`](../tests/unit/README.md)
-- [`tests/integration/README.md`](../tests/integration/README.md)
-
-### 5.9 Infrastructure Lifecycle Scripts
-
-OCI resources are not assumed to exist forever. The repository contains helper scripts to create, validate, and tear down test infrastructure in a repeatable way.
-
-This includes:
-
-- OCI log and compartment setup
-- Function resource policies
-- API Gateway router deployment lifecycle
-- bucket cleanup and validation helpers
-
-## 6. Major Tools and Components
-
-This section is a compact inventory of the most important building blocks.
-
-### 6.1 GitHub Actions Components
-
-- `install-oci-cli`
-  Purpose: install OCI CLI on GitHub runners.
-- `oci-profile-setup`
-  Purpose: prepare OCI auth material for local or CI usage.
-- `sli-event`
-  Purpose: build and emit SLI payloads from shell-based action logic.
-- `sli-event-js`
-  Purpose: emit via JavaScript action lifecycle hooks.
-
-### 6.2 Workflow Models
-
-The workflows under [`.github/workflows`](../.github/workflows) serve two roles:
-
-1. realistic examples of GitHub pipeline patterns
-2. test fixtures for SLI instrumentation
-
-Representative workflows:
-
-- `model-push.yml`
-- `model-pr.yml`
-- `model-call.yml`
-- `model-emit-curl.yml`
-- `model-emit-js.yml`
-- `sli_compute_sli_metrics.yml`
-- `sli_ratio_simulator.yml`
-
-### 6.3 Node.js Tooling
-
-The root [package.json](../package.json) shows the key libraries:
-
-- `jsonata`
-- `ajv`
-- `oci-common`
-- `oci-loggingingestion`
-- `oci-monitoring`
-- `oci-objectstorage`
-
-In practice, Node.js is used for:
-
-- JSON routing and transformation logic
-- OCI adapter implementations
-- SLI metric computation
-- CLI tools for local validation
-
-### 6.4 Shell Tooling
-
-Shell remains a first-class implementation language in this repo.
-
-It is used for:
-
-- GitHub Action runtime scripts
-- environment setup
-- OCI auth packaging
-- integration tests
-- simulator control flow
-- OCI deployment helpers
-
-### 6.5 OCI-Focused Helpers
-
-Important helpers under [`tools/`](../tools):
-
-- [`ensure_oci_resources.sh`](../tools/ensure_oci_resources.sh)
-- [`cycle_apigw_router_passthrough.sh`](../tools/cycle_apigw_router_passthrough.sh)
-- [`validate_router_ingest_and_metrics.sh`](../tools/validate_router_ingest_and_metrics.sh)
-- [`list_monitoring_metrics.sh`](../tools/list_monitoring_metrics.sh)
-- [`list_github_ingest_prefixes.sh`](../tools/list_github_ingest_prefixes.sh)
-- [`get_ingest_object.sh`](../tools/get_ingest_object.sh)
-
-### 6.6 OCI Function Router Components
-
-Important files under [`fn/router_passthrough/`](../fn/router_passthrough):
-
-- `func.js`
-- `router_core.js`
-- `lib/json_router.js`
-- `lib/json_transformer.js`
-- `lib/destination_dispatcher.js`
-- `lib/oci_object_storage_adapter.js`
-- `lib/oci_monitoring_adapter.js`
-- `lib/oci_logging_adapter.js`
-- `lib/schemas/json_router_definition.schema.json`
-
-## 7. Repository Areas and Their Roles
-
-| Area | Role |
-|------|------|
-| `.github/actions/` | GitHub Action implementations used by workflows |
-| `.github/workflows/` | Example and test workflows that emit telemetry |
-| `tools/` | Local CLIs, helpers, adapters, and OCI utility scripts |
-| `fn/router_passthrough/` | Deployable OCI Function router runtime |
-| `tests/` | Centralized smoke, unit, integration, and manifest-based test execution |
-| `oci_scaffold/` | OCI resource lifecycle support submodule |
-| `progress/` | Sprint-by-sprint implementation trace and test evidence |
-| `RUPStrikesBack/` | Delivery process, rules, and agent workflow submodule |
-
-## 8. Operational Knowledge a Reader Should Gain
-
-By the time a reader finishes the first part of this manual, they should be able to answer these questions:
-
-1. What counts as an SLI event in this repo?
-2. Which parts emit events, and which parts route them?
-3. When should Logging be used versus Monitoring?
-4. How are transformations expressed?
-5. How does the router choose a destination?
-6. Which tests are local-only and which tests require live OCI and GitHub access?
-7. Which scripts are used to stand infrastructure up and tear it down?
-
-These questions will later map to deeper chapters.
-
-## 9. Suggested Reading Order
-
-For a new maintainer, this is the recommended order:
-
-1. [`README.md`](../README.md)
-2. [`.github/workflows/README.md`](../.github/workflows/README.md)
-3. [`.github/actions/README.md`](../.github/actions/README.md)
-4. [`tests/unit/README.md`](../tests/unit/README.md)
-5. [`tests/integration/README.md`](../tests/integration/README.md)
-6. [`PLAN.md`](../PLAN.md)
-7. [`PROGRESS_BOARD.md`](../PROGRESS_BOARD.md)
-
-Then continue with the code paths that match the reader's focus:
-
-- emission path
-- router path
-- OCI deployment path
-- testing path
-
-## 10. Known Knowledge Domains for Future Expansion
-
-The next iterations of this manual should likely add dedicated chapters for:
-
-1. event schema and payload anatomy
-2. OCI authentication models used by the project
-3. router configuration model and mapping files
-4. Function deployment flow and required OCI resources
-5. test strategy and quality gates
-6. troubleshooting and failure modes
-7. sprint history and why the architecture evolved the way it did
-
-## 11. Snippet Catalog
-
-This section is intentionally placed at the bottom so it can grow into a practical operator cookbook.
-
-Unless noted otherwise, run the commands below from the repository root. The manual file lives in `docs/`, but the snippets use repository-root relative paths such as `tools/`, `tests/`, `.github/`, and `progress/`.
-
-Each snippet should eventually include:
-
-- scenario
-- prerequisites
-- command
-- expected outcome
-- follow-up checks
-
-### 11.1 Prepare `SLI_TEST` Authentication
-
-Most local OCI examples below use `"profile":"SLI_TEST"` inside `SLI_CONTEXT_JSON`. That profile is prepared by the operator-side script [`.github/actions/oci-profile-setup/setup_oci_github_access.sh`](../.github/actions/oci-profile-setup/setup_oci_github_access.sh).
-
-After a successful run, local commands can use `~/.oci/config` with profile `SLI_TEST`. On GitHub runners, the paired restore action [`.github/actions/oci-profile-setup/oci_profile_setup.sh`](../.github/actions/oci-profile-setup/oci_profile_setup.sh) unpacks that same profile from `OCI_CONFIG_PAYLOAD`.
-
-#### Session-Based `SLI_TEST` Profile
-
-Use this mode when you want browser-authenticated OCI access. The script runs `oci session authenticate` and creates an authenticated `SLI_TEST` session profile.
-
-```bash
-.github/actions/oci-profile-setup/setup_oci_github_access.sh \
-  --account-type session \
-  --profile DEFAULT \
-  --session-profile-name SLI_TEST \
-  --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
-```
-
-#### API-Key Mirrored `SLI_TEST` Profile
-
-Use this mode when you want a non-expiring API-key based `SLI_TEST` profile. The script copies an existing local profile such as `DEFAULT` into `SLI_TEST` and packs the key material into the GitHub secret.
-
-```bash
-.github/actions/oci-profile-setup/setup_oci_github_access.sh \
-  --account-type config_profile \
-  --profile DEFAULT \
-  --session-profile-name SLI_TEST \
-  --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
-```
-
-### 11.2 Local SLI Emission
-
-#### Emit one success event locally
-
-```bash
-repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
-export SLI_METRIC_COMPARTMENT="$(gh variable get SLI_OCI_COMPARTMENT_ID -R "$repo")"
-export SLI_OCI_LOG_ID="$(gh variable get SLI_OCI_LOG_ID -R "$repo")"
-export EMIT_BACKEND=curl
-export EMIT_TARGET=log,metric
-export SLI_OUTCOME=success
-export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
-bash .github/actions/sli-event/emit.sh
-```
-
-#### Emit one failure event locally
-
-```bash
-repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
-export SLI_METRIC_COMPARTMENT="$(gh variable get SLI_OCI_COMPARTMENT_ID -R "$repo")"
-export SLI_OCI_LOG_ID="$(gh variable get SLI_OCI_LOG_ID -R "$repo")"
-export EMIT_BACKEND=oci-cli
-export EMIT_TARGET=log,metric
-export SLI_OUTCOME=failure
-export STEPS_JSON='{"test_script":{"outcome":"failure","outputs":{}}}'
-export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
-bash .github/actions/sli-event/emit.sh
-```
-
-### 11.3 SLI Simulation and Computation
-
-#### Run the ratio simulator
-
-This is a live emission example. It uses the same OCI setup as the local emit examples above, so define the OCI target and auth context first, then start the simulator.
-
-```bash
-repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
-export SLI_METRIC_COMPARTMENT="$(gh variable get SLI_OCI_COMPARTMENT_ID -R "$repo")"
-export SLI_OCI_LOG_ID="$(gh variable get SLI_OCI_LOG_ID -R "$repo")"
-export EMIT_BACKEND=curl
-export EMIT_TARGET=log,metric
-export SLI_METRIC_NAMESPACE="sli_tracker"
-export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
-
-tools/sli_ratio_simulator.sh \
-  --target-failure-rate 0.95 \
-  --ramp-seconds 120 \
-  --hold-seconds 120 \
-  --teardown-seconds 120 \
-  --interval-seconds 5 \
-  --ramp-curve logarithmic \
-  --teardown-curve exponential \
-  --seed 42
-```
-
-#### Compute SLI from OCI Monitoring
-
-```bash
-tools/sli_compute_sli_metrics.js \
-  --oci-auth config \
-  --window-days 30 \
-  --mql-resolution 1d \
-  --namespace sli_tracker \
-  --metric-name outcome \
-  --compartment-id "$COMPARTMENT_OCID" \
-  --oci-config-file "~/.oci/config" \
-  --oci-profile "SLI_TEST" \
-  --output json | jq
-```
-
-### 11.4 Local Transformation and Routing CLI
+### 5.2 Local Transformation and Routing CLI
 
 `json_transform_cli.js` changes one JSON document into another. `json_router_cli.js` takes the next step: it matches the input against routes, runs the selected mapping, and executes the destination delivery. Since Sprint 29, this is true for single-envelope runs too, not only for batch mode.
 
@@ -1241,85 +765,7 @@ node tools/json_router_cli.js \
 cat "$TMP_DIR/file_system/audit_copy/001_audit_to_file.json" | jq
 ```
 
-Expected operator understanding:
-
-- the route match is evaluated
-- the mapping is executed
-- the file is really written under `file_system/audit_copy/`
-
-#### Capability 1A: influence adapter behavior with destination labeling
-
-The route destination is a logical label:
-
-```json
-{
-  "type": "file_system",
-  "name": "audit_copy"
-}
-```
-
-The actual adapter behavior can then be changed through the `adapters` section. For `file_system`, the key format is:
-
-`file_system:<name>`
-
-This lets the operator keep the same route label but redirect the write location.
-
-```bash
-TMP_DIR="$(mktemp -d /tmp/sli_router_labeling.XXXXXX)"
-echo '$' > "$TMP_DIR/mapping_file.jsonata"
-cat > "$TMP_DIR/envelope.json" <<'EOF'
-{
-  "body": {
-    "audit": {
-      "id": "A-1",
-      "message": "written through labeled adapter"
-    }
-  }
-}
-EOF
-
-cat > "$TMP_DIR/routing.json" <<'EOF'
-{
-  "adapters": {
-    "file_system:audit_copy": {
-      "directory": "out/custom_audit_location"
-    }
-  },
-  "routes": [
-    {
-      "id": "audit_to_file",
-      "match": {
-        "required_fields": ["audit.id"]
-      },
-      "transform": {
-        "mapping": "./mapping_file.jsonata"
-      },
-      "destination": {
-        "type": "file_system",
-        "name": "audit_copy"
-      }
-    }
-  ]
-}
-EOF
-
-node tools/json_router_cli.js \
-  --routing "$TMP_DIR/routing.json" \
-  --input "$TMP_DIR/envelope.json" \
-  --pretty
-
-cat "$TMP_DIR/out/custom_audit_location/001_audit_to_file.json" | jq
-```
-
-Operator meaning:
-
-- the route still says `file_system / audit_copy`
-- the adapter label `file_system:audit_copy` decides where that logical destination really writes
-- this is the main way to keep route intent stable while changing local target behavior
-
 #### Capability 2: route one local envelope from stdin
-
-Use this when the envelope is produced by another command or shell pipeline.
 
 ```bash
 TMP_DIR="$(mktemp -d /tmp/sli_router_stdin.XXXXXX)"
@@ -1361,11 +807,7 @@ EOF
 cat "$TMP_DIR/file_system/audit_copy/001_audit_to_file.json" | jq
 ```
 
-Notice that the output file is auto-numbered. In this example it is `001` because the router writes into a fresh directory.
-
 #### Capability 3: pretty output and mapping context
-
-Use `--pretty` when you want human-readable result JSON.
 
 ```bash
 TMP_DIR="$(mktemp -d /tmp/sli_router_pretty.XXXXXX)"
@@ -1423,355 +865,17 @@ node tools/json_router_cli.js \
 cat "$TMP_DIR/file_system/workflow_logs/001_workflow_to_log_shape.json" | jq
 ```
 
-Note about mapping context. The CLI reads a full envelope, for example with `headers` and `body`, and route matching can use the full envelope. However JSONata transformation runs on `envelope.body`, not on the whole envelope. That is why the mapping uses `repository.full_name` and `workflow_run.conclusion`, not `body.repository.full_name`.
-
-Without `--pretty`, the output is compact JSON and easier to pipe into other commands.
-
 #### Capability 4: route a local source directory to a local output directory
-
-This example runs three source files through the router in batch mode. Expect one workflow event to fan out into two output files, one health event to produce one metric-style output file, and one unknown event to land in `dead_letter/errors/`.
 
 ```bash
 OUT_DIR="$(mktemp -d /tmp/sli_router_batch.XXXXXX)"
 SRC_DIR="$(mktemp -d /tmp/sli_router_batch_source.XXXXXX)"
 ROUTING_DIR="$(mktemp -d /tmp/sli_router_batch_routing.XXXXXX)"
-
-cat > "$SRC_DIR/001_workflow_run.json" <<'EOF'
-{
-  "headers": {
-    "X-GitHub-Event": "workflow_run"
-  },
-  "body": {
-    "schema": "github.workflow_run",
-    "workflow_run": {
-      "conclusion": "success"
-    },
-    "repository": {
-      "full_name": "org/app"
-    }
-  }
-}
-EOF
-
-cat > "$SRC_DIR/002_health.json" <<'EOF'
-{
-  "endpoint": "/health",
-  "body": {
-    "service": "payments",
-    "status": "ok"
-  }
-}
-EOF
-
-cat > "$SRC_DIR/003_unknown.json" <<'EOF'
-{
-  "body": {
-    "message": "unknown payload"
-  }
-}
-EOF
-
-cat > "$ROUTING_DIR/mapping_generic.jsonata" <<'EOF'
-{
-  "kind": "generic",
-  "repo": repository.full_name
-}
-EOF
-
-cat > "$ROUTING_DIR/mapping_specific.jsonata" <<'EOF'
-{
-  "kind": "specific",
-  "repo": repository.full_name,
-  "schema": schema
-}
-EOF
-
-cat > "$ROUTING_DIR/mapping_metric.jsonata" <<'EOF'
-{
-  "metric": "workflow_outcome",
-  "repo": repository.full_name,
-  "value": workflow_run.conclusion = "success" ? 1 : 0
-}
-EOF
-
-cat > "$ROUTING_DIR/mapping_health.jsonata" <<'EOF'
-{
-  "metric": "health_status",
-  "service": service,
-  "value": status = "ok" ? 1 : 0
-}
-EOF
-
-cat > "$ROUTING_DIR/routing.json" <<'EOF'
-{
-  "dead_letter": {
-    "type": "dead_letter",
-    "name": "errors"
-  },
-  "routes": [
-    {
-      "id": "generic_workflow",
-      "mode": "exclusive",
-      "priority": 100,
-      "match": {
-        "headers": {
-          "X-GitHub-Event": "workflow_run"
-        }
-      },
-      "transform": {
-        "mapping": "./mapping_generic.jsonata"
-      },
-      "destination": {
-        "type": "normalized_event",
-        "name": "generic"
-      }
-    },
-    {
-      "id": "specific_workflow",
-      "mode": "exclusive",
-      "priority": 200,
-      "match": {
-        "headers": {
-          "X-GitHub-Event": "workflow_run"
-        },
-        "schema": {
-          "path": "schema",
-          "equals": "github.workflow_run"
-        }
-      },
-      "transform": {
-        "mapping": "./mapping_specific.jsonata"
-      },
-      "destination": {
-        "type": "oci_log",
-        "name": "specific_events"
-      }
-    },
-    {
-      "id": "workflow_metric",
-      "mode": "fanout",
-      "match": {
-        "headers": {
-          "X-GitHub-Event": "workflow_run"
-        }
-      },
-      "transform": {
-        "mapping": "./mapping_metric.jsonata"
-      },
-      "destination": {
-        "type": "oci_metric",
-        "name": "workflow_status"
-      }
-    },
-    {
-      "id": "health_endpoint",
-      "mode": "exclusive",
-      "priority": 50,
-      "match": {
-        "endpoint": "/health"
-      },
-      "transform": {
-        "mapping": "./mapping_health.jsonata"
-      },
-      "destination": {
-        "type": "oci_metric",
-        "name": "health_signal"
-      }
-    }
-  ]
-}
-EOF
-
-node tools/json_router_cli.js \
-  --routing "$ROUTING_DIR/routing.json" \
-  --source-dir "$SRC_DIR" \
-  --output-dir "$OUT_DIR" \
-  | jq
-
-find "$OUT_DIR" -type f | sort
 ```
 
-What this mode adds:
+This chapter continues later in the snippet catalog with the same runnable examples, but router-specific material now belongs conceptually to section 5.
 
-- the CLI reads many files
-- each item is routed independently
-- result JSON includes a processed count and per-file results
-- files that do not match or fail can go to dead-letter output
-
-Expected behavior for this example:
-
-- one workflow item fans out to two files
-- one health item produces one output file
-- one unknown item lands in `dead_letter/errors/`
-
-#### Capability 5: execute a source declared in `routing.json`
-
-If `routing.json` declares a `source`, the CLI can execute end-to-end without `--input` and without shell piping. This is not the webhook reception mode, which uses `stdin`, but it is useful for autonomous batch-style processing and validates that the source-adapter model works above the file wrapper.
-
-Supported source types:
-
-- `file_system`
-- `oci_object_storage`
-
-Minimal local file-system source example:
-
-```bash
-TMP_DIR="$(mktemp -d /tmp/sli_router_source_mode.XXXXXX)"
-mkdir -p "$TMP_DIR/in"
-echo '$' > "$TMP_DIR/mapping_file.jsonata"
-cat > "$TMP_DIR/in/audit.json" <<'EOF'
-{
-  "body": {
-    "audit": {
-      "id": "A-1",
-      "message": "copied to file adapter"
-    }
-  }
-}
-EOF
-
-cat > "$TMP_DIR/routing.json" <<'EOF'
-{
-  "source": {
-    "type": "file_system",
-    "name": "incoming"
-  },
-  "adapters": {
-    "file_system:incoming": { "directory": "in" },
-    "file_system:audit_copy": { "directory": "out/audit" }
-  },
-  "routes": [
-    {
-      "id": "audit_to_file",
-      "match": { "required_fields": ["audit.id"] },
-      "transform": { "mapping": "./mapping_file.jsonata" },
-      "destination": { "type": "file_system", "name": "audit_copy" }
-    }
-  ]
-}
-EOF
-
-(cd "$TMP_DIR" && node "$OLDPWD/tools/json_router_cli.js" --routing "$TMP_DIR/routing.json" --pretty)
-find "$TMP_DIR/out" -type f | sort
-```
-
-Note about `adapters` in this mode:
-
-- `source` selects one logical input, here `file_system / incoming`
-- `adapters["file_system:incoming"]` configures how that source adapter reads input, here from directory `in`
-- `adapters["file_system:audit_copy"]` configures how the destination adapter writes output, here to directory `out/audit`
-- the `adapters` section is used for both source adapter configuration and target adapter configuration
-
-Operator meaning:
-
-- the source is resolved from the routing definition
-- the CLI becomes a runtime launcher, not just a file/stdin wrapper
-
-#### Production-level router capabilities
-
-The same router model also supports OCI-backed behavior.
-
-##### Load `routing.json` from a remote location
-
-Important boundary:
-
-- `json_router_cli.js` still expects `--routing <local-file>`
-- the deployed Function runtime can load `routing.json` from OCI Object Storage
-
-The Function runtime uses these environment variables:
-
-- `SLI_ROUTING_BUCKET`
-- `SLI_ROUTING_OBJECT`
-- fallback: `OCI_INGEST_BUCKET`
-
-Default object name:
-
-- `config/routing.json`
-
-Practical meaning:
-
-- local CLI validation still uses a local `routing.json`
-- deployed runtime can keep routing outside the image, so operators can update configuration without rebuilding code
-
-##### Use OCI Object Storage as mapping source
-
-Important boundary for the local CLI:
-
-- `routing.json` itself is still loaded from a local file path passed to `--routing`
-- only the mapping files can be loaded from OCI Object Storage in this capability
-
-The CLI can load JSONata mappings from OCI Object Storage when the routing definition declares:
-
-- `mapping.type = "oci_object_storage"`
-- an adapter target for the mapping bucket
-
-Operator model:
-
-1. upload mapping files into an OCI bucket
-2. point `routing.json` mapping adapter to that bucket or prefix
-3. run the CLI normally
-4. let the runtime fetch the mapping from OCI before route execution
-
-##### Deliver to OCI destinations
-
-The runtime behind the CLI supports these OCI destinations:
-
-- `oci_object_storage`
-- `oci_logging`
-- `oci_monitoring`
-
-That means the CLI can be used not only for local file exercises, but also for live OCI delivery when:
-
-- `OCI_CLI_PROFILE` is valid
-- the routing adapters contain the needed target configuration
-- the mapping output shape matches the destination contract
-
-#### Capability 6: dead-letter handling
-
-Dead-letter behavior is especially visible in batch mode.
-
-If `routing.json` defines `dead_letter`, failed or unreadable items are written there. If it does not, the CLI fails the run.
-
-Practical operator meaning:
-
-- use `dead_letter` when processing mixed-quality inputs
-- omit it when you want strict fail-fast behavior
-
-#### Capability 7: error cases you should know
-
-These are the main CLI failure modes:
-
-- missing `--routing`
-- malformed input JSON
-- batch mode with only one of `--source-dir` or `--output-dir`
-- unreadable mapping
-- unsupported source type
-- unsupported destination configuration
-
-The unit tests that cover these cases are:
-
-- [`tests/unit/test_json_router_cli.sh`](../tests/unit/test_json_router_cli.sh)
-- [`tests/unit/test_json_pipeline_cli.sh`](../tests/unit/test_json_pipeline_cli.sh)
-
-#### Recommended operator progression
-
-Use the CLI in this order:
-
-1. single file to local `file_system`
-2. `stdin` to local `file_system`
-3. transform CLI piped to router CLI
-4. batch `--source-dir/--output-dir`
-5. source-defined runtime mode in `routing.json`
-6. OCI mapping source
-7. OCI destinations
-
-That order moves from fully local and observable workflows to live OCI-backed delivery.
-
-#### Takeaway
-
-`json_router_cli.js` is no longer a preview tool for single-envelope runs. It is an execution tool that performs real delivery across the same routing runtime model as the Function path. That makes the CLI the best place to understand, validate, and evolve a routing definition before deploying it to OCI.
-
-### 11.5 OCI Router Operations
+### 5.3 OCI Router Operations
 
 #### Deploy or refresh the public router stack
 
@@ -1797,59 +901,468 @@ export SLI_OCI_STATE_FILE="$(find . -maxdepth 2 -name "state-${NAME_PREFIX}.json
 bash tools/validate_router_ingest_and_metrics.sh --minutes 45 --limit 5
 ```
 
-#### List GitHub ingest prefixes
+### 5.4 SLI Calculation Track
+
+The project includes tools that compute rolling-window SLI values from OCI Monitoring metrics. This is the as simple as possible analytical part of the system: it reads collected telemetry and derives higher-level service indicators from it. Simplicity here comes from both a calculation method, and execution, that uses GitHub workflow scheduling.
+
+Core files:
+
+- [`.github/workflows/sli_compute_sli_metrics.yml`](../.github/workflows/sli_compute_sli_metrics.yml)
+- [`tools/sli_compute_sli_metrics.js`](../tools/sli_compute_sli_metrics.js)
+
+### 5.5 Synthetic Event Generator Track
+
+The project also includes tools that generate controlled synthetic outcome streams. These tools are used to validate dashboards, alerts, routing behavior, and SLI calculations under known conditions. On this stage it's a tool to generate synthetic data on a non production platform, however in the future similar technique will be used to push data to a system in an idle period, when users are not generating any traffic.
+
+Core files:
+
+- [`tools/sli_ratio_simulator.sh`](../tools/sli_ratio_simulator.sh)
+- [`.github/workflows/sli_ratio_simulator.yml`](../.github/workflows/sli_ratio_simulator.yml)
+
+### 5.6 OCI Authentication Profiles
+
+This project uses two named OCI profiles:
+
+| Profile | Where used | Lifetime |
+| ------- | ---------- | -------- |
+| `DEFAULT` | Local operator commands, §3 examples | Depends on local key — usually non-expiring API key |
+| `SLI_TEST` | Tests, GitHub Actions workflows, operator cookbook | Session: ~60 min · API key: non-expiring |
+
+`DEFAULT` is the standard OCI CLI profile every operator already has locally. The early examples in §3 use it deliberately — no extra setup required, and it proves that OCI ingestion works before introducing any project-specific tooling.
+
+`SLI_TEST` is the project-standard profile name expected by all tests and workflows in this repository. It is created by a dedicated setup tool and optionally packed into a GitHub secret so CI runners can authenticate to OCI.
+
+#### The Profile Setup Tool
+
+`setup_oci_github_access.sh` is the operator-facing script that creates `SLI_TEST` and (optionally) uploads it to GitHub as a repository secret. It supports two authentication modes.
+
+##### Mode 1 — Session (browser-authenticated token)
+
+Use this for short-lived operator-assisted test sessions. The script runs `oci session authenticate`, which opens a browser for OCI IAM login and produces a time-limited session token. The resulting profile and token files are packed into `OCI_CONFIG_PAYLOAD` and uploaded to GitHub.
 
 ```bash
-export NAME_PREFIX="${SLI_FN_APIGW_ROUTER_PREFIX:-sli-router-passthrough-dev}"
-export SLI_OCI_STATE_FILE="$(find . -maxdepth 2 -name "state-${NAME_PREFIX}.json" | head -1)"
-[ -n "$SLI_OCI_STATE_FILE" ] || { echo "state file not found for ${NAME_PREFIX}" >&2; exit 1; }
-export SLI_OS_NAMESPACE="$(jq -r '.bucket.namespace' "$SLI_OCI_STATE_FILE")"
-export SLI_INGEST_BUCKET="$(jq -r '.bucket.name' "$SLI_OCI_STATE_FILE")"
-
-bash tools/list_github_ingest_prefixes.sh --limit 5
+.github/actions/oci-profile-setup/setup_oci_github_access.sh \
+  --account-type session \
+  --profile DEFAULT \
+  --session-profile-name SLI_TEST \
+  --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
 ```
 
-#### POST JSON to the router endpoint and fetch the stored object
+- Token expires after approximately 60 minutes
+- Must be refreshed before the next test session
+- Suitable for interactive work where an operator is present
+
+##### Mode 2 — Config profile (API-key based)
+
+Use this for longer-running tests or fully automated CI. The script mirrors an existing local profile (usually `DEFAULT`) into `SLI_TEST`, copying the API key configuration. The result is packed and uploaded to GitHub in the same way.
 
 ```bash
-export NAME_PREFIX="${SLI_FN_APIGW_ROUTER_PREFIX:-sli-router-passthrough-dev}"
-export SLI_OCI_STATE_FILE="$(find . -maxdepth 2 -name "state-${NAME_PREFIX}.json" | head -1)"
-[ -n "$SLI_OCI_STATE_FILE" ] || { echo "state file not found for ${NAME_PREFIX}" >&2; exit 1; }
-export SLI_OS_NAMESPACE="$(jq -r '.bucket.namespace' "$SLI_OCI_STATE_FILE")"
-export SLI_INGEST_BUCKET="$(jq -r '.bucket.name' "$SLI_OCI_STATE_FILE")"
-
-DEPLOYMENT_ENDPOINT="$(jq -r '.apigw_deployment.endpoint // .apigw.deployment_endpoint' "$SLI_OCI_STATE_FILE")"
-ROUTE_PATH="$(jq -r '.inputs.apigw_route_path // "/"' "$SLI_OCI_STATE_FILE")"
-URL="${DEPLOYMENT_ENDPOINT%/}/$(printf '%s' "${ROUTE_PATH#/}")"
-
-TS="$(date -u '+%Y%m%d%H%M%S')"
-OBJ="manual-${TS}.json"
-PAYLOAD="$(jq -n --arg fn "$OBJ" '{body: {manual: true, marker: "manual-check"}, source_meta: {file_name: $fn}}')"
-
-curl -sS \
-  -H "content-type: application/json" \
-  --data "$PAYLOAD" \
-  "$URL" | jq
-
-OBJECT_NAME="ingest/no_github_event/${OBJ}"
-bash tools/get_ingest_object.sh "$OBJECT_NAME" | jq
+.github/actions/oci-profile-setup/setup_oci_github_access.sh \
+  --account-type config_profile \
+  --profile DEFAULT \
+  --session-profile-name SLI_TEST \
+  --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
 ```
 
-#### Clear router ingest objects from the current ingest bucket
+- Token does not expire
+- Copies your local `DEFAULT` private key material into the packed secret — treat the secret accordingly
+- Suitable for unattended pipelines
+
+#### Profile Restoration on CI Runners
+
+On GitHub Actions runners, the packed `OCI_CONFIG_PAYLOAD` secret is unpacked by the restore action:
+
+- [`.github/actions/oci-profile-setup/action.yml`](../.github/actions/oci-profile-setup/action.yml)
+- [`.github/actions/oci-profile-setup/oci_profile_setup.sh`](../.github/actions/oci-profile-setup/oci_profile_setup.sh)
+
+After restoration, the runner has `~/.oci/config` with the `SLI_TEST` profile available for OCI SDK calls and OCI CLI commands.
+
+Full tool reference:
+
+- [`.github/actions/oci-profile-setup/setup_oci_github_access.sh`](../.github/actions/oci-profile-setup/setup_oci_github_access.sh)
+- [`.github/actions/oci-profile-setup/README.md`](../.github/actions/oci-profile-setup/README.md)
+
+## 6. Major Techniques Used in This Project
+
+This section names the main technical patterns a reader needs to understand.
+
+### 6.1 Structured Event Emission from GitHub Actions
+
+The project treats GitHub workflow runs as telemetry sources. Rather than logging plain text, it builds structured JSON payloads containing:
+
+- workflow identity
+- repository and ref metadata
+- run outcome
+- optional domain-specific inputs
+- failure reasons derived from failed steps
+
+This is the core observability technique of the repository.
+
+### 6.2 Backend-Switchable OCI Emission
+
+Emission is not tied to one transport implementation. The repository supports multiple backend styles:
+
+- OCI CLI based emission
+- curl plus request-signing emission
+- JavaScript action based post-step emission
+
+This keeps the payload contract stable while allowing transport changes. It may be beneficial to fully switch to core API accessible via `curl` or Node.js SDK, as it eliminates OCI CLI and python installation steps what saves pipeline execution time.
+
+### 6.3 Telemetry Sinks
+
+The same logical event can be sent to more than one destination:
+
+- OCI Logging for searchable raw events
+- OCI Monitoring for numeric metrics
+- OCI Object Storage Bucket for debug and further use cases.
+
+This is important because logs are better for audit and search, while metrics are better for ratio calculation and alerting. Platform comes with pluggable adapter interface, enabling new sources and destination to be added.
+
+### 6.4 JSONata Transformation
+
+JSONata expressions are used to transform one JSON document into another. This lets the project convert source-specific payloads into destination-specific contracts without hardcoding every variation in application logic.
+
+Relevant files:
+
+- [`tools/json_transform_cli.js`](../tools/json_transform_cli.js)
+- [`tools/mappings/github_workflow_run_to_oci_log.jsonata`](../tools/mappings/github_workflow_run_to_oci_log.jsonata)
+- [`tools/mappings/health_to_oci_metric.jsonata`](../tools/mappings/health_to_oci_metric.jsonata)
+
+### 6.5 Config-Driven Routing
+
+The router identifies payload type, chooses a mapping, and dispatches to one or more destinations based on configuration. This allows new flows to be added by editing routing definitions and mappings instead of rewriting the runtime.
+
+Key concepts:
+
+- source identification
+- exclusive versus fanout routing
+- destination abstraction
+- adapter registration from config
+- dead-letter handling for failures
+
+### 6.6 Adapter-Based Delivery
+
+Destination-specific behavior is isolated behind adapters. This is a major design technique in the repo because it separates routing logic from side effects.
+
+Examples:
+
+- file adapter
+- OCI Object Storage adapter
+- OCI Monitoring adapter
+- OCI Logging adapter
+
+### 6.7 OCI Function as Public Ingest Endpoint
+
+The project includes an OCI Function deployment that accepts public traffic through API Gateway and performs routing plus delivery. This is the bridge between external event producers and OCI-hosted telemetry storage.
+
+### 6.8 Test-First Quality Gates
+
+The repo uses centralized shell-driven test execution with suite and component scoping. Tests are grouped by level:
+
+- smoke
+- unit
+- integration
+
+The test runner supports manifest-based filtering and component-scoped regression, which matters because the repo now contains several semi-independent domains.
+
+Relevant files:
+
+- [`tests/run.sh`](../tests/run.sh)
+- [`tests/manifests/component_router.manifest`](../tests/manifests/component_router.manifest)
+- [`tests/unit/README.md`](../tests/unit/README.md)
+- [`tests/integration/README.md`](../tests/integration/README.md)
+
+### 6.9 Infrastructure Lifecycle Scripts
+
+OCI resources are not assumed to exist forever. The repository contains helper scripts to create, validate, and tear down test infrastructure in a repeatable way.
+
+This includes:
+
+- OCI log and compartment setup
+- Function resource policies
+- API Gateway router deployment lifecycle
+- bucket cleanup and validation helpers
+
+## 7. Major Tools and Components
+
+This section is a compact inventory of the most important building blocks.
+
+### 6.1 GitHub Actions Components
+
+- `install-oci-cli`
+  Purpose: install OCI CLI on GitHub runners.
+- `oci-profile-setup`
+  Purpose: prepare OCI auth material for local or CI usage.
+- `sli-event`
+  Purpose: build and emit SLI payloads from shell-based action logic.
+- `sli-event-js`
+  Purpose: emit via JavaScript action lifecycle hooks.
+
+### 6.2 Workflow Models
+
+The workflows under [`.github/workflows`](../.github/workflows) serve two roles:
+
+1. realistic examples of GitHub pipeline patterns
+2. test fixtures for SLI instrumentation
+
+Representative workflows:
+
+- `model-push.yml`
+- `model-pr.yml`
+- `model-call.yml`
+- `model-emit-curl.yml`
+- `model-emit-js.yml`
+- `sli_compute_sli_metrics.yml`
+- `sli_ratio_simulator.yml`
+
+### 6.3 Node.js Tooling
+
+The root [package.json](../package.json) shows the key libraries:
+
+- `jsonata`
+- `ajv`
+- `oci-common`
+- `oci-loggingingestion`
+- `oci-monitoring`
+- `oci-objectstorage`
+
+In practice, Node.js is used for:
+
+- JSON routing and transformation logic
+- OCI adapter implementations
+- SLI metric computation
+- CLI tools for local validation
+
+### 6.4 Shell Tooling
+
+Shell remains a first-class implementation language in this repo.
+
+It is used for:
+
+- GitHub Action runtime scripts
+- environment setup
+- OCI auth packaging
+- integration tests
+- simulator control flow
+- OCI deployment helpers
+
+### 6.5 OCI-Focused Helpers
+
+Important helpers under [`tools/`](../tools):
+
+- [`ensure_oci_resources.sh`](../tools/ensure_oci_resources.sh)
+- [`cycle_apigw_router_passthrough.sh`](../tools/cycle_apigw_router_passthrough.sh)
+- [`validate_router_ingest_and_metrics.sh`](../tools/validate_router_ingest_and_metrics.sh)
+- [`list_monitoring_metrics.sh`](../tools/list_monitoring_metrics.sh)
+- [`list_github_ingest_prefixes.sh`](../tools/list_github_ingest_prefixes.sh)
+- [`get_ingest_object.sh`](../tools/get_ingest_object.sh)
+
+### 6.6 OCI Function Router Components
+
+Important files under [`fn/router_passthrough/`](../fn/router_passthrough):
+
+- `func.js`
+- `router_core.js`
+- `lib/json_router.js`
+- `lib/json_transformer.js`
+- `lib/destination_dispatcher.js`
+- `lib/oci_object_storage_adapter.js`
+- `lib/oci_monitoring_adapter.js`
+- `lib/oci_logging_adapter.js`
+- `lib/schemas/json_router_definition.schema.json`
+
+## 8. Repository Areas and Their Roles
+
+| Area | Role |
+|------|------|
+| `.github/actions/` | GitHub Action implementations used by workflows |
+| `.github/workflows/` | Example and test workflows that emit telemetry |
+| `tools/` | Local CLIs, helpers, adapters, and OCI utility scripts |
+| `fn/router_passthrough/` | Deployable OCI Function router runtime |
+| `tests/` | Centralized smoke, unit, integration, and manifest-based test execution |
+| `oci_scaffold/` | OCI resource lifecycle support submodule |
+| `progress/` | Sprint-by-sprint implementation trace and test evidence |
+| `RUPStrikesBack/` | Delivery process, rules, and agent workflow submodule |
+
+## 9. Operational Knowledge a Reader Should Gain
+
+By the time a reader finishes the first part of this manual, they should be able to answer these questions:
+
+1. What counts as an SLI event in this repo?
+2. Which parts emit events, and which parts route them?
+3. When should Logging be used versus Monitoring?
+4. How are transformations expressed?
+5. How does the router choose a destination?
+6. Which tests are local-only and which tests require live OCI and GitHub access?
+7. Which scripts are used to stand infrastructure up and tear it down?
+
+These questions will later map to deeper chapters.
+
+## 10. Suggested Reading Order
+
+For a new maintainer, this is the recommended order:
+
+1. [`README.md`](../README.md)
+2. [`.github/workflows/README.md`](../.github/workflows/README.md)
+3. [`.github/actions/README.md`](../.github/actions/README.md)
+4. [`tests/unit/README.md`](../tests/unit/README.md)
+5. [`tests/integration/README.md`](../tests/integration/README.md)
+6. [`PLAN.md`](../PLAN.md)
+7. [`PROGRESS_BOARD.md`](../PROGRESS_BOARD.md)
+
+Then continue with the code paths that match the reader's focus:
+
+- emission path
+- router path
+- OCI deployment path
+- testing path
+
+## 11. Known Knowledge Domains for Future Expansion
+
+The next iterations of this manual should likely add dedicated chapters for:
+
+1. event schema and payload anatomy
+2. OCI authentication models used by the project
+3. router configuration model and mapping files
+4. Function deployment flow and required OCI resources
+5. test strategy and quality gates
+6. troubleshooting and failure modes
+7. sprint history and why the architecture evolved the way it did
+
+## 12. Snippet Catalog
+
+This section is intentionally placed at the bottom so it can grow into a practical operator cookbook.
+
+Unless noted otherwise, run the commands below from the repository root. The manual file lives in `docs/`, but the snippets use repository-root relative paths such as `tools/`, `tests/`, `.github/`, and `progress/`.
+
+Each snippet should eventually include:
+
+- scenario
+- prerequisites
+- command
+- expected outcome
+- follow-up checks
+
+### 12.1 Prepare `SLI_TEST` Authentication
+
+Most local OCI examples below use `"profile":"SLI_TEST"` inside `SLI_CONTEXT_JSON`. That profile is prepared by the operator-side script [`.github/actions/oci-profile-setup/setup_oci_github_access.sh`](../.github/actions/oci-profile-setup/setup_oci_github_access.sh).
+
+After a successful run, local commands can use `~/.oci/config` with profile `SLI_TEST`. On GitHub runners, the paired restore action [`.github/actions/oci-profile-setup/oci_profile_setup.sh`](../.github/actions/oci-profile-setup/oci_profile_setup.sh) unpacks that same profile from `OCI_CONFIG_PAYLOAD`.
+
+#### Session-Based `SLI_TEST` Profile
+
+Use this mode when you want browser-authenticated OCI access. The script runs `oci session authenticate` and creates an authenticated `SLI_TEST` session profile.
 
 ```bash
-export NAME_PREFIX="${SLI_FN_APIGW_ROUTER_PREFIX:-sli-router-passthrough-dev}"
-export SLI_OCI_STATE_FILE="$(find . -maxdepth 2 -name "state-${NAME_PREFIX}.json" | head -1)"
-[ -n "$SLI_OCI_STATE_FILE" ] || { echo "state file not found for ${NAME_PREFIX}" >&2; exit 1; }
-export SLI_OS_NAMESPACE="$(jq -r '.bucket.namespace' "$SLI_OCI_STATE_FILE")"
-export SLI_INGEST_BUCKET="$(jq -r '.bucket.name' "$SLI_OCI_STATE_FILE")"
-
-bash tools/clear_ingest_prefix.sh --dry-run
-# real delete:
-# bash tools/clear_ingest_prefix.sh --yes
+.github/actions/oci-profile-setup/setup_oci_github_access.sh \
+  --account-type session \
+  --profile DEFAULT \
+  --session-profile-name SLI_TEST \
+  --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
 ```
 
-### 11.6 Teardown
+#### API-Key Mirrored `SLI_TEST` Profile
+
+Use this mode when you want a non-expiring API-key based `SLI_TEST` profile. The script copies an existing local profile such as `DEFAULT` into `SLI_TEST` and packs the key material into the GitHub secret.
+
+```bash
+.github/actions/oci-profile-setup/setup_oci_github_access.sh \
+  --account-type config_profile \
+  --profile DEFAULT \
+  --session-profile-name SLI_TEST \
+  --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+```
+
+### 12.2 Local SLI Emission
+
+#### Emit one success event locally
+
+```bash
+repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+export SLI_METRIC_COMPARTMENT="$(gh variable get SLI_OCI_COMPARTMENT_ID -R "$repo")"
+export SLI_OCI_LOG_ID="$(gh variable get SLI_OCI_LOG_ID -R "$repo")"
+export EMIT_BACKEND=curl
+export EMIT_TARGET=log,metric
+export SLI_OUTCOME=success
+export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
+bash .github/actions/sli-event/emit.sh
+```
+
+#### Emit one failure event locally
+
+```bash
+repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+export SLI_METRIC_COMPARTMENT="$(gh variable get SLI_OCI_COMPARTMENT_ID -R "$repo")"
+export SLI_OCI_LOG_ID="$(gh variable get SLI_OCI_LOG_ID -R "$repo")"
+export EMIT_BACKEND=oci-cli
+export EMIT_TARGET=log,metric
+export SLI_OUTCOME=failure
+export STEPS_JSON='{"test_script":{"outcome":"failure","outputs":{}}}'
+export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
+bash .github/actions/sli-event/emit.sh
+```
+
+### 12.3 SLI Simulation and Computation
+
+#### Run the ratio simulator
+
+This is a live emission example. It uses the same OCI setup as the local emit examples above, so define the OCI target and auth context first, then start the simulator.
+
+```bash
+repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+export SLI_METRIC_COMPARTMENT="$(gh variable get SLI_OCI_COMPARTMENT_ID -R "$repo")"
+export SLI_OCI_LOG_ID="$(gh variable get SLI_OCI_LOG_ID -R "$repo")"
+export EMIT_BACKEND=curl
+export EMIT_TARGET=log,metric
+export SLI_METRIC_NAMESPACE="sli_tracker"
+export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TEST"}}'
+
+tools/sli_ratio_simulator.sh \
+  --target-failure-rate 0.95 \
+  --ramp-seconds 120 \
+  --hold-seconds 120 \
+  --teardown-seconds 120 \
+  --interval-seconds 5 \
+  --ramp-curve logarithmic \
+  --teardown-curve exponential \
+  --seed 42
+```
+
+#### Compute SLI from OCI Monitoring
+
+```bash
+tools/sli_compute_sli_metrics.js \
+  --oci-auth config \
+  --window-days 30 \
+  --mql-resolution 1d \
+  --namespace sli_tracker \
+  --metric-name outcome \
+  --compartment-id "$COMPARTMENT_OCID" \
+  --oci-config-file "~/.oci/config" \
+  --oci-profile "SLI_TEST" \
+  --output json | jq
+```
+
+### 12.4 Local Transformation and Routing CLI
+
+The canonical router CLI guide now lives in §5.2. This snippet-catalog entry remains only as a navigation point for readers who jump here directly.
+
+Use §5.2 for:
+
+- transform CLI basics
+- router CLI contract
+- one-envelope routing from file and `stdin`
+- pretty output and mapping context
+- batch routing
+- source-declared execution
+- OCI-backed router capabilities
+- dead-letter handling and common router error cases
+
+### 12.5 OCI Router Operations
+
+The canonical operational router commands now live in §5.3. This snippet-catalog entry remains only as a navigation point for readers who search for OCI router operations directly.
+
+### 12.6 Teardown
 
 #### Delete the API Gateway + Fn router stack
 
@@ -1865,7 +1378,7 @@ bash tests/cleanup_router_apigw_stack.sh
 bash tests/cleanup_sli_buckets.sh
 ```
 
-## 12. Supporting Source Documents
+## 13. Supporting Source Documents
 
 This manual is the primary operator document. Supporting sprint documents remain useful when you want historical context, implementation rationale, or detailed test evidence behind the router work.
 

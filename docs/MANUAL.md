@@ -336,20 +336,20 @@ As you learnt log and metric injection is not complex, however demanding from co
 
 ### 4.1 GitHub Actions SLI Track
 
-GitHub workflows call local actions under [`.github/actions`](/Users/rstyczynski/projects/SLI_tracker/.github/actions). Those actions assemble a structured payload describing a workflow run, its outcome, and failure reasons. The payload can then be pushed to OCI Logging and OCI Monitoring using OCI CLI or direct API call. The latter technique uses `curl` to directly access OCI API.
+GitHub workflows call local actions under [`.github/actions`](../.github/actions). Those actions assemble a structured payload describing a workflow run, its outcome, and failure reasons. The payload can then be pushed to OCI Logging and OCI Monitoring using OCI CLI or direct API call. The latter technique uses `curl` to directly access OCI API.
 
 Core files:
 
-- [`.github/actions/sli-event-js/action.yml`](/Users/rstyczynski/projects/SLI_tracker/.github/actions/sli-event-js/action.yml)
-- [`.github/actions/sli-event/emit.sh`](/Users/rstyczynski/projects/SLI_tracker/.github/actions/sli-event/emit.sh)
-- [`.github/actions/sli-event/emit_curl.sh`](/Users/rstyczynski/projects/SLI_tracker/.github/actions/sli-event/emit_curl.sh)
-- [`.github/actions/sli-event/emit_oci.sh`](/Users/rstyczynski/projects/SLI_tracker/.github/actions/sli-event/emit_oci.sh)
+- [`.github/actions/sli-event-js/action.yml`](../.github/actions/sli-event-js/action.yml)
+- [`.github/actions/sli-event/emit.sh`](../.github/actions/sli-event/emit.sh)
+- [`.github/actions/sli-event/emit_curl.sh`](../.github/actions/sli-event/emit_curl.sh)
+- [`.github/actions/sli-event/emit_oci.sh`](../.github/actions/sli-event/emit_oci.sh)
 
 ### 4.2 Router and Ingest Track
 
 Incoming JSON payloads can be identified, transformed, and routed to multiple destinations. This part of the project is transport-agnostic at the routing-definition level, then implemented through adapters for file output, OCI Object Storage, OCI Monitoring, and OCI Logging. Routing is defined by a custom data structure shared by CLI and Fn execution, and the transformation uses JSONata mappings.
 
-The main implementation area for this part of the project is [`./tools`](/Users/rstyczynski/projects/SLI_tracker/tools). Router logic, transformer logic, runtime wiring, and adapter code should be understood from the `tools/` tree first. Other locations are deployment-side shadow copies or links used by the OCI Function packaging.
+The main implementation area for this part of the project is [`./tools`](../tools). Router logic, transformer logic, runtime wiring, and adapter code should be understood from the `tools/` tree first. Other locations are deployment-side shadow copies or links used by the OCI Function packaging.
 
 The main layers in this area are:
 
@@ -545,22 +545,22 @@ Two diagrams below show the same router from two angles. `Router` is the structu
 
 Core files:
 
-- [`tools/json_router.js`](/Users/rstyczynski/projects/SLI_tracker/tools/json_router.js)
-- [`tools/json_transformer.js`](/Users/rstyczynski/projects/SLI_tracker/tools/json_transformer.js)
-- [`tools/json_router_cli.js`](/Users/rstyczynski/projects/SLI_tracker/tools/json_router_cli.js)
-- Fn execution starting point: [`fn/router_passthrough/func.js`](/Users/rstyczynski/projects/SLI_tracker/fn/router_passthrough/func.js)
+- [`tools/json_router.js`](../tools/json_router.js)
+- [`tools/json_transformer.js`](../tools/json_transformer.js)
+- [`tools/json_router_cli.js`](../tools/json_router_cli.js)
+- Fn execution starting point: [`fn/router_passthrough/func.js`](../fn/router_passthrough/func.js)
 
 Adapter code for sources:
 
-- [`file_source_adapter.js`](/Users/rstyczynski/projects/SLI_tracker/tools/adapters/file_source_adapter.js)
-- [`oci_object_storage_source_adapter.js`](/Users/rstyczynski/projects/SLI_tracker/tools/adapters/oci_object_storage_source_adapter.js)
+- [`file_source_adapter.js`](../tools/adapters/file_source_adapter.js)
+- [`oci_object_storage_source_adapter.js`](../tools/adapters/oci_object_storage_source_adapter.js)
 
 Adapter code is under for destinations:
 
-- [`file_adapter.js`](/Users/rstyczynski/projects/SLI_tracker/tools/adapters/file_adapter.js)
-- [`oci_object_storage_adapter.js`](/Users/rstyczynski/projects/SLI_tracker/tools/adapters/oci_object_storage_adapter.js)
-- [`oci_monitoring_adapter.js`](/Users/rstyczynski/projects/SLI_tracker/tools/adapters/oci_monitoring_adapter.js)
-- [`oci_logging_adapter.js`](/Users/rstyczynski/projects/SLI_tracker/tools/adapters/oci_logging_adapter.js)
+- [`file_adapter.js`](../tools/adapters/file_adapter.js)
+- [`oci_object_storage_adapter.js`](../tools/adapters/oci_object_storage_adapter.js)
+- [`oci_monitoring_adapter.js`](../tools/adapters/oci_monitoring_adapter.js)
+- [`oci_logging_adapter.js`](../tools/adapters/oci_logging_adapter.js)
 
 The operator cookbook in §11.4 (Local Transformation and Routing CLI) shows the same track as hands-on CLI work with complete, runnable bash examples:
 
@@ -577,8 +577,8 @@ The project includes tools that compute rolling-window SLI values from OCI Monit
 
 Core files:
 
-- [`.github/workflows/sli_compute_sli_metrics.yml`](/Users/rstyczynski/projects/SLI_tracker/.github/workflows/sli_compute_sli_metrics.yml)
-- [`tools/sli_compute_sli_metrics.js`](/Users/rstyczynski/projects/SLI_tracker/tools/sli_compute_sli_metrics.js)
+- [`.github/workflows/sli_compute_sli_metrics.yml`](../.github/workflows/sli_compute_sli_metrics.yml)
+- [`tools/sli_compute_sli_metrics.js`](../tools/sli_compute_sli_metrics.js)
 
 ### 4.4 Synthetic Event Generator Track
 
@@ -586,12 +586,12 @@ The project also includes tools that generate controlled synthetic outcome strea
 
 Core files:
 
-- [`tools/sli_ratio_simulator.sh`](/Users/rstyczynski/projects/SLI_tracker/tools/sli_ratio_simulator.sh)
-- [`.github/workflows/sli_ratio_simulator.yml`](/Users/rstyczynski/projects/SLI_tracker/.github/workflows/sli_ratio_simulator.yml)
+- [`tools/sli_ratio_simulator.sh`](../tools/sli_ratio_simulator.sh)
+- [`.github/workflows/sli_ratio_simulator.yml`](../.github/workflows/sli_ratio_simulator.yml)
 
 ### 4.5 `SLI_TEST` Profile and Test Authentication
 
-`SLI_TEST` is the default test OCI profile used by this repository. It is part of the test framework and is closely related to the GitHub Action [`.github/actions/oci-profile-setup`](/Users/rstyczynski/projects/SLI_tracker/.github/actions/oci-profile-setup).
+`SLI_TEST` is the default test OCI profile used by this repository. It is part of the test framework and is closely related to the GitHub Action [`.github/actions/oci-profile-setup`](../.github/actions/oci-profile-setup).
 
 By default, `SLI_TEST` is a token-based profile prepared for operator-assisted test sessions. The usual flow is browser-based authentication through OCI CLI session login, then packing the resulting OCI configuration and session files into the GitHub secret `OCI_CONFIG_PAYLOAD`. This mode is convenient for shorter assisted test sessions, typically below 60 minutes, because the session token expires and must be refreshed.
 
@@ -606,10 +606,10 @@ The practical meaning is:
 
 Core files:
 
-- [`.github/actions/oci-profile-setup/action.yml`](/Users/rstyczynski/projects/SLI_tracker/.github/actions/oci-profile-setup/action.yml)
-- [`.github/actions/oci-profile-setup/oci_profile_setup.sh`](/Users/rstyczynski/projects/SLI_tracker/.github/actions/oci-profile-setup/oci_profile_setup.sh)
-- [`.github/actions/oci-profile-setup/setup_oci_github_access.sh`](/Users/rstyczynski/projects/SLI_tracker/.github/actions/oci-profile-setup/setup_oci_github_access.sh)
-- [`.github/actions/oci-profile-setup/README.md`](/Users/rstyczynski/projects/SLI_tracker/.github/actions/oci-profile-setup/README.md)
+- [`.github/actions/oci-profile-setup/action.yml`](../.github/actions/oci-profile-setup/action.yml)
+- [`.github/actions/oci-profile-setup/oci_profile_setup.sh`](../.github/actions/oci-profile-setup/oci_profile_setup.sh)
+- [`.github/actions/oci-profile-setup/setup_oci_github_access.sh`](../.github/actions/oci-profile-setup/setup_oci_github_access.sh)
+- [`.github/actions/oci-profile-setup/README.md`](../.github/actions/oci-profile-setup/README.md)
 
 ## 5. Major Techniques Used in This Project
 
@@ -653,9 +653,9 @@ JSONata expressions are used to transform one JSON document into another. This l
 
 Relevant files:
 
-- [`tools/json_transform_cli.js`](/Users/rstyczynski/projects/SLI_tracker/tools/json_transform_cli.js)
-- [`tools/mappings/github_workflow_run_to_oci_log.jsonata`](/Users/rstyczynski/projects/SLI_tracker/tools/mappings/github_workflow_run_to_oci_log.jsonata)
-- [`tools/mappings/health_to_oci_metric.jsonata`](/Users/rstyczynski/projects/SLI_tracker/tools/mappings/health_to_oci_metric.jsonata)
+- [`tools/json_transform_cli.js`](../tools/json_transform_cli.js)
+- [`tools/mappings/github_workflow_run_to_oci_log.jsonata`](../tools/mappings/github_workflow_run_to_oci_log.jsonata)
+- [`tools/mappings/health_to_oci_metric.jsonata`](../tools/mappings/health_to_oci_metric.jsonata)
 
 ### 5.5 Config-Driven Routing
 
@@ -696,10 +696,10 @@ The test runner supports manifest-based filtering and component-scoped regressio
 
 Relevant files:
 
-- [`tests/run.sh`](/Users/rstyczynski/projects/SLI_tracker/tests/run.sh:1)
-- [`tests/manifests/component_router.manifest`](/Users/rstyczynski/projects/SLI_tracker/tests/manifests/component_router.manifest)
-- [`tests/unit/README.md`](/Users/rstyczynski/projects/SLI_tracker/tests/unit/README.md:1)
-- [`tests/integration/README.md`](/Users/rstyczynski/projects/SLI_tracker/tests/integration/README.md:1)
+- [`tests/run.sh`](../tests/run.sh)
+- [`tests/manifests/component_router.manifest`](../tests/manifests/component_router.manifest)
+- [`tests/unit/README.md`](../tests/unit/README.md)
+- [`tests/integration/README.md`](../tests/integration/README.md)
 
 ### 5.9 Infrastructure Lifecycle Scripts
 
@@ -729,7 +729,7 @@ This section is a compact inventory of the most important building blocks.
 
 ### 6.2 Workflow Models
 
-The workflows under [`.github/workflows`](/Users/rstyczynski/projects/SLI_tracker/.github/workflows) serve two roles:
+The workflows under [`.github/workflows`](../.github/workflows) serve two roles:
 
 1. realistic examples of GitHub pipeline patterns
 2. test fixtures for SLI instrumentation
@@ -746,7 +746,7 @@ Representative workflows:
 
 ### 6.3 Node.js Tooling
 
-The root [package.json](/Users/rstyczynski/projects/SLI_tracker/package.json:1) shows the key libraries:
+The root [package.json](../package.json) shows the key libraries:
 
 - `jsonata`
 - `ajv`
@@ -777,18 +777,18 @@ It is used for:
 
 ### 6.5 OCI-Focused Helpers
 
-Important helpers under [`tools/`](/Users/rstyczynski/projects/SLI_tracker/tools):
+Important helpers under [`tools/`](../tools):
 
-- [`ensure_oci_resources.sh`](/Users/rstyczynski/projects/SLI_tracker/tools/ensure_oci_resources.sh)
-- [`cycle_apigw_router_passthrough.sh`](/Users/rstyczynski/projects/SLI_tracker/tools/cycle_apigw_router_passthrough.sh)
-- [`validate_router_ingest_and_metrics.sh`](/Users/rstyczynski/projects/SLI_tracker/tools/validate_router_ingest_and_metrics.sh)
-- [`list_monitoring_metrics.sh`](/Users/rstyczynski/projects/SLI_tracker/tools/list_monitoring_metrics.sh)
-- [`list_github_ingest_prefixes.sh`](/Users/rstyczynski/projects/SLI_tracker/tools/list_github_ingest_prefixes.sh)
-- [`get_ingest_object.sh`](/Users/rstyczynski/projects/SLI_tracker/tools/get_ingest_object.sh)
+- [`ensure_oci_resources.sh`](../tools/ensure_oci_resources.sh)
+- [`cycle_apigw_router_passthrough.sh`](../tools/cycle_apigw_router_passthrough.sh)
+- [`validate_router_ingest_and_metrics.sh`](../tools/validate_router_ingest_and_metrics.sh)
+- [`list_monitoring_metrics.sh`](../tools/list_monitoring_metrics.sh)
+- [`list_github_ingest_prefixes.sh`](../tools/list_github_ingest_prefixes.sh)
+- [`get_ingest_object.sh`](../tools/get_ingest_object.sh)
 
 ### 6.6 OCI Function Router Components
 
-Important files under [`fn/router_passthrough/`](/Users/rstyczynski/projects/SLI_tracker/fn/router_passthrough):
+Important files under [`fn/router_passthrough/`](../fn/router_passthrough):
 
 - `func.js`
 - `router_core.js`
@@ -831,13 +831,13 @@ These questions will later map to deeper chapters.
 
 For a new maintainer, this is the recommended order:
 
-1. [`README.md`](/Users/rstyczynski/projects/SLI_tracker/README.md:1)
-2. [`.github/workflows/README.md`](/Users/rstyczynski/projects/SLI_tracker/.github/workflows/README.md:1)
-3. [`.github/actions/README.md`](/Users/rstyczynski/projects/SLI_tracker/.github/actions/README.md:1)
-4. [`tests/unit/README.md`](/Users/rstyczynski/projects/SLI_tracker/tests/unit/README.md:1)
-5. [`tests/integration/README.md`](/Users/rstyczynski/projects/SLI_tracker/tests/integration/README.md:1)
-6. [`PLAN.md`](/Users/rstyczynski/projects/SLI_tracker/PLAN.md:1)
-7. [`PROGRESS_BOARD.md`](/Users/rstyczynski/projects/SLI_tracker/PROGRESS_BOARD.md:1)
+1. [`README.md`](../README.md)
+2. [`.github/workflows/README.md`](../.github/workflows/README.md)
+3. [`.github/actions/README.md`](../.github/actions/README.md)
+4. [`tests/unit/README.md`](../tests/unit/README.md)
+5. [`tests/integration/README.md`](../tests/integration/README.md)
+6. [`PLAN.md`](../PLAN.md)
+7. [`PROGRESS_BOARD.md`](../PROGRESS_BOARD.md)
 
 Then continue with the code paths that match the reader's focus:
 
@@ -874,9 +874,9 @@ Each snippet should eventually include:
 
 ### 11.1 Prepare `SLI_TEST` Authentication
 
-Most local OCI examples below use `"profile":"SLI_TEST"` inside `SLI_CONTEXT_JSON`. That profile is prepared by the operator-side script [`.github/actions/oci-profile-setup/setup_oci_github_access.sh`](/Users/rstyczynski/projects/SLI_tracker/.github/actions/oci-profile-setup/setup_oci_github_access.sh).
+Most local OCI examples below use `"profile":"SLI_TEST"` inside `SLI_CONTEXT_JSON`. That profile is prepared by the operator-side script [`.github/actions/oci-profile-setup/setup_oci_github_access.sh`](../.github/actions/oci-profile-setup/setup_oci_github_access.sh).
 
-After a successful run, local commands can use `~/.oci/config` with profile `SLI_TEST`. On GitHub runners, the paired restore action [`.github/actions/oci-profile-setup/oci_profile_setup.sh`](/Users/rstyczynski/projects/SLI_tracker/.github/actions/oci-profile-setup/oci_profile_setup.sh) unpacks that same profile from `OCI_CONFIG_PAYLOAD`.
+After a successful run, local commands can use `~/.oci/config` with profile `SLI_TEST`. On GitHub runners, the paired restore action [`.github/actions/oci-profile-setup/oci_profile_setup.sh`](../.github/actions/oci-profile-setup/oci_profile_setup.sh) unpacks that same profile from `OCI_CONFIG_PAYLOAD`.
 
 #### Session-Based `SLI_TEST` Profile
 
@@ -1632,8 +1632,8 @@ These are the main CLI failure modes:
 
 The unit tests that cover these cases are:
 
-- [`tests/unit/test_json_router_cli.sh`](/Users/rstyczynski/projects/SLI_tracker/tests/unit/test_json_router_cli.sh)
-- [`tests/unit/test_json_pipeline_cli.sh`](/Users/rstyczynski/projects/SLI_tracker/tests/unit/test_json_pipeline_cli.sh)
+- [`tests/unit/test_json_router_cli.sh`](../tests/unit/test_json_router_cli.sh)
+- [`tests/unit/test_json_pipeline_cli.sh`](../tests/unit/test_json_pipeline_cli.sh)
 
 #### Recommended operator progression
 
@@ -1753,7 +1753,7 @@ This manual is the primary operator document. Supporting sprint documents remain
 
 Useful supporting documents:
 
-- [progress/sprint_29/sprint_29_manual.md](/Users/rstyczynski/projects/SLI_tracker/progress/sprint_29/sprint_29_manual.md)
-- [progress/sprint_29/sprint_29_design.md](/Users/rstyczynski/projects/SLI_tracker/progress/sprint_29/sprint_29_design.md)
-- [progress/sprint_29/sprint_29_implementation.md](/Users/rstyczynski/projects/SLI_tracker/progress/sprint_29/sprint_29_implementation.md)
-- [progress/sprint_29/sprint_29_tests.md](/Users/rstyczynski/projects/SLI_tracker/progress/sprint_29/sprint_29_tests.md)
+- [progress/sprint_29/sprint_29_manual.md](../progress/sprint_29/sprint_29_manual.md)
+- [progress/sprint_29/sprint_29_design.md](../progress/sprint_29/sprint_29_design.md)
+- [progress/sprint_29/sprint_29_implementation.md](../progress/sprint_29/sprint_29_implementation.md)
+- [progress/sprint_29/sprint_29_tests.md](../progress/sprint_29/sprint_29_tests.md)

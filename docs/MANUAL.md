@@ -347,7 +347,7 @@ Core files:
 
 ### 4.2 Router and Ingest Track
 
-Incoming JSON payloads can be identified, transformed, and routed to multiple destinations. This part of the project is transport-agnostic at the routing-definition level, then implemented through adapters for file output, OCI Object Storage, OCI Monitoring, and OCI Logging. Routing is defined by a custom - Fn execution data structure, and the transformation uses JSONata mappings.
+Incoming JSON payloads can be identified, transformed, and routed to multiple destinations. This part of the project is transport-agnostic at the routing-definition level, then implemented through adapters for file output, OCI Object Storage, OCI Monitoring, and OCI Logging. Routing is defined by a custom data structure shared by CLI and Fn execution, and the transformation uses JSONata mappings.
 
 The main implementation area for this part of the project is [`./tools`](/Users/rstyczynski/projects/SLI_tracker/tools). Router logic, transformer logic, runtime wiring, and adapter code should be understood from the `tools/` tree first. Other locations are deployment-side shadow copies or links used by the OCI Function packaging.
 
@@ -862,6 +862,8 @@ The next iterations of this manual should likely add dedicated chapters for:
 
 This section is intentionally placed at the bottom so it can grow into a practical operator cookbook.
 
+Unless noted otherwise, run the commands below from the repository root. The manual file lives in `docs/`, but the snippets use repository-root relative paths such as `tools/`, `tests/`, `.github/`, and `progress/`.
+
 Each snippet should eventually include:
 
 - scenario
@@ -872,7 +874,7 @@ Each snippet should eventually include:
 
 ### 11.1 Prepare `SLI_TEST` Authentication
 
-Most local OCI examples below use `profile":"SLI_TEST"` in `SLI_CONTEXT_JSON`. That profile is prepared by the operator-side script [`.github/actions/oci-profile-setup/setup_oci_github_access.sh`](/Users/rstyczynski/projects/SLI_tracker/.github/actions/oci-profile-setup/setup_oci_github_access.sh).
+Most local OCI examples below use `"profile":"SLI_TEST"` inside `SLI_CONTEXT_JSON`. That profile is prepared by the operator-side script [`.github/actions/oci-profile-setup/setup_oci_github_access.sh`](/Users/rstyczynski/projects/SLI_tracker/.github/actions/oci-profile-setup/setup_oci_github_access.sh).
 
 After a successful run, local commands can use `~/.oci/config` with profile `SLI_TEST`. On GitHub runners, the paired restore action [`.github/actions/oci-profile-setup/oci_profile_setup.sh`](/Users/rstyczynski/projects/SLI_tracker/.github/actions/oci-profile-setup/oci_profile_setup.sh) unpacks that same profile from `OCI_CONFIG_PAYLOAD`.
 

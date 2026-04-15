@@ -97,9 +97,7 @@ Before going deeper into the architecture, it helps to see the two basic sink ty
 - OCI Monitoring for compact numeric signals
 - OCI Logging for searchable event records
 
-These examples bypass `emit.sh` and push directly with OCI CLI. Use them when you want to validate OCI ingestion paths without the GitHub payload builder.
-
-These first examples use the local `DEFAULT` OCI profile on purpose. At this stage the reader only needs one working authenticated profile to see data arrive in OCI. The repository-specific `SLI_TEST` profile is introduced later in the operator cookbook.
+> **Profile note:** The examples in this section use the local `DEFAULT` OCI profile on purpose. At this stage the reader only needs one working authenticated profile to see data arrive in OCI. The repository-specific `SLI_TEST` profile — and the tool that creates it — are introduced in §4.5.
 
 ### 3.1 Inject One Log Entry into OCI Logging
 
@@ -589,25 +587,66 @@ Core files:
 - [`tools/sli_ratio_simulator.sh`](../tools/sli_ratio_simulator.sh)
 - [`.github/workflows/sli_ratio_simulator.yml`](../.github/workflows/sli_ratio_simulator.yml)
 
-### 4.5 `SLI_TEST` Profile and Test Authentication
+### 4.5 OCI Authentication Profiles
 
-`SLI_TEST` is the default test OCI profile used by this repository. It is part of the test framework and is closely related to the GitHub Action [`.github/actions/oci-profile-setup`](../.github/actions/oci-profile-setup).
+This project uses two named OCI profiles:
 
-By default, `SLI_TEST` is a token-based profile prepared for operator-assisted test sessions. The usual flow is browser-based authentication through OCI CLI session login, then packing the resulting OCI configuration and session files into the GitHub secret `OCI_CONFIG_PAYLOAD`. This mode is convenient for shorter assisted test sessions, typically below 60 minutes, because the session token expires and must be refreshed.
+| Profile | Where used | Lifetime |
+| ------- | ---------- | -------- |
+| `DEFAULT` | Local operator commands, §3 examples | Depends on local key — usually non-expiring API key |
+| `SLI_TEST` | Tests, GitHub Actions workflows, operator cookbook | Session: ~60 min · API key: non-expiring |
 
-For longer-running tests, the same setup flow also supports mirroring the current `DEFAULT` profile into `SLI_TEST`. In this mode the source profile uses regular API-key access instead of a short-lived browser session token. This is handled by `setup_oci_github_access.sh` with `--account-type config_profile`, where the source profile is usually `DEFAULT` and the destination profile stored for CI remains `SLI_TEST`.
+`DEFAULT` is the standard OCI CLI profile every operator already has locally. The early examples in §3 use it deliberately — no extra setup required, and it proves that OCI ingestion works before introducing any project-specific tooling.
 
-The practical meaning is:
+`SLI_TEST` is the project-standard profile name expected by all tests and workflows in this repository. It is created by a dedicated setup tool and optionally packed into a GitHub secret so CI runners can authenticate to OCI.
 
-- `SLI_TEST` is the standard profile name expected by tests and workflows
-- short assisted test sessions usually use token-based browser authentication
-- longer-running tests can use a mirrored API-key profile under the same `SLI_TEST` name
-- the profile is restored on runners by the `oci-profile-setup` GitHub Action
+#### The Profile Setup Tool
 
-Core files:
+`setup_oci_github_access.sh` is the operator-facing script that creates `SLI_TEST` and (optionally) uploads it to GitHub as a repository secret. It supports two authentication modes.
+
+##### Mode 1 — Session (browser-authenticated token)
+
+Use this for short-lived operator-assisted test sessions. The script runs `oci session authenticate`, which opens a browser for OCI IAM login and produces a time-limited session token. The resulting profile and token files are packed into `OCI_CONFIG_PAYLOAD` and uploaded to GitHub.
+
+```bash
+.github/actions/oci-profile-setup/setup_oci_github_access.sh \
+  --account-type session \
+  --profile DEFAULT \
+  --session-profile-name SLI_TEST \
+  --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+```
+
+- Token expires after approximately 60 minutes
+- Must be refreshed before the next test session
+- Suitable for interactive work where an operator is present
+
+##### Mode 2 — Config profile (API-key based)
+
+Use this for longer-running tests or fully automated CI. The script mirrors an existing local profile (usually `DEFAULT`) into `SLI_TEST`, copying the API key configuration. The result is packed and uploaded to GitHub in the same way.
+
+```bash
+.github/actions/oci-profile-setup/setup_oci_github_access.sh \
+  --account-type config_profile \
+  --profile DEFAULT \
+  --session-profile-name SLI_TEST \
+  --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+```
+
+- Token does not expire
+- Copies your local `DEFAULT` private key material into the packed secret — treat the secret accordingly
+- Suitable for unattended pipelines
+
+#### Profile Restoration on CI Runners
+
+On GitHub Actions runners, the packed `OCI_CONFIG_PAYLOAD` secret is unpacked by the restore action:
 
 - [`.github/actions/oci-profile-setup/action.yml`](../.github/actions/oci-profile-setup/action.yml)
 - [`.github/actions/oci-profile-setup/oci_profile_setup.sh`](../.github/actions/oci-profile-setup/oci_profile_setup.sh)
+
+After restoration, the runner has `~/.oci/config` with the `SLI_TEST` profile available for OCI SDK calls and OCI CLI commands.
+
+Full tool reference:
+
 - [`.github/actions/oci-profile-setup/setup_oci_github_access.sh`](../.github/actions/oci-profile-setup/setup_oci_github_access.sh)
 - [`.github/actions/oci-profile-setup/README.md`](../.github/actions/oci-profile-setup/README.md)
 

@@ -165,10 +165,9 @@ export LOG_GROUP_ID="ocid1.loggroup.oc1..<your-log-group-ocid>"
 export LOG_ID="ocid1.log.oc1..<your-log-ocid>"
 ```
 
-#### Optional: sync to GitHub repository variables
+#### Sync OCIDs to GitHub repository variables
 
-Once the OCIDs are in your shell, you can push them to GitHub so CI workflows and the
-operator cookbook (§11.2) can read them with `gh variable get`:
+GitHub workflows read these OCIDs from repository variables. Once the OCIDs are in your shell, push them to the repository — this step is required for any workflow in this project to reach OCI:
 
 ```bash
 repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)

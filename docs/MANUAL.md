@@ -8,7 +8,7 @@ The framework can accept notifications from external systems, receive OCI-native
 
 The system model is shown below.
 
-<img src="../model/model.jpg" alt="SLI Tracker system model" width="50%">
+<p align="center"><img src="../model/model.jpg" alt="SLI Tracker system model" width="50%"></p>
 
 The editable source is [`model/model.drawio`](../model/model.drawio).
 
@@ -90,7 +90,7 @@ That is the router's job. The router lets the operator define:
 
 This matters because the same `workflow_run` can be valuable in more than one place. One route may send an audit-friendly document to OCI Logging. Another may produce a metric-friendly document for OCI Monitoring. A third may archive the same event in Object Storage. The router turns one incoming message into an operator-controlled delivery policy.
 
-## 3. First OCI Injection Examples
+## 3. OCI Injection Examples
 
 Before going deeper into the architecture, it helps to see the two basic sink types directly:
 
@@ -537,11 +537,11 @@ That same separation is what lets the same routing model work locally with file 
 
 Two diagrams below show the same router from two angles. `Router` is the structural view of the major parts.
 
-<img src="../model/router.jpg" alt="Router structural view" width="50%">
+<p align="center"><img src="../model/router.jpg" alt="Router structural view" width="50%"></p>
 
 `Router runtime` is the behavioral view of how input, route matching, transformation, and destination dispatch execute together.
 
-<img src="../model/router_runtime.jpg" alt="Router runtime behavioral view" width="50%">
+<p align="center"><img src="../model/router_runtime.jpg" alt="Router runtime behavioral view" width="50%"></p>
 
 Core files:
 

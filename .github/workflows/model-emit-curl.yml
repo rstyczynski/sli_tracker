@@ -1,4 +1,4 @@
-name: "MODEL — emit_curl (no OCI CLI)"
+name: "MODEL — emit / curl"
 # SLI-12: Dedicated workflow proving emit_curl.sh works without OCI CLI.
 # Uses oci-profile-setup (config + key files) but skips install-oci-cli.
 # The curl backend signs the request with the profile's PEM key and
@@ -14,7 +14,7 @@ on:
 
 jobs:
   emit-curl:
-    name: "Emit via curl (zero-install)"
+    name: "Emit via curl"
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout"
@@ -37,7 +37,7 @@ jobs:
           fi
           echo "Main step completed successfully"
 
-      - name: "SLI Report (curl backend)"
+      - name: "SLI Report (curl)"
         if: ${{ !cancelled() }}
         continue-on-error: true
         uses: ./.github/actions/sli-event

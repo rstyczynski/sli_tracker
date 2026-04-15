@@ -306,7 +306,6 @@ After you compute `SLI` from the queried log stream, you can publish that ratio 
 export OCI_CLI_PROFILE=DEFAULT
 TS="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 SLI="${SLI:-0.5}"
-set +o pipefail
 
 OCI_REGION="$(
   oci os ns get --debug 2>&1 \
@@ -342,9 +341,9 @@ SLI_METRIC_PAYLOAD="$(jq -nc \
   }]')"
 
 oci monitoring metric-data post \
-  --endpoint "$OCI_MONITORING_ENDPOINT" \
-  --metric-data "$SLI_METRIC_PAYLOAD" \
-  --batch-atomicity ATOMIC 
+--endpoint "$OCI_MONITORING_ENDPOINT" \
+--metric-data "$SLI_METRIC_PAYLOAD" \
+--batch-atomicity ATOMIC 
 ```
 
 This is the metric-side equivalent of the earlier Logging check. The command does not just return success locally; it creates real datapoints in OCI Monitoring that can later drive charts, queries, alarms, and derived SLI calculations. Open the OCI Console, go to Metric Explorer.

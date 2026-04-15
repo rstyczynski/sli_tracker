@@ -176,6 +176,13 @@ gh variable set SLI_OCI_COMPARTMENT_ID  --body "$COMPARTMENT_OCID" -R "$repo"
 gh variable set SLI_OCI_LOG_GROUP_ID    --body "$LOG_GROUP_ID"     -R "$repo"
 ```
 
+Open the log in the OCI Console to confirm it exists (the region is extracted from the log OCID):
+
+```bash
+REGION=$(echo "$LOG_ID" | cut -d. -f4)
+open "https://cloud.oracle.com/logging/logs/${LOG_ID}/log-groups/${LOG_GROUP_ID}?region=${REGION}"
+```
+
 ### 3.1 Inject One Log Entry into OCI Logging
 
 This should append one JSON log entry to the configured OCI log. The payload is intentionally small and easy to recognize when you query the log later.
@@ -210,6 +217,8 @@ oci logging-ingestion put-logs \
 ```
 
 Open the OCI Console, navigate to the Logging section, select the log group and log associated with your deployment, and query for recent entries. Locate the entry with the `source` set to `"manual/oci-cli"` and confirm that your log injection is visible with the correct timestamp and payload data.
+
+
 
 ### 3.2 Inject Failure Log Message
 

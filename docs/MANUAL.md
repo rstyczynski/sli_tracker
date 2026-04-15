@@ -101,6 +101,39 @@ Before going deeper into the architecture, it helps to see the two basic sink ty
 
 ### 3.0 Prerequisites: OCI Resources
 
+#### Required OCI access
+
+> **Note:** This project is in construction phase. The access policy below grants broad
+> privileges intentionally — least-privilege hardening is deferred to a future production
+> readiness sprint.
+
+Tenancy-level administrator access is preferred and simplifies setup. Compartment-level
+access works too, but the operator must ensure the profile has the following permissions
+on the target compartment:
+
+| OCI service | Required permission |
+| ----------- | ------------------- |
+| Compartments | `COMPARTMENT_INSPECT` |
+| Logging (log groups + logs) | `LOG_GROUP_CREATE`, `LOG_GROUP_INSPECT`, `LOG_CREATE`, `LOG_INSPECT` |
+| Logging ingestion | `LOG_PUSH_DATA` |
+| Monitoring (metric post) | `METRIC_SUBMIT` |
+| Object Storage | `OBJECT_CREATE`, `OBJECT_READ`, `BUCKET_CREATE`, `BUCKET_INSPECT` |
+| Functions + API Gateway | `FN_FUNCTION_CREATE`, `FN_FUNCTION_INVOKE`, `API_GATEWAY_CREATE` |
+
+The simplest policy statement for a **tenancy administrator**:
+
+```text
+Allow group <your-group> to manage all-resources in tenancy
+```
+
+For **compartment-level** access, scope the same statement to the compartment:
+
+```text
+Allow group <your-group> to manage all-resources in compartment <compartment-name>
+```
+
+These policies are set in the OCI Console under **Identity → Policies** or via OCI CLI.
+
 Before running the examples below, you need three OCIDs in your shell environment: `COMPARTMENT_OCID`, `LOG_ID`, and `LOG_GROUP_ID`. Choose one path.
 
 #### Path A — Create resources with `ensure_oci_resources.sh`
@@ -121,13 +154,19 @@ export LOG_GROUP_ID="$LOG_GROUP_OCID"
 State is written to `./state-${NAME_PREFIX}.json`. You can read OCIDs from it any time:
 
 ```bash
-jq '{compartment: .compartment.ocid, log_group: .log_group.ocid, log: .log.ocid}' \
-  state-sli_quickstart.json
+jq '{compartment: .compartment.ocid, log_group: .log_group.ocid, log: .log.ocid}' state-sli_quickstart.json
 ```
 
 #### Path B — Adopt existing OCI resources
 
-If you already have a compartment, log group, and log, export their OCIDs directly:
+`ensure_sli_log_resources` is idempotent — it inspects existing OCI resources by name
+and adopts them if they already exist, creating only what is missing. This is the
+reason the project uses `oci_scaffold` helpers instead of Terraform: the same script
+works on a fresh account and on an account where those resources were created by hand
+or by a previous run.
+
+If you prefer to skip the helper entirely and point at OCIDs you already know, export
+them directly:
 
 ```bash
 export COMPARTMENT_OCID="ocid1.compartment.oc1..<your-compartment-ocid>"

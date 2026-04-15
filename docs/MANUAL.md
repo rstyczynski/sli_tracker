@@ -14,7 +14,7 @@ The editable source is [`model/model.drawio`](../model/model.drawio).
 
 ## 1. Project Overview
 
-`SLI_tracker` is an OCI-based SLI collection and processing framework. In this repository, the main exemplar use case is CI/CD telemetry built around GitHub Actions, but the architecture is intentionally broader than one pipeline domain.
+`SLI_tracker` is an general purpose OCI-based Service LEvel Indicator (SLI) collection and processing framework. In this repository, the main exemplar use case is CI/CD telemetry built around GitHub Actions, but the architecture is intentionally broader than one pipeline domain.
 
 At a high level, the system does five things:
 
@@ -562,7 +562,7 @@ Adapter code is under for destinations:
 - [`oci_monitoring_adapter.js`](/Users/rstyczynski/projects/SLI_tracker/tools/adapters/oci_monitoring_adapter.js)
 - [`oci_logging_adapter.js`](/Users/rstyczynski/projects/SLI_tracker/tools/adapters/oci_logging_adapter.js)
 
-The operator cookbook later in this manual shows the same track as hands-on CLI work:
+The operator cookbook in §11.4 (Local Transformation and Routing CLI) shows the same track as hands-on CLI work with complete, runnable bash examples:
 
 - one-envelope local routing
 - `stdin` routing
@@ -1634,6 +1634,24 @@ The unit tests that cover these cases are:
 
 - [`tests/unit/test_json_router_cli.sh`](/Users/rstyczynski/projects/SLI_tracker/tests/unit/test_json_router_cli.sh)
 - [`tests/unit/test_json_pipeline_cli.sh`](/Users/rstyczynski/projects/SLI_tracker/tests/unit/test_json_pipeline_cli.sh)
+
+#### Recommended operator progression
+
+Use the CLI in this order:
+
+1. single file to local `file_system`
+2. `stdin` to local `file_system`
+3. transform CLI piped to router CLI
+4. batch `--source-dir/--output-dir`
+5. source-defined runtime mode in `routing.json`
+6. OCI mapping source
+7. OCI destinations
+
+That order moves from fully local and observable workflows to live OCI-backed delivery.
+
+#### Takeaway
+
+`json_router_cli.js` is no longer a preview tool for single-envelope runs. It is an execution tool that performs real delivery across the same routing runtime model as the Function path. That makes the CLI the best place to understand, validate, and evolve a routing definition before deploying it to OCI.
 
 ### 11.5 OCI Router Operations
 

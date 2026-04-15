@@ -10,7 +10,7 @@ The system model is shown below.
 
 ![SLI Tracker system model](../model/model.jpg)
 
-The editable source is [`model/model.drawio`](/Users/rstyczynski/projects/SLI_tracker/model/model.drawio).
+The editable source is [`model/model.drawio`](../model/model.drawio).
 
 ## 1. Project Overview
 

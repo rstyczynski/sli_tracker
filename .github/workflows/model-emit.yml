@@ -1,4 +1,4 @@
-name: "MODEL — emit (OCI CLI backend)"
+name: "MODEL — emit / oci"
 # Dedicated workflow proving sli-event works in OCI CLI mode.
 # Uses install-oci-cli + oci-profile-setup, then emits through emit_oci.sh.
 
@@ -12,7 +12,7 @@ on:
 
 jobs:
   emit-oci-cli:
-    name: "Emit via OCI CLI"
+    name: "Emit via oci cli"
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout"
@@ -37,7 +37,7 @@ jobs:
           fi
           echo "Main step completed successfully"
 
-      - name: "SLI Report (OCI CLI backend)"
+      - name: "SLI Report (oci)"
         if: ${{ !cancelled() }}
         continue-on-error: true
         uses: ./.github/actions/sli-event

@@ -99,13 +99,60 @@ Before going deeper into the architecture, it helps to see the two basic sink ty
 
 > **Profile note:** The examples in this section use the local `DEFAULT` OCI profile on purpose. At this stage the reader only needs one working authenticated profile to see data arrive in OCI. The repository-specific `SLI_TEST` profile — and the tool that creates it — are introduced in §4.5.
 
+### 3.0 Prerequisites: OCI Resources
+
+Before running the examples below, you need three OCIDs in your shell environment: `COMPARTMENT_OCID`, `LOG_ID`, and `LOG_GROUP_ID`. Choose one path.
+
+#### Path A — Create resources with `ensure_oci_resources.sh`
+
+If you do not yet have an OCI log set up for this project, run the helper to create the compartment, log group, and log. The function is idempotent — safe to re-run.
+
+```bash
+source tools/ensure_oci_resources.sh
+
+export NAME_PREFIX="sli_quickstart"
+export SLI_OCI_LOG_URI="/SLI_tracker/sli-events/github-actions"
+
+ensure_sli_log_resources "$(pwd)" DEFAULT "$NAME_PREFIX" "$SLI_OCI_LOG_URI"
+export LOG_ID="$SLI_LOG_OCID"
+export LOG_GROUP_ID="$LOG_GROUP_OCID"
+```
+
+State is written to `./state-${NAME_PREFIX}.json`. You can read OCIDs from it any time:
+
+```bash
+jq '{compartment: .compartment.ocid, log_group: .log_group.ocid, log: .log.ocid}' \
+  state-sli_quickstart.json
+```
+
+#### Path B — Adopt existing OCI resources
+
+If you already have a compartment, log group, and log, export their OCIDs directly:
+
+```bash
+export COMPARTMENT_OCID="ocid1.compartment.oc1..<your-compartment-ocid>"
+export LOG_GROUP_ID="ocid1.loggroup.oc1..<your-log-group-ocid>"
+export LOG_ID="ocid1.log.oc1..<your-log-ocid>"
+```
+
+#### Optional: sync to GitHub repository variables
+
+Once the OCIDs are in your shell, you can push them to GitHub so CI workflows and the
+operator cookbook (§11.2) can read them with `gh variable get`:
+
+```bash
+repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+gh variable set SLI_OCI_LOG_ID          --body "$LOG_ID"           -R "$repo"
+gh variable set SLI_OCI_COMPARTMENT_ID  --body "$COMPARTMENT_OCID" -R "$repo"
+gh variable set SLI_OCI_LOG_GROUP_ID    --body "$LOG_GROUP_ID"     -R "$repo"
+```
+
 ### 3.1 Inject One Log Entry into OCI Logging
 
 This should append one JSON log entry to the configured OCI log. The payload is intentionally small and easy to recognize when you query the log later.
 
 ```bash
-repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
-LOG_ID="$(gh variable get SLI_OCI_LOG_ID -R "$repo")"
+# Requires: LOG_ID exported in §3.0
 TS="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 export OCI_CLI_PROFILE=DEFAULT
 
@@ -140,8 +187,7 @@ Open the OCI Console, navigate to the Logging section, select the log group and 
 To inject a failure event, keep the same shape as the success payload above and change `outcome` to `"failure"`. Include an explicit failure reason so you can spot it easily in OCI Logging.
 
 ```bash
-repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
-LOG_ID="$(gh variable get SLI_OCI_LOG_ID -R "$repo")"
+# Requires: LOG_ID exported in §3.0
 TS="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 export OCI_CLI_PROFILE=DEFAULT
 
@@ -174,11 +220,8 @@ oci logging-ingestion put-logs \
 For the manual CLI log examples above, a simple message-level SLI is: `number of success messages / number of messages` The category is identified by the payload fields `source=="manual"` and `path=="oci-cli"`. Wait around 60 seconds for log propagation, and execute log search and SLI computation code for 30 minutes .
 
 ```bash
+# Requires: COMPARTMENT_OCID, LOG_ID, LOG_GROUP_ID exported in §3.0
 export OCI_CLI_PROFILE=DEFAULT
-repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
-COMPARTMENT_OCID="$(gh variable get SLI_OCI_COMPARTMENT_ID -R "$repo")"
-LOG_ID="$(gh variable get SLI_OCI_LOG_ID -R "$repo")"
-LOG_GROUP_ID="$(gh variable get SLI_OCI_LOG_GROUP_ID -R "$repo")"
 TS_START="$(date -u -v-30M '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date -u --date='-30 min' '+%Y-%m-%dT%H:%M:%SZ')"
 TS_END="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
@@ -220,9 +263,8 @@ If you inserted one success message and one failure message into this category, 
 After you compute `SLI` from the queried log stream, you can publish that ratio back to OCI Monitoring as a derived metric. Run this in the same shell as the previous snippet, or set `SLI` manually first. In this example the metric carries the dimension `window="30min"` so the reader can see which aggregation window produced the value.
 
 ```bash
+# Requires: COMPARTMENT_OCID exported in §3.0; SLI set by §3.3
 export OCI_CLI_PROFILE=DEFAULT
-repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
-COMPARTMENT_OCID="$(gh variable get SLI_OCI_COMPARTMENT_ID -R "$repo")"
 TS="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 SLI="${SLI:?Run the previous SLI computation snippet first, or export SLI manually.}"
 OCI_REGION="$(
@@ -268,8 +310,7 @@ oci monitoring metric-data post \
 This should create one `outcome` datapoint in namespace `sli_tracker_manual` with simple dimensions so it is easy to find later.
 
 ```bash
-repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
-COMPARTMENT_OCID="$(gh variable get SLI_OCI_COMPARTMENT_ID -R "$repo")"
+# Requires: COMPARTMENT_OCID exported in §3.0
 TS="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 export OCI_CLI_PROFILE=DEFAULT
 OCI_REGION="$(

@@ -103,13 +103,9 @@ Before going deeper into the architecture, it helps to see the two basic sink ty
 
 #### Required OCI access
 
-> **Note:** This project is in construction phase. The access policy below grants broad
-> privileges intentionally — least-privilege hardening is deferred to a future production
-> readiness sprint.
+> **Note:** This project is in construction phase. The access policy below grants broad privileges intentionally — least-privilege hardening is deferred to a future production readiness sprint.
 
-Tenancy-level administrator access is preferred and simplifies setup. Compartment-level
-access works too, but the operator must ensure the profile has the following permissions
-on the target compartment:
+Tenancy-level administrator access is preferred and simplifies setup. Compartment-level access works too, but the operator must ensure the profile has the following permissions on the target compartment:
 
 | OCI service | Required permission |
 | ----------- | ------------------- |
@@ -159,14 +155,9 @@ jq '{compartment: .compartment.ocid, log_group: .log_group.ocid, log: .log.ocid}
 
 #### Path B — Adopt existing OCI resources
 
-`ensure_sli_log_resources` is idempotent — it inspects existing OCI resources by name
-and adopts them if they already exist, creating only what is missing. This is the
-reason the project uses `oci_scaffold` helpers instead of Terraform: the same script
-works on a fresh account and on an account where those resources were created by hand
-or by a previous run.
+`ensure_sli_log_resources` is idempotent — it inspects existing OCI resources by name and adopts them if they already exist, creating only what is missing. This is the reason the project uses `oci_scaffold` helpers instead of Terraform: the same script works on a fresh account and on an account where those resources were created by hand or by a previous run.
 
-If you prefer to skip the helper entirely and point at OCIDs you already know, export
-them directly:
+If you prefer to skip the helper entirely and point at OCIDs you already know, export them directly:
 
 ```bash
 export COMPARTMENT_OCID="ocid1.compartment.oc1..<your-compartment-ocid>"

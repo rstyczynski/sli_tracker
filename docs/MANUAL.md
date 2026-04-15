@@ -145,6 +145,7 @@ export SLI_OCI_LOG_URI="/SLI_tracker/sli-events/github-actions"
 ensure_sli_log_resources "$(pwd)" DEFAULT "$NAME_PREFIX" "$SLI_OCI_LOG_URI"
 export LOG_ID="$SLI_LOG_OCID"
 export LOG_GROUP_ID="$LOG_GROUP_OCID"
+export COMPARTMENT_OCID="$COMPARTMENT_OCID"
 ```
 
 State is written to `./state-${NAME_PREFIX}.json`. You can read OCIDs from it any time:

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Integration test: json_router_cli loads mappings from OCI Object Storage when routing.json defines mapping.
+# Integration test: json_router_cli loads mappings from OCI Object Storage and executes the real destination adapter path.
 # Uses oci_scaffold to ensure /SLI_tracker compartment and a bucket.
 
 set -euo pipefail
@@ -76,29 +76,69 @@ echo ""
 echo "=== Run CLI with routing.json that has mapping but no local mapping file ==="
 tmp_dir="$(mktemp -d /tmp/sli_cli_map.XXXXXX)"
 fx="${REPO_ROOT}/tests/fixtures/router_destinations/ut111_mixed_destinations"
-cp "${fx}/source/001_workflow_run.json" "${tmp_dir}/envelope.json"
+cat > "${tmp_dir}/envelope.json" <<'EOF'
+{
+  "source_meta": { "file_name": "cli-map.json" },
+  "headers": {
+    "X-GitHub-Event": "workflow_run"
+  },
+  "body": {
+    "workflow_run": {
+      "conclusion": "success"
+    },
+    "repository": {
+      "full_name": "acme/repo"
+    }
+  }
+}
+EOF
 
 # routing.json in a temp dir WITHOUT mapping files (so local fallback would fail).
 cat > "${tmp_dir}/routing.json" <<EOF
 {
   "adapters": {
-    "oci_object_storage:mappings": { "bucket": "${MAPPING_BUCKET_NAME}", "prefix": "jsonata/" }
+    "oci_object_storage:mappings": { "bucket": "${MAPPING_BUCKET_NAME}", "prefix": "jsonata/" },
+    "oci_object_storage:routed": { "bucket": "${MAPPING_BUCKET_NAME}", "prefix": "routed/" }
   },
   "mapping": { "type": "oci_object_storage", "name": "mappings" },
   "routes": [
     {
-      "id": "workflow_to_logging",
+      "id": "workflow_to_bucket",
       "match": { "headers": { "X-GitHub-Event": "workflow_run" } },
       "transform": { "mapping": "./mapping_log.jsonata" },
-      "destination": { "type": "oci_logging", "name": "github_events" }
+      "destination": { "type": "oci_object_storage", "name": "routed" }
     }
   ]
 }
 EOF
 
 out="$(node "${REPO_ROOT}/tools/json_router_cli.js" --routing "${tmp_dir}/routing.json" --input "${tmp_dir}/envelope.json")"
-assert_eq "IT-2 CLI fetched mapping from OCI and transformed envelope" \
-  '{"routes":[{"id":"workflow_to_logging","mode":"exclusive","destination":{"type":"oci_logging","name":"github_events"},"output":{"kind":"log","repo":"acme/repo","outcome":"success"}}]}' "$out"
+assert_eq "IT-2 CLI fetched mapping from OCI and executed routed delivery" \
+  '{"status":"routed","deliveries":[{"route":{"id":"workflow_to_bucket","mode":"exclusive","destination":{"type":"oci_object_storage","name":"routed"}},"output":{"kind":"log","repo":"acme/repo","outcome":"success"}}]}' "$out"
+
+stored="$(node - <<'NODE'
+const common = require('oci-common');
+const objectstorage = require('oci-objectstorage');
+
+(async () => {
+  const profile = process.env.OCI_CLI_PROFILE || 'DEFAULT';
+  const bucketName = process.env.MAPPING_BUCKET_NAME;
+  const provider = new common.ConfigFileAuthenticationDetailsProvider(undefined, profile);
+  const client = new objectstorage.ObjectStorageClient({ authenticationDetailsProvider: provider });
+  const namespaceName = (await client.getNamespace({})).value;
+  const resp = await client.getObject({
+    namespaceName,
+    bucketName,
+    objectName: 'routed/cli-map.json',
+  });
+  const chunks = [];
+  for await (const chunk of resp.value) chunks.push(chunk);
+  process.stdout.write(Buffer.concat(chunks).toString('utf8').trim());
+})().catch((err) => { process.stderr.write(String(err.message) + '\n'); process.exit(1); });
+NODE
+)"
+assert_eq "IT-2 CLI stored routed payload in OCI Object Storage" \
+  '{"kind":"log","repo":"acme/repo","outcome":"success"}' "$stored"
 
 rm -rf "$tmp_dir"
 
@@ -106,4 +146,3 @@ echo ""
 echo "=== Summary ==="
 echo "passed: $PASS  failed: $FAIL"
 [[ "$FAIL" -eq 0 ]]
-

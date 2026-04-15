@@ -1,0 +1,3 @@
+unit:test_json_router_cli.sh
+unit:test_json_pipeline_cli.sh
+integration:test_json_router_cli_mapping_oci_object_storage.sh

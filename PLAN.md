@@ -387,3 +387,17 @@ Add per-component manifest files under `tests/manifests/`, a `--component` flag 
 Backlog Items:
 
 * SLI-47. Component-scoped test manifests and test working directory enforcement
+
+## Sprint 29 - Router CLI and Fn execution parity (SLI-48)
+
+Status: Done
+Mode: YOLO
+Test: unit, integration
+Regression: unit, integration
+Regression scope: router
+
+Make the router CLI and the deployed OCI Function execute the same routing definition through the same universal delivery path. The CLI should stop being a preview-only special case for single-envelope routing and instead behave like the Function wrapper, with differences limited to CLI versus Fn input/output decoration.
+
+Backlog Items:
+
+* SLI-48. Make router CLI and Fn execution use the same universal delivery path

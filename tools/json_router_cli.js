@@ -14,12 +14,12 @@ const path = require('path');
 
 const jsonRouter = require('./json_router');
 const loadRoutingDefinition = jsonRouter.loadRoutingDefinition;
-const routeTransformAll = jsonRouter.routeTransformAll;
 const processEnvelope = jsonRouter.processEnvelope;
 const errorMessage = jsonRouter.errorMessage;
 
 const routerRuntime = require('./router_runtime');
 const runFromRoutingFile = routerRuntime.runFromRoutingFile;
+const runEnvelope = routerRuntime.runEnvelope;
 
 const mappingLoader = require('./adapters/mapping_loader');
 const createMappingLoader = mappingLoader.createMappingLoader;
@@ -354,7 +354,10 @@ async function main() {
 
     let result;
     try {
-        result = await routeTransformAll(envelope, definition, { loadMapping });
+        result = await runEnvelope(definition, envelope, {
+            ociProfile: process.env.OCI_CLI_PROFILE || 'DEFAULT',
+            fileRootDir: definition.baseDir || path.dirname(args.routing),
+        });
     } catch (err) {
         process.stderr.write(`Error: Routing failed: ${errorMessage(err)}\n`);
         process.exit(1);

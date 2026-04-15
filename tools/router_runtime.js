@@ -5,14 +5,19 @@
 const path = require('path');
 const common = require('oci-common');
 const objectstorage = require('oci-objectstorage');
+const monitoring = require('oci-monitoring');
+const loggingingestion = require('oci-loggingingestion');
 
 const jsonRouter = require('./json_router');
 const loadRoutingDefinition = jsonRouter.loadRoutingDefinition;
+const processEnvelope = jsonRouter.processEnvelope;
 const processEnvelopes = jsonRouter.processEnvelopes;
 
 const { createDestinationDispatcher } = require('./adapters/destination_dispatcher');
 const { createFileAdapter } = require('./adapters/file_adapter');
 const { createOciObjectStorageAdapter } = require('./adapters/oci_object_storage_adapter');
+const { createOciMonitoringAdapter } = require('./adapters/oci_monitoring_adapter');
+const { createOciLoggingAdapter } = require('./adapters/oci_logging_adapter');
 const { createMappingLoader } = require('./adapters/mapping_loader');
 const { createOciObjectStorageMappingSource } = require('./adapters/oci_object_storage_mapping_source');
 const { createSourceAdapterFromDefinition } = require('./adapters/source_loader');
@@ -54,6 +59,20 @@ function joinPrefix(prefix, name) {
     return `${trimmed}${name}`;
 }
 
+function regionIdFromProvider(provider) {
+    if (!provider || typeof provider.getRegion !== 'function') {
+        return '';
+    }
+    try {
+        const region = provider.getRegion();
+        if (!region) return '';
+        if (typeof region === 'string') return region;
+        return region.regionId || region.regionIdentifier || region.regionCode || String(region);
+    } catch (_) {
+        return '';
+    }
+}
+
 async function withRetry(fn, options = {}) {
     const attempts = Number.isFinite(options.attempts) ? options.attempts : 8;
     const baseDelayMs = Number.isFinite(options.baseDelayMs) ? options.baseDelayMs : 400;
@@ -70,35 +89,70 @@ async function withRetry(fn, options = {}) {
     throw lastErr;
 }
 
-async function createOciObjectStorageClient(profile) {
-    const provider = new common.ConfigFileAuthenticationDetailsProvider(undefined, profile);
-    const client = new objectstorage.ObjectStorageClient({ authenticationDetailsProvider: provider });
-    const namespaceName = (await withRetry(() => client.getNamespace({}))).value;
-    return { client, namespaceName };
-}
-
 async function createRuntimeFromRoutingDefinition(definition, options = {}) {
     if (!isObject(definition)) {
         throw new Error('Runtime requires a routing definition object');
     }
-    if (!isObject(definition.adapters)) {
-        throw new Error('Runtime requires routing.json adapters');
-    }
 
     const profile = options.ociProfile || process.env.OCI_CLI_PROFILE || 'DEFAULT';
-    const oci = await createOciObjectStorageClient(profile);
-    const client = oci.client;
-    const namespaceName = oci.namespaceName;
+    const provider = new common.ConfigFileAuthenticationDetailsProvider(undefined, profile);
+    const regionId = options.regionId || process.env.OCI_REGION || regionIdFromProvider(provider) || '';
+    let objectStoragePromise = null;
+    let monitoringClient = null;
+    let loggingClient = null;
+
+    async function getObjectStorage() {
+        if (!objectStoragePromise) {
+            objectStoragePromise = (async () => {
+                const client = new objectstorage.ObjectStorageClient({ authenticationDetailsProvider: provider });
+                if (regionId) {
+                    try {
+                        client.region = common.Region.fromRegionId(regionId);
+                    } catch (_) {
+                        client.region = regionId;
+                    }
+                    client.endpoint = `https://objectstorage.${regionId}.oraclecloud.com`;
+                }
+                const namespaceName = (await withRetry(() => client.getNamespace({}))).value;
+                return { client, namespaceName };
+            })();
+        }
+        return objectStoragePromise;
+    }
+
+    function getMonitoringClient() {
+        if (!monitoringClient) {
+            monitoringClient = new monitoring.MonitoringClient({ authenticationDetailsProvider: provider });
+            if (regionId) {
+                monitoringClient.regionId = regionId;
+                monitoringClient.endpoint = `https://telemetry-ingestion.${regionId}.oraclecloud.com`;
+            }
+        }
+        return monitoringClient;
+    }
+
+    function getLoggingClient() {
+        if (!loggingClient) {
+            loggingClient = new loggingingestion.LoggingClient({ authenticationDetailsProvider: provider });
+            if (regionId) {
+                loggingClient.regionId = regionId;
+            }
+        }
+        return loggingClient;
+    }
 
     const getObject = async ({ bucket, objectName }) => {
+        const { client, namespaceName } = await getObjectStorage();
         const resp = await withRetry(() => client.getObject({ namespaceName, bucketName: bucket, objectName }));
         return await readObjectToString(resp.value);
     };
     const listObjects = async ({ bucket, prefix }) => {
+        const { client, namespaceName } = await getObjectStorage();
         const resp = await withRetry(() => client.listObjects({ namespaceName, bucketName: bucket, prefix }));
         return resp.listObjects && resp.listObjects.objects ? resp.listObjects.objects : [];
     };
     const putObject = async ({ bucket, objectName, content, contentType }) => {
+        const { client, namespaceName } = await getObjectStorage();
         await withRetry(() =>
             client.putObject({
                 namespaceName,
@@ -115,6 +169,9 @@ async function createRuntimeFromRoutingDefinition(definition, options = {}) {
     if (definition.mapping) {
         const sources = [];
         if (definition.mapping.type === 'oci_object_storage') {
+            if (!isObject(definition.adapters)) {
+                throw new Error('Runtime requires routing.json adapters for OCI mapping sources');
+            }
             sources.push(createOciObjectStorageMappingSource({ getObject }));
         }
         if (sources.length === 0) {
@@ -126,7 +183,9 @@ async function createRuntimeFromRoutingDefinition(definition, options = {}) {
         });
     }
 
-    const source = createSourceAdapterFromDefinition(definition, { listObjects, getObject });
+    const source = options.sourceAdapter || (definition.source
+        ? createSourceAdapterFromDefinition(definition, { listObjects, getObject })
+        : null);
 
     // Destination adapters
     const baseDir = definition.baseDir || process.cwd();
@@ -151,8 +210,55 @@ async function createRuntimeFromRoutingDefinition(definition, options = {}) {
         },
     });
 
+    const monitoringAdapter = createOciMonitoringAdapter({
+        destinationMap: definition.adapters,
+        emit: async ({ output, target }) => {
+            if (output === undefined || output === null) return;
+            const metricData = Array.isArray(output) ? output : [output];
+            if (metricData.length === 0) return;
+            const enriched = metricData.map((item) => ({
+                compartmentId: target.compartmentId,
+                ...item,
+            }));
+            await withRetry(() =>
+                getMonitoringClient().postMetricData({
+                    postMetricDataDetails: { metricData: enriched, batchAtomicity: 'ATOMIC' },
+                })
+            );
+        },
+    });
+
+    const loggingAdapter = createOciLoggingAdapter({
+        destinationMap: definition.adapters,
+        emit: async ({ output, target }) => {
+            if (output === undefined || output === null || !target.logId) return;
+            const items = Array.isArray(output) ? output : [output];
+            if (items.length === 0) return;
+            const now = new Date().toISOString();
+            const logEntries = items.map((entry, index) => ({
+                id: `${Date.now()}-${index}`,
+                time: now,
+                data: typeof entry === 'string' ? entry : JSON.stringify(entry),
+            }));
+            await withRetry(() =>
+                getLoggingClient().putLogs({
+                    logId: target.logId,
+                    putLogsDetails: {
+                        specversion: '1.0',
+                        logEntryBatches: [{
+                            source: 'sli-tracker/router_cli',
+                            type: 'router-event',
+                            defaultlogentrytime: now,
+                            entries: logEntries,
+                        }],
+                    },
+                })
+            );
+        },
+    });
+
     const dispatcher = createDestinationDispatcher({
-        adapters: [bucketAdapter, fileAdapter],
+        adapters: [bucketAdapter, monitoringAdapter, loggingAdapter, fileAdapter],
         deadLetterDestination: definition.dead_letter,
     });
 
@@ -170,11 +276,22 @@ async function createRuntimeFromRoutingDefinition(definition, options = {}) {
 async function runFromRoutingFile(routingPath, options = {}) {
     const definition = loadRoutingDefinition(routingPath);
     const runtime = await createRuntimeFromRoutingDefinition(definition, options);
+    if (!runtime.source || typeof runtime.source.readEnvelopes !== 'function') {
+        throw new Error('Routing runtime requires routing.json source or an injected source adapter');
+    }
     return await processEnvelopes(runtime.source.readEnvelopes(), runtime.definition, runtime.handlers);
+}
+
+async function runEnvelope(definitionOrPath, envelope, options = {}) {
+    const definition = typeof definitionOrPath === 'string'
+        ? loadRoutingDefinition(definitionOrPath)
+        : definitionOrPath;
+    const runtime = await createRuntimeFromRoutingDefinition(definition, options);
+    return await processEnvelope(envelope, runtime.definition, runtime.handlers);
 }
 
 module.exports = {
     createRuntimeFromRoutingDefinition,
     runFromRoutingFile,
+    runEnvelope,
 };
-

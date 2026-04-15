@@ -49,12 +49,61 @@ assert_exit_and_stderr_contains() {
     rm -f "$stderr_file"
 }
 
-EXPECTED_SINGLE=$(node -e "process.stdout.write(JSON.stringify(JSON.parse(require('fs').readFileSync('${ROUTER_FX}/ut79_exclusive_plus_fanout/expected.json','utf8'))))")
-result=$(node "$CLI" --routing "${ROUTER_FX}/ut79_exclusive_plus_fanout/routing.json" --input "${ROUTER_FX}/ut79_exclusive_plus_fanout/envelope.json")
-assert_eq "UT-88 router CLI single envelope" "$EXPECTED_SINGLE" "$result"
+single_tmp_dir=$(mktemp -d /tmp/sli48_router_cli_single.XXXXXX)
+cat > "${single_tmp_dir}/routing.json" <<'EOF'
+{
+  "adapters": {
+    "file_system:audit_copy": { "directory": "out/audit" }
+  },
+  "routes": [
+    {
+      "id": "audit_to_file",
+      "mode": "exclusive",
+      "match": { "required_fields": ["audit.id"] },
+      "transform": { "mapping": "./mapping.jsonata" },
+      "destination": { "type": "file_system", "name": "audit_copy" }
+    }
+  ]
+}
+EOF
+printf '$\n' > "${single_tmp_dir}/mapping.jsonata"
+cat > "${single_tmp_dir}/envelope.json" <<'EOF'
+{
+  "source_meta": { "file_name": "audit.json" },
+  "body": {
+    "audit": {
+      "id": "A-1",
+      "message": "copied to file adapter"
+    }
+  }
+}
+EOF
 
-result=$(cat "${ROUTER_FX}/ut79_exclusive_plus_fanout/envelope.json" | node "$CLI" --routing "${ROUTER_FX}/ut79_exclusive_plus_fanout/routing.json")
-assert_eq "UT-89 router CLI stdin envelope" "$EXPECTED_SINGLE" "$result"
+EXPECTED_SINGLE='{"status":"routed","deliveries":[{"route":{"id":"audit_to_file","mode":"exclusive","destination":{"type":"file_system","name":"audit_copy"}},"output":{"audit":{"id":"A-1","message":"copied to file adapter"}}}]}'
+result=$(node "$CLI" --routing "${single_tmp_dir}/routing.json" --input "${single_tmp_dir}/envelope.json")
+assert_eq "UT-88 router CLI single envelope executes delivery path" "$EXPECTED_SINGLE" "$result"
+EXPECTED_FILE='{
+  "audit": {
+    "id": "A-1",
+    "message": "copied to file adapter"
+  }
+}'
+if [[ -f "${single_tmp_dir}/out/audit/audit.json" ]]; then
+    actual_file=$(cat "${single_tmp_dir}/out/audit/audit.json")
+    assert_eq "UT-88 router CLI single envelope writes destination file" "$EXPECTED_FILE" "$actual_file"
+else
+    fail "UT-88 router CLI single envelope writes destination file (missing output file)"
+fi
+
+result=$(cat "${single_tmp_dir}/envelope.json" | node "$CLI" --routing "${single_tmp_dir}/routing.json")
+assert_eq "UT-89 router CLI stdin envelope executes delivery path" "$EXPECTED_SINGLE" "$result"
+if [[ -f "${single_tmp_dir}/out/audit/audit.json" ]]; then
+    actual_file=$(cat "${single_tmp_dir}/out/audit/audit.json")
+    assert_eq "UT-89 router CLI stdin writes destination file" "$EXPECTED_FILE" "$actual_file"
+else
+    fail "UT-89 router CLI stdin writes destination file (missing output file)"
+fi
+rm -rf "${single_tmp_dir}"
 
 batch_actual_dir=$(mktemp -d /tmp/sli19_router_cli_batch.XXXXXX)
 EXPECTED_BATCH_SUMMARY=$(node -e "process.stdout.write(JSON.stringify({processed:4}))")

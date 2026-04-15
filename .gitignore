@@ -16,3 +16,4 @@ tests/integration/oci_logs_*.json
 tests/integration/oci_metric_*.json
 tests/integration/test_run_*.log
 .DS_Store
+model/.$model.drawio.bkp

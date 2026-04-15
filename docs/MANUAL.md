@@ -247,7 +247,7 @@ This is the first point where the operator can see the whole idea working end to
 
 Once both `success` and `failure` entries are visible, you have validated the most basic ingestion path: a structured event left your shell, reached OCI, and became queryable operational data.
 
-If you want to jump directly to the log in OCI Console, derive the region from the log OCID and open it:
+If you want to jump directly to the log in OCI Console, derive the region from the log OCID and open it. Be prepared to wait 30-60 seconds for data to appear in the log search console - it's the time needed to ingest the data.
 
 ```bash
 REGION=$(echo "$LOG_ID" | cut -d. -f4)
@@ -305,7 +305,9 @@ After you compute `SLI` from the queried log stream, you can publish that ratio 
 # Requires: COMPARTMENT_OCID exported in §3.0; SLI set by §3.3
 export OCI_CLI_PROFILE=DEFAULT
 TS="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-SLI="${SLI:?Run the previous SLI computation snippet first, or export SLI manually.}"
+SLI="${SLI:-0.5}"
+set +o pipefail
+
 OCI_REGION="$(
   oci os ns get --debug 2>&1 \
     | sed -n 's/.*Endpoint: https:\/\/objectstorage\.\([^.]*\)\..*/\1/p' \
@@ -316,6 +318,8 @@ OCI_REALM_SUFFIX="$(
     | sed -n 's/.*Endpoint: https:\/\/objectstorage\.[^.]*\.\([^[:space:]]*\).*/\1/p' \
     | head -1
 )"
+
+
 OCI_MONITORING_ENDPOINT="https://telemetry-ingestion.${OCI_REGION}.${OCI_REALM_SUFFIX}"
 
 SLI_METRIC_PAYLOAD="$(jq -nc \
@@ -340,8 +344,7 @@ SLI_METRIC_PAYLOAD="$(jq -nc \
 oci monitoring metric-data post \
   --endpoint "$OCI_MONITORING_ENDPOINT" \
   --metric-data "$SLI_METRIC_PAYLOAD" \
-  --batch-atomicity ATOMIC \
-  | jq
+  --batch-atomicity ATOMIC 
 ```
 
 This is the metric-side equivalent of the earlier Logging check. The command does not just return success locally; it creates real datapoints in OCI Monitoring that can later drive charts, queries, alarms, and derived SLI calculations. Open the OCI Console, go to Metric Explorer.

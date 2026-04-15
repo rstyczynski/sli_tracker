@@ -365,3 +365,15 @@ Test: unit — a fanout with two routes where one adapter throws must not preven
 Today **SLI-41** delivers `workflow_run` to the ingest bucket (raw JSON) and to OCI Monitoring (completed runs only, via JSONata). Operators may also want **searchable log entries** in OCI Logging for the same events—correlation, free-text search, and retention policies—without replacing the bucket archive or metrics. Extend the public router stack with an **`oci_logging`** (or equivalent) adapter and a **`fanout`** route on the same `X-GitHub-Event: workflow_run` match, using a JSONata mapping that shapes a log record (which fields for in-progress vs completed, PII/size limits, and idempotency are sprint decisions). Fn configuration must carry log group / log OCID (or URI-style discovery consistent with the rest of the repo), IAM policies for the Function resource principal, and cycle-script upload of routing + mapping seeds. Relates to **SLI-41**, **SLI-42**, and **SLI-43** (mixed `exclusive` + multiple `fanout`).
 
 Test: a completed `workflow_run` fixture yields Object Storage object + Monitoring datapoint + **Logging API success** (or equivalent observable); a non-completed run yields bucket object only when the mapping skips Logging/Monitoring the same way as today for metrics.
+
+### SLI-48. Make router CLI and Fn execution use the same universal delivery path
+
+The router CLI and the OCI Function wrapper should expose the same functional behavior for a given routing definition. Today the Function path executes routed deliveries through adapters on every request, while the CLI still has narrower modes that only preview matched routes and transformed outputs unless the definition uses a source-driven runtime path. The product needs one universal router execution path so CLI and Fn differ only in input/output decoration and operators can trust that a routing definition behaves the same way in local CLI validation and in deployed Function execution.
+
+Test: given the same routing definition and input envelope, CLI and Fn produce the same delivery behavior, including destination execution, dead-letter handling, and returned delivery metadata.
+
+### SLI-49. OCI Queue input adapter for router runtime
+
+The router runtime already supports source adapters conceptually, but operator-facing use is still validated mainly through `file_system` input. Add an OCI Queue input adapter so a routing definition can consume messages from an OCI Queue source and feed them into the same route-match, transform, and delivery runtime used by CLI and Fn. This is both a useful ingestion capability and a validation that the current source-adapter abstraction really works beyond local files. Sprint elaboration should decide polling model, message acknowledgement/delete semantics, visibility timeout handling, error/dead-letter behavior, and how queue message metadata should appear in the envelope.
+
+Test: with a routing definition that declares an OCI Queue source, the runtime can read queued JSON messages, route them through normal delivery adapters, and handle malformed or failed messages according to the agreed acknowledgement and dead-letter rules.

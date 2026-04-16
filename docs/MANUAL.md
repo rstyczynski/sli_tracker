@@ -269,7 +269,7 @@ If you want to jump directly to the log in OCI Console, derive the region from t
 
 ```bash
 REGION=$(echo "$LOG_ID" | cut -d. -f4)
-open "https://cloud.oracle.com/logging/logs/${LOG_ID}/log-groups/${LOG_GROUP_ID}?region=${REGION}"
+open "https://cloud.oracle.com/logging/logs/${LOG_ID}/log-groups/${LOG_GROUP_ID}/explore-log?region=${REGION}"
 ```
 
 ### 3.3 Query That Log Category Back and Compute Message-Level SLI

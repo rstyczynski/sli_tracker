@@ -497,10 +497,13 @@ Useful references:
 - [`.github/actions/oci-profile-setup/setup_oci_github_access.sh`](../.github/actions/oci-profile-setup/setup_oci_github_access.sh)
 - [`.github/actions/oci-profile-setup/README.md`](../.github/actions/oci-profile-setup/README.md)
 
-#### 4.1.4. Emit monitoring and log data via OCI CLI, direct API, and JS SDK
+### 4.2 GitHub Actions SLI Track
 
-The OCI profile is the critical prerequisite. OCI CLI itself is only one possible emission backend. This project also provides two alternatives:
+#### 4.2.1. Emit monitoring and log data via OCI CLI, direct API, and JS SDK
 
+The OCI profile is the critical prerequisite, however OCI CLI itself is only one possible emission backend. This project provides alternatives to interplay with OCI:
+
+- `cli`, regular OCI CLI build on top of python
 - `curl`, which talks directly to OCI APIs
 - JavaScript, which uses the Oracle JS SDK
 
@@ -512,28 +515,22 @@ Those three workflow variants are:
 
 Once `SLI_TEST` is authenticated and the secret is fresh, you can move to workflow examples and expect OCI-backed steps to work without additional local setup.
 
-XXXX EDITED UP TO THIS PLACEHOLDER XXXX
-XXXX EDITED UP TO THIS PLACEHOLDER XXXX
-XXXX EDITED UP TO THIS PLACEHOLDER XXXX
+GitHub workflows call local actions:
 
-
-### 4.2 GitHub Actions SLI Track
-
-GitHub workflows call local actions under [`.github/actions`](../.github/actions). Those actions assemble a structured payload describing a workflow run, its outcome, and failure reasons. The payload can then be pushed to OCI Logging and OCI Monitoring using OCI CLI or a direct API call. The latter technique uses `curl` against OCI APIs.
-
-Core files:
-
-- [`.github/actions/sli-event/action.yml`](../.github/actions/sli-event/action.yml)
-- [`.github/actions/sli-event-js/action.yml`](../.github/actions/sli-event-js/action.yml)
-- [`.github/actions/sli-event/emit.sh`](../.github/actions/sli-event/emit.sh)
-- [`.github/actions/sli-event/emit_curl.sh`](../.github/actions/sli-event/emit_curl.sh)
-- [`.github/actions/sli-event/emit_oci.sh`](../.github/actions/sli-event/emit_oci.sh)
+- [`.github/actions/sli-event/action.yml`](../.github/actions/sli-event/action.yml) - that cover both `cli` and `curl`
+- [`.github/actions/sli-event-js/action.yml`](../.github/actions/sli-event-js/action.yml) - utilizing native GitHub JavaScript support with `post` registration.
 
 Open GitHub Actions and inspect the three `MODEL — emit / ...` workflows to see the same event path exercised through different emission backends.
 
+XXXXX use gh to run and check
+```bash
+```
+
+
+
 ## 5. Router tools Hands-On
 
-### 5.1 Router and Ingest Track
+### 5.1 Router and Ingest Track1
 
 Incoming JSON payloads can be identified, transformed, and routed to multiple destinations. This part of the project is transport-agnostic at the routing-definition level, then implemented through adapters for file output, OCI Object Storage, OCI Monitoring, and OCI Logging. Routing is defined by a custom data structure shared by CLI and Fn execution, and the transformation uses JSONata mappings.
 

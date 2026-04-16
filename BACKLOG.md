@@ -377,3 +377,9 @@ Test: given the same routing definition and input envelope, CLI and Fn produce t
 The router runtime already supports source adapters conceptually, but operator-facing use is still validated mainly through `file_system` input. Add an OCI Queue input adapter so a routing definition can consume messages from an OCI Queue source and feed them into the same route-match, transform, and delivery runtime used by CLI and Fn. This is both a useful ingestion capability and a validation that the current source-adapter abstraction really works beyond local files. Sprint elaboration should decide polling model, message acknowledgement/delete semantics, visibility timeout handling, error/dead-letter behavior, and how queue message metadata should appear in the envelope.
 
 Test: with a routing definition that declares an OCI Queue source, the runtime can read queued JSON messages, route them through normal delivery adapters, and handle malformed or failed messages according to the agreed acknowledgement and dead-letter rules.
+
+### SLI-50. Emit step-level SLI events from GitHub workflow step context
+
+The current workflow emission path reports one aggregated event per job and uses step context mainly to derive failure reasons. Add support for emitting step-level SLI events so operators can observe which workflow steps succeeded or failed as first-class events instead of only as fields embedded in a job-level record. This matters when one job contains multiple operationally meaningful steps and the product needs finer-grained visibility without losing the existing job-level summary.
+
+Test: a workflow that passes its step context produces distinct emitted events for individual steps with correct step outcome data, while the existing job-level event remains available and consistent.

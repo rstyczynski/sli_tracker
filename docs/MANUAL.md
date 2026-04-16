@@ -134,7 +134,7 @@ Before running the examples below, you need three OCIDs in your shell environmen
 
 #### Path A — Create resources with `ensure_oci_resources.sh`
 
-If you do not yet have an OCI log set up for this project, run the helper to create the compartment, log group, and log. The function is idempotent — safe to re-run.
+If you do not yet have an OCI log set up for this project, load the helper script first, then call the specific function that creates or adopts the compartment, log group, and log. The script itself is source-only: `source tools/ensure_oci_resources.sh` just loads function definitions into the current shell. The actual OCI work starts when you call `ensure_sli_log_resources ...`. That function is idempotent, so it is safe to re-run.
 
 ```bash
 source tools/ensure_oci_resources.sh
@@ -176,9 +176,28 @@ gh variable set SLI_OCI_COMPARTMENT_ID  --body "$COMPARTMENT_OCID" -R "$repo"
 gh variable set SLI_OCI_LOG_GROUP_ID    --body "$LOG_GROUP_ID"     -R "$repo"
 ```
 
-### 3.1 Inject One Log Entry into OCI Logging
+### 3.1 Inject Log into OCI Logging
 
-This should append one JSON log entry to the configured OCI log. The payload is intentionally small and easy to recognize when you query the log later.
+Having infrastructure ready, we can inject log entry into OCI logging subsystem. Logging is one of techniques used by SLI tracker to store descriptive events inside of the OCI.
+
+The payload is intentionally small and easy to recognize when you query the log later.
+
+```json
+{
+  "defaultlogentrytime": "2024-01-19T15:23:45Z",
+  "source": "manual/oci-cli",
+  "type": "sli-event",
+  "entries": [
+    {
+      "id": "2024-01-19T15:23:45Z-manual",
+      "time": "2024-01-19T15:23:45Z",
+      "data": "{\"source\":\"manual\",\"path\":\"oci-cli\",\"outcome\":\"success\",\"timestamp\":\"2024-01-19T15:23:45Z\"}"
+    }
+  ]
+}
+```
+
+Below bash code appends above JSON log entry to the configured OCI log.
 
 ```bash
 # Requires: LOG_ID exported in §3.0
@@ -211,7 +230,7 @@ oci logging-ingestion put-logs \
 
 ### 3.2 Inject Failure Log Message
 
-To inject a failure event, keep the same shape as the success payload above and change `outcome` to `"failure"`. Include an explicit failure reason so you can spot it easily in OCI Logging.
+To demonstrate SLI you will inject a failure event, keeping the same shape as the success payload above and change `outcome` to `"failure"`. Include an explicit failure reason so you can spot it easily in OCI Logging.
 
 ```bash
 # Requires: LOG_ID exported in §3.0
@@ -525,8 +544,6 @@ Open GitHub Actions and inspect the three `MODEL — emit / ...` workflows to se
 XXXXX use gh to run and check
 ```bash
 ```
-
-
 
 ## 5. Router tools Hands-On
 

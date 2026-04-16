@@ -574,6 +574,57 @@ echo "Open GitHub run:"
 echo "https://github.com/${repo}/actions/runs/${RUN_ID}"
 ```
 
+### 4.3 curl
+
+The `curl` workflow exercises the same emission contract, but without installing OCI CLI on the runner. It restores the same `SLI_TEST` profile and signs direct OCI API requests with the profile material.
+
+```bash
+repo="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+WORKFLOW_FILE=".github/workflows/model-emit-curl.yml"
+
+gh workflow run "$WORKFLOW_FILE" -R "$repo" \
+  -f simulate-failure=false
+
+RUN_ID="$(
+  gh run list -R "$repo" --workflow "$WORKFLOW_FILE" \
+    --limit 1 --json databaseId -q '.[0].databaseId'
+)"
+
+gh run watch "$RUN_ID" -R "$repo"
+
+echo "Open GitHub run:"
+echo "https://github.com/${repo}/actions/runs/${RUN_ID}"
+```
+
+After the workflow finishes, confirm that `Main step` and `SLI Report (curl)` both executed. This validates the direct OCI API backend.
+
+### 4.4 js
+
+The `js` workflow exercises the Oracle JavaScript SDK path. It uses the same OCI profile but reports through the JavaScript action variant registered with a GitHub `post` hook.
+
+```bash
+repo="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+WORKFLOW_FILE=".github/workflows/model-emit-js.yml"
+
+gh workflow run "$WORKFLOW_FILE" -R "$repo" \
+  -f simulate-failure=false
+
+RUN_ID="$(gh run list -R "$repo" --workflow "$WORKFLOW_FILE" \
+--limit 1 --json databaseId -q '.[0].databaseId'
+)"
+
+gh run watch "$RUN_ID" -R "$repo"
+
+echo "Open GitHub run:"
+echo "https://github.com/${repo}/actions/runs/${RUN_ID}"
+```
+
+After the workflow finishes, confirm that `Main step` and `SLI Report (js)` both executed. This validates the JavaScript SDK backend.
+
+### 4.5 OCI side data view
+
+All three workflow variants now emit OCI log data and OCI Monitoring data in one step. The backend changes from `oci-cli` to `curl` to `js`, but the operator outcome is the same: one workflow run should produce both searchable log records and monitoring datapoints.
+
 Open OCI Console to confirm that log entry was added.
 
 ```bash
@@ -582,10 +633,10 @@ LOG_GROUP_ID="$(gh variable get SLI_OCI_LOG_GROUP_ID -R "$repo")"
 OCI_REGION="$(echo "$LOG_ID" | cut -d. -f4)"
 
 echo "Open OCI Logging console:"
-echo "https://cloud.oracle.com/logging/logs/${LOG_ID}/log-groups/${LOG_GROUP_ID}?region=${OCI_REGION}"
+echo "https://cloud.oracle.com/logging/logs/${LOG_ID}/log-groups/${LOG_GROUP_ID}/explore-log?region=${REGION}"
 ```
 
-Finally open OCI Metric Explorer to see that monitoring metric is in place. 
+Finally open OCI Metric Explorer to see that monitoring metric is in place.
 
 ```bash
 echo "Open OCI Metric Explorer:"

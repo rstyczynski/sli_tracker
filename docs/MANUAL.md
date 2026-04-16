@@ -291,9 +291,21 @@ EVENTS="$(
   | jq '.data.results'
 )"
 
-TOTAL="$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select(.source == "manual" and .path == "oci-cli")] | length')"
-SUCCESS="$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select(.source == "manual" and .path == "oci-cli" and .outcome == "success")] | length')"
-FAILURE="$(echo "$EVENTS" | jq '[.[] | .data.logContent.data | if type=="string" then fromjson else . end | select(.source == "manual" and .path == "oci-cli" and .outcome == "failure")] | length')"
+PARSED_EVENTS="$(
+  printf '%s\n' "$EVENTS" \
+    | jq '
+        [
+          .[]
+          | .data.logContent.data
+          | try (if type=="string" then fromjson else . end) catch empty
+          | select(.source == "manual" and .path == "oci-cli")
+        ]
+      '
+)"
+
+TOTAL="$(jq -n --argjson events "$PARSED_EVENTS" '$events | length')"
+SUCCESS="$(jq -n --argjson events "$PARSED_EVENTS" '$events | map(select(.outcome == "success")) | length')"
+FAILURE="$(jq -n --argjson events "$PARSED_EVENTS" '$events | map(select(.outcome == "failure")) | length')"
 SLI="$(jq -n --argjson success "$SUCCESS" --argjson total "$TOTAL" 'if $total == 0 then null else ($success / $total) end')"
 
 jq -n \
@@ -361,8 +373,7 @@ SLI_METRIC_PAYLOAD="$(jq -nc \
 oci monitoring metric-data post \
   --endpoint "$OCI_MONITORING_ENDPOINT" \
   --metric-data "$SLI_METRIC_PAYLOAD" \
-  --batch-atomicity ATOMIC \
-  | jq
+  --batch-atomicity ATOMIC
 ```
 
 This is the metric-side equivalent of the earlier Logging check. The command does not just return success locally; it creates real datapoints in OCI Monitoring that can later drive charts, queries, alarms, and derived SLI calculations. Open the OCI Console and go to Metric Explorer.

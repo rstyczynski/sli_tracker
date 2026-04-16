@@ -2,8 +2,6 @@
 # Source-only helper for integration tests.
 # Ensures OCI resources used by SLI tests exist, using the oci_scaffold submodule.
 
-set -euo pipefail
-
 ensure_sli_log_resources() {
   local repo_root="${1:?repo_root}"
   local oci_profile="${2:?oci_profile}"

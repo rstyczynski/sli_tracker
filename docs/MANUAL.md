@@ -535,7 +535,7 @@ GitHub workflows call two actions:
 - [`.github/actions/sli-event/action.yml`](../.github/actions/sli-event/action.yml) - that cover both `cli` and `curl`
 - [`.github/actions/sli-event-js/action.yml`](../.github/actions/sli-event-js/action.yml) - utilizing native GitHub JavaScript support with `post` registration.
 
-Make sure SLA_TEST session is authenticated and run the workflows.
+Make sure SLI_TEST session is authenticated and run the workflows.
 
 ```bash
 .github/actions/oci-profile-setup/setup_oci_github_access.sh \
@@ -633,7 +633,7 @@ LOG_GROUP_ID="$(gh variable get SLI_OCI_LOG_GROUP_ID -R "$repo")"
 OCI_REGION="$(echo "$LOG_ID" | cut -d. -f4)"
 
 echo "Open OCI Logging console:"
-echo "https://cloud.oracle.com/logging/logs/${LOG_ID}/log-groups/${LOG_GROUP_ID}/explore-log?region=${REGION}"
+echo "https://cloud.oracle.com/logging/logs/${LOG_ID}/log-groups/${LOG_GROUP_ID}/explore-log?region=${OCI_REGION}"
 ```
 
 Finally open OCI Metric Explorer to see that monitoring metric is in place.
@@ -645,203 +645,43 @@ echo "https://cloud.oracle.com/monitoring/explore?region=${OCI_REGION}"
 
 Note that URL invoke does not accept any parameters, and you need to select compartment `SLI_tracker`, namespace `sli_tracker_manual`, metric name `sli`, and press `Update chart`. You should see a single point near the right edge of the chart. Press `Show Data Table` to inspect the raw datapoint.
 
-## 5. Router tools Hands-On
+## 5. Router and Ingest Hands-On
 
-### 5.1 Router and Ingest Track1
+This chapter walks through the router from the simplest possible local case to the deployed public ingest Function. Each section is runnable on its own and leaves a visible artifact you can inspect. The progression is:
 
-Incoming JSON payloads can be identified, transformed, and routed to multiple destinations. This part of the project is transport-agnostic at the routing-definition level, then implemented through adapters for file output, OCI Object Storage, OCI Monitoring, and OCI Logging. Routing is defined by a custom data structure shared by CLI and Fn execution, and the transformation uses JSONata mappings.
+1. transform one document with JSONata locally — no routing, no OCI
+2. route one envelope to a local file — router on, OCI off
+3. route a real GitHub `workflow_run` shape with the project mapping
+4. fan-out one envelope to two file destinations
+5. batch route a directory of envelopes
+6. deploy the public router Function to OCI
+7. send a webhook to the deployed Function
+8. verify ingest in Object Storage
+9. verify fan-out to OCI Monitoring and Logging
 
-The main implementation area for this part of the project is [`./tools`](../tools). Router logic, transformer logic, runtime wiring, and adapter code should be understood from the `tools/` tree first. Other locations are deployment-side shadow copies or links used by the OCI Function packaging.
+### 5.1 Key Concepts
 
-The main layers in this area are:
-
-- router and transformer logic
-- CLI execution
-- Fn execution
-- adapters for concrete sources and destinations
-
-From an operator point of view, this track answers four practical questions:
-
-- how to recognize one incoming message type
-- how to reshape it into a destination-specific contract
-- how to send it to one destination or fan it out to many destinations
-- how to configure source and destination behavior without changing router code
-
-The router CLI is the easiest way to learn this track locally. In Sprint 29 it became a real execution tool, not just a route-preview helper, so a single-envelope run now performs the same match, transform, and delivery flow as batch mode.
-
-#### Router CLI Contract
-
-The basic CLI forms are:
-
-```bash
-node tools/json_router_cli.js --routing <file> [--input <file>] [--pretty]
-cat envelope.json | node tools/json_router_cli.js --routing <file>
-node tools/json_router_cli.js --routing <file> --source-dir <dir> --output-dir <dir> [--pretty]
-```
-
-The main operator modes are:
-
-- route one envelope from a local file
-- route one envelope from `stdin`
-- inspect human-readable result JSON with `--pretty`
-- run bulk routing from `--source-dir` to `--output-dir`
-- execute one source declared inside `routing.json`
-
-The runtime behind those modes can currently deliver to:
-
-- `file_system`
-- `oci_object_storage`
-- `oci_logging`
-- `oci_monitoring`
-
-#### Capability 1: Route One Envelope from a File or `stdin`
-
-The first practical skill is to run one envelope through real delivery. The operator can pass the envelope through `--input` or through standard input. Both modes execute the same route match, transformation, and destination delivery.
-
-At minimum, the operator needs:
-
-- one envelope
-- one route
-- one mapping
-- one destination
-
-The route can stay logically simple:
+**Envelope** — the unit the router operates on. It has three top-level keys:
 
 ```json
 {
-  "id": "audit_to_file",
-  "match": {
-    "required_fields": ["audit.id"]
-  },
-  "transform": {
-    "mapping": "./mapping_file.jsonata"
-  },
-  "destination": {
-    "type": "file_system",
-    "name": "audit_copy"
-  }
+  "headers":     { "X-GitHub-Event": "workflow_run" },
+  "body":        { "workflow_run": { "conclusion": "success" }, "repository": { "full_name": "acme/repo" } },
+  "source_meta": { "file_name": "event.json" }
 }
 ```
 
-This is the most direct way to validate that:
+Route matching sees the whole envelope, headers and body alike. JSONata mappings run on `body` directly, so a mapping reads `workflow_run.conclusion`, not `body.workflow_run.conclusion`.
 
-- the route match works
-- the mapping executes
-- the destination adapter performs a real write
+**Route** — a match condition, a mapping, and a destination label. The label is a logical name resolved by the `adapters` section. The route expresses intent; the adapter expresses deployment behavior.
 
-#### Capability 1A: Influence Adapter Behavior with Labeling
+**Route modes** — `exclusive` means at most one exclusive route fires per envelope. `fanout` routes always fire alongside the first exclusive match. In production, a `workflow_run` event fires one exclusive route (Object Storage archive) plus two fanout routes (OCI Monitoring, OCI Logging) from the same envelope.
 
-The route destination is a logical label. The actual adapter behavior is configured separately in `adapters`.
+**Adapter** — the concrete implementation behind a destination label. Swapping local file adapters for OCI adapters requires only a change to the `adapters` block, not to route definitions.
 
-This is why a route can stay stable as:
-
-```json
-{
-  "destination": {
-    "type": "file_system",
-    "name": "audit_copy"
-  }
-}
-```
-
-while the actual write location is controlled through:
-
-```json
-{
-  "adapters": {
-    "file_system:audit_copy": {
-      "directory": "out/custom_audit_location"
-    }
-  }
-}
-```
-
-This separation matters because the route expresses intent, while the adapter configuration expresses local or production deployment behavior. The same model works for file paths, buckets, monitoring namespaces, and log targets.
-
-#### Capability 2: Understand Envelope, Body, and Mapping Context
-
-The runtime model behind the CLI is consistent:
-
-- route matching sees the full envelope, for example `headers` and `body`
-- JSONata transformation runs on `envelope.body`
-- `adapters` configures both source adapters and destination adapters
-
-That means a route match can inspect:
-
-```json
-{
-  "headers": {
-    "X-GitHub-Event": "workflow_run"
-  }
-}
-```
-
-while the mapping should read fields as:
-
-```jsonata
-{
-  "repo": repository.full_name,
-  "outcome": workflow_run.conclusion
-}
-```
-
-not:
-
-```jsonata
-{
-  "repo": body.repository.full_name
-}
-```
-
-This detail is important because operators often debug routing problems by checking whether the failure is in route matching or in mapping context.
-
-#### Capability 3: Batch Routing and Source-Declared Execution
-
-The next level is to stop thinking about one envelope and start thinking about one source of envelopes.
-
-For interactive learning and debugging, operators should usually add `--pretty` so the returned route result is easy to inspect before checking the delivered files or OCI targets.
-
-The CLI supports two local execution patterns here:
-
-- `--source-dir` with `--output-dir` for batch file routing
-- `source` declared inside `routing.json` for runtime-driven execution without `--input`
-
-The batch case is useful when the operator wants to send many local envelopes through the same routing definition and inspect the full output tree. This is where fanout and dead-letter behavior become visible.
-
-The source-declared case is useful when the routing definition itself says where input comes from. In that mode:
-
-- `source` selects the logical input
-- `adapters["file_system:incoming"]` configures the source adapter
-- `adapters["file_system:audit_copy"]` configures the destination adapter
-
-That is the first point where the operator can see clearly that the `adapters` section is shared by both source and target configuration.
-
-#### Production-Level Capabilities
-
-The same router model also covers production-oriented behavior beyond local file delivery.
-
-The key capabilities are:
-
-- load `routing.json` from a remote location in the deployed Function path
-- load mapping definitions from OCI Object Storage
-- deliver to OCI Logging, OCI Monitoring, and OCI Object Storage
-- dead-letter unmatched or failed deliveries in a controlled location
-
-In the local CLI, `--routing` still points to a local file. In the deployed ingest path, the router configuration can instead be resolved from OCI Object Storage. This lets the operator change routing behavior without rebuilding code.
-
-Mappings can also come from OCI Object Storage. That gives the operator the same separation one level deeper:
-
-- code provides runtime behavior
-- `routing.json` provides route policy
-- remote mapping objects provide destination-specific transformation logic
-
-That same separation is what lets the same routing model work locally with file adapters and later in production with OCI Logging, OCI Monitoring, or OCI Object Storage.
-
-Two diagrams below show the same router from two angles. `Router` is the structural view of the major parts.
+Two diagrams show the router from structural and runtime angles.
 
 <p align="center"><img src="../model/router.jpg" alt="Router structural view" width="50%"></p>
-
-`Router runtime` is the behavioral view of how input, route matching, transformation, and destination dispatch execute together.
 
 <p align="center"><img src="../model/router_runtime.jpg" alt="Router runtime behavioral view" width="50%"></p>
 
@@ -850,132 +690,50 @@ Core files:
 - [`tools/json_router.js`](../tools/json_router.js)
 - [`tools/json_transformer.js`](../tools/json_transformer.js)
 - [`tools/json_router_cli.js`](../tools/json_router_cli.js)
-- Fn execution starting point: [`fn/router_passthrough/func.js`](../fn/router_passthrough/func.js)
+- [`fn/router_passthrough/func.js`](../fn/router_passthrough/func.js)
 
-Adapter code for sources:
+### 5.2 Step 1 — Transform a Document with JSONata
 
-- [`file_source_adapter.js`](../tools/adapters/file_source_adapter.js)
-- [`oci_object_storage_source_adapter.js`](../tools/adapters/oci_object_storage_source_adapter.js)
+`json_transform_cli.js` applies one JSONata mapping to one JSON document. There is no routing and no OCI at this step. It is the right tool to debug a mapping expression in isolation before connecting it to a route.
 
-Adapter code is under for destinations:
-
-- [`file_adapter.js`](../tools/adapters/file_adapter.js)
-- [`oci_object_storage_adapter.js`](../tools/adapters/oci_object_storage_adapter.js)
-- [`oci_monitoring_adapter.js`](../tools/adapters/oci_monitoring_adapter.js)
-- [`oci_logging_adapter.js`](../tools/adapters/oci_logging_adapter.js)
-
-### 5.2 Local Transformation and Routing CLI
-
-`json_transform_cli.js` changes one JSON document into another. `json_router_cli.js` takes the next step: it matches the input against routes, runs the selected mapping, and executes the destination delivery. Since Sprint 29, this is true for single-envelope runs too, not only for batch mode.
-
-#### Transform from stdin
+#### Inline expression from stdin
 
 ```bash
-echo '{"value":21}' | 
+echo '{"value":21}' | \
 node tools/json_transform_cli.js \
   --mapping <(echo '{"expression":"{\"out\": value * 2}"}') \
   --pretty
 ```
 
-#### Transform local JSON file with a local mapping file
+Expected output:
+
+```json
+{ "out": 42 }
+```
+
+#### Transform with a real project mapping
+
+The project ships a mapping that converts a GitHub `workflow_run` body into an OCI Logging entry shape. Apply it to the sample fixture:
 
 ```bash
 node tools/json_transform_cli.js \
-  --mapping tests/fixtures/transformer/ut20_ut21_ut22_cli_basic/mapping.jsonata \
-  --input tests/fixtures/transformer/ut20_ut21_ut22_cli_basic/source.json \
+  --mapping tools/mappings/github_workflow_run_to_oci_log.jsonata \
+  --input tests/fixtures/github_webhook_samples/workflow_run.json \
   --pretty
 ```
 
-#### Router CLI contract
+You should see a `logEntryBatches` structure containing `outcome`, `workflow`, `branch`, `repo`, and a live timestamp from `$now()`. This is the exact shape the OCI Logging adapter expects when the same mapping runs inside the router.
 
-```bash
-node tools/json_router_cli.js --routing <file> [--input <file>] [--pretty]
-cat envelope.json | node tools/json_router_cli.js --routing <file>
-node tools/json_router_cli.js --routing <file> --source-dir <dir> --output-dir <dir> [--pretty]
-```
+### 5.3 Step 2 — Route One Envelope to a File
 
-Options:
+The simplest router case: one route, one `file_system` destination, no OCI. The mapping `$` passes the body through unchanged.
 
-- `--routing`
-  Required. Path to `routing.json`.
-- `--input`
-  Optional. One envelope JSON file. If omitted, the CLI reads `stdin`.
-- `--source-dir`
-  Optional. Batch source directory.
-- `--output-dir`
-  Optional. Batch output directory.
-- `--pretty`
-  Optional. Pretty-print the result JSON.
-- `--help`
-  Show usage.
-
-The router CLI supports four main operator modes:
-
-1. route one envelope from a local file
-2. route one envelope from `stdin`
-3. run batch routing from `--source-dir` to `--output-dir`
-4. execute a source declared inside `routing.json` without `--input`
-
-The runtime behind the CLI can use these destination types:
-
-- `file_system`
-- `oci_object_storage`
-- `oci_logging`
-- `oci_monitoring`
-
-The runtime can also load mappings from:
-
-- local files
-- OCI Object Storage, when `routing.json` declares `mapping.type = "oci_object_storage"`
-
-#### Router CLI result shape
-
-For one routed envelope, the CLI returns a structure like:
-
-```json
-{
-  "status": "routed",
-  "deliveries": [
-    {
-      "route": {
-        "id": "audit_to_file",
-        "mode": "exclusive",
-        "destination": {
-          "type": "file_system",
-          "name": "audit_copy"
-        }
-      },
-      "output": {
-        "audit": {
-          "id": "A-1"
-        }
-      }
-    }
-  ]
-}
-```
-
-For batch routing, the CLI returns a summary like:
-
-```json
-{
-  "processed": 4,
-  "results": [
-    {
-      "file": "001.json",
-      "route": "workflow_metric",
-      "destination": "file_system/workflow_status",
-      "output_path": "/tmp/..."
-    }
-  ]
-}
-```
-
-#### Capability 1: route one local envelope from a file and inspect the delivered file
+#### Route from a file
 
 ```bash
 TMP_DIR="$(mktemp -d /tmp/sli_router_single.XXXXXX)"
 echo '$' > "$TMP_DIR/mapping_file.jsonata"
+
 cat > "$TMP_DIR/envelope.json" <<'EOF'
 {
   "body": {
@@ -992,16 +750,9 @@ cat > "$TMP_DIR/routing.json" <<'EOF'
   "routes": [
     {
       "id": "audit_to_file",
-      "match": {
-        "required_fields": ["audit.id"]
-      },
-      "transform": {
-        "mapping": "./mapping_file.jsonata"
-      },
-      "destination": {
-        "type": "file_system",
-        "name": "audit_copy"
-      }
+      "match": { "required_fields": ["audit.id"] },
+      "transform": { "mapping": "./mapping_file.jsonata" },
+      "destination": { "type": "file_system", "name": "audit_copy" }
     }
   ]
 }
@@ -1015,93 +766,162 @@ node tools/json_router_cli.js \
 cat "$TMP_DIR/file_system/audit_copy/001_audit_to_file.json" | jq
 ```
 
-#### Capability 2: route one local envelope from stdin
+The `--pretty` output shows `"status": "routed"` with a delivery record for `audit_to_file`. The delivered file appears under `$TMP_DIR/file_system/audit_copy/`.
+
+#### Route from stdin
 
 ```bash
-TMP_DIR="$(mktemp -d /tmp/sli_router_stdin.XXXXXX)"
-echo '$' > "$TMP_DIR/mapping_file.jsonata"
-
-cat > "$TMP_DIR/routing.json" <<'EOF'
-{
-  "routes": [
-    {
-      "id": "audit_to_file",
-      "match": {
-        "required_fields": ["audit.id"]
-      },
-      "transform": {
-        "mapping": "./mapping_file.jsonata"
-      },
-      "destination": {
-        "type": "file_system",
-        "name": "audit_copy"
-      }
-    }
-  ]
-}
-EOF
-
 cat <<'EOF' | node tools/json_router_cli.js \
       --routing "$TMP_DIR/routing.json" \
       --pretty
 {
   "body": {
     "audit": {
-      "id": "A-1",
-      "message": "copied to file adapter"
+      "id": "A-2",
+      "message": "via stdin"
     }
   }
 }
 EOF
-
-cat "$TMP_DIR/file_system/audit_copy/001_audit_to_file.json" | jq
 ```
 
-#### Capability 3: pretty output and mapping context
+#### Adapter label and write location
 
-```bash
-TMP_DIR="$(mktemp -d /tmp/sli_router_pretty.XXXXXX)"
-cat > "$TMP_DIR/mapping_log.jsonata" <<'EOF'
-{
-  "kind": "log",
-  "repo": repository.full_name,
-  "outcome": workflow_run.conclusion
-}
-EOF
+The route uses the label `"name": "audit_copy"`. Without an explicit adapter entry the router writes to `$TMP_DIR/file_system/audit_copy/`. To redirect the write, add an `adapters` block:
 
-cat > "$TMP_DIR/envelope.json" <<'EOF'
+```json
 {
-  "headers": {
-    "X-GitHub-Event": "workflow_run"
-  },
-  "body": {
-    "workflow_run": {
-      "conclusion": "success"
-    },
-    "repository": {
-      "full_name": "acme/repo"
+  "adapters": {
+    "file_system:audit_copy": {
+      "directory": "out/custom_location"
     }
   }
 }
-EOF
+```
+
+The route definition stays unchanged. Only the adapter block controls where data lands, which is the same mechanism used later when switching from local files to OCI Object Storage.
+
+### 5.4 Step 3 — Route a GitHub Webhook with a Real Mapping
+
+Use the project's actual `workflow_run` fixture and the OCI Logging mapping. The route matches on the `X-GitHub-Event` header.
+
+```bash
+TMP_DIR="$(mktemp -d /tmp/sli_router_wfrun.XXXXXX)"
+cp tools/mappings/github_workflow_run_to_oci_log.jsonata "$TMP_DIR/"
 
 cat > "$TMP_DIR/routing.json" <<'EOF'
 {
   "routes": [
     {
       "id": "workflow_to_log_shape",
-      "match": {
-        "headers": {
-          "X-GitHub-Event": "workflow_run"
-        }
-      },
-      "transform": {
-        "mapping": "./mapping_log.jsonata"
-      },
-      "destination": {
-        "type": "file_system",
-        "name": "workflow_logs"
-      }
+      "match": { "headers": { "X-GitHub-Event": "workflow_run" } },
+      "transform": { "mapping": "./github_workflow_run_to_oci_log.jsonata" },
+      "destination": { "type": "file_system", "name": "workflow_logs" }
+    }
+  ]
+}
+EOF
+
+jq -n \
+  --argjson body "$(cat tests/fixtures/github_webhook_samples/workflow_run.json)" \
+  '{"headers": {"X-GitHub-Event": "workflow_run"}, "body": $body}' \
+  > "$TMP_DIR/envelope.json"
+
+node tools/json_router_cli.js \
+  --routing "$TMP_DIR/routing.json" \
+  --input "$TMP_DIR/envelope.json" \
+  --pretty
+
+cat "$TMP_DIR/file_system/workflow_logs/"*.json | jq
+```
+
+The delivered file contains a `logEntryBatches` structure ready for the OCI Logging adapter. Note that the mapping reads `workflow_run.conclusion` directly — not `body.workflow_run.conclusion` — because the transformer receives `body` as its root context.
+
+### 5.5 Step 4 — Fan-Out One Envelope to Two Destinations
+
+`fanout` routes fire alongside the first exclusive match. This step reproduces the production pattern for `workflow_run`: one archive copy plus one transformed shape.
+
+```bash
+TMP_DIR="$(mktemp -d /tmp/sli_router_fanout.XXXXXX)"
+cp tools/mappings/github_workflow_run_to_oci_log.jsonata "$TMP_DIR/"
+echo '$' > "$TMP_DIR/passthrough.jsonata"
+
+cat > "$TMP_DIR/routing.json" <<'EOF'
+{
+  "routes": [
+    {
+      "id": "workflow_run_archive",
+      "mode": "exclusive",
+      "match": { "headers": { "X-GitHub-Event": "workflow_run" } },
+      "transform": { "mapping": "./passthrough.jsonata" },
+      "destination": { "type": "file_system", "name": "raw_archive" }
+    },
+    {
+      "id": "workflow_run_to_log_shape",
+      "mode": "fanout",
+      "match": { "headers": { "X-GitHub-Event": "workflow_run" } },
+      "transform": { "mapping": "./github_workflow_run_to_oci_log.jsonata" },
+      "destination": { "type": "file_system", "name": "log_shape" }
+    }
+  ]
+}
+EOF
+
+jq -n \
+  --argjson body "$(cat tests/fixtures/github_webhook_samples/workflow_run.json)" \
+  '{"headers": {"X-GitHub-Event": "workflow_run"}, "body": $body}' \
+  > "$TMP_DIR/envelope.json"
+
+node tools/json_router_cli.js \
+  --routing "$TMP_DIR/routing.json" \
+  --input "$TMP_DIR/envelope.json" \
+  --pretty
+
+echo "--- raw archive ---"
+cat "$TMP_DIR/file_system/raw_archive/"*.json | jq
+
+echo "--- log shape ---"
+cat "$TMP_DIR/file_system/log_shape/"*.json | jq
+```
+
+The `--pretty` output shows two deliveries. The `raw_archive` destination has the original body unchanged. The `log_shape` destination has the `logEntryBatches` structure from the mapping. In production the two fanout destinations are OCI Object Storage and OCI Logging instead of two file directories.
+
+### 5.6 Step 5 — Batch Route a Source Directory
+
+Batch mode feeds a directory of envelope files through the same routing definition and writes results to an output tree.
+
+```bash
+SRC_DIR="$(mktemp -d /tmp/sli_router_batch_src.XXXXXX)"
+OUT_DIR="$(mktemp -d /tmp/sli_router_batch_out.XXXXXX)"
+TMP_DIR="$(mktemp -d /tmp/sli_router_batch_cfg.XXXXXX)"
+cp tools/mappings/github_workflow_run_to_oci_log.jsonata "$TMP_DIR/"
+echo '$' > "$TMP_DIR/passthrough.jsonata"
+
+# Write several envelopes into the source directory.
+for conclusion in success success failure success; do
+  jq -n \
+    --arg c "$conclusion" \
+    --argjson body "$(cat tests/fixtures/github_webhook_samples/workflow_run.json)" \
+    '{"headers": {"X-GitHub-Event": "workflow_run"}, "body": ($body | .workflow_run.conclusion = $c)}' \
+    >> "$SRC_DIR/batch_$(date +%s%N).json"
+done
+
+cat > "$TMP_DIR/routing.json" <<'EOF'
+{
+  "routes": [
+    {
+      "id": "workflow_run_archive",
+      "mode": "exclusive",
+      "match": { "headers": { "X-GitHub-Event": "workflow_run" } },
+      "transform": { "mapping": "./passthrough.jsonata" },
+      "destination": { "type": "file_system", "name": "raw_archive" }
+    },
+    {
+      "id": "workflow_run_to_log_shape",
+      "mode": "fanout",
+      "match": { "headers": { "X-GitHub-Event": "workflow_run" } },
+      "transform": { "mapping": "./github_workflow_run_to_oci_log.jsonata" },
+      "destination": { "type": "file_system", "name": "log_shape" }
     }
   ]
 }
@@ -1109,25 +929,28 @@ EOF
 
 node tools/json_router_cli.js \
   --routing "$TMP_DIR/routing.json" \
-  --input "$TMP_DIR/envelope.json" \
+  --source-dir "$SRC_DIR" \
+  --output-dir "$OUT_DIR" \
   --pretty
 
-cat "$TMP_DIR/file_system/workflow_logs/001_workflow_to_log_shape.json" | jq
+echo "Files written to $OUT_DIR:"
+find "$OUT_DIR" -type f | sort
 ```
 
-#### Capability 4: route a local source directory to a local output directory
+Each source file produces one or more output files under the named destination directories inside `$OUT_DIR`. Fanout routes multiply the output: four input envelopes produce four files under `raw_archive` and four files under `log_shape`.
 
-```bash
-OUT_DIR="$(mktemp -d /tmp/sli_router_batch.XXXXXX)"
-SRC_DIR="$(mktemp -d /tmp/sli_router_batch_source.XXXXXX)"
-ROUTING_DIR="$(mktemp -d /tmp/sli_router_batch_routing.XXXXXX)"
-```
+### 5.7 Step 6 — Deploy the Public Router Function
 
-This chapter continues later in the snippet catalog with the same runnable examples, but router-specific material now belongs conceptually to section 5.
+The OCI Function is the public webhook listener. It accepts POST requests through an API Gateway endpoint, runs the same router logic, and delivers to OCI Object Storage, OCI Monitoring, and OCI Logging.
 
-### 5.3 OCI Router Operations
+#### Prerequisites
 
-#### Deploy or refresh the public router stack
+- OCI auth — `DEFAULT` profile or `SLI_TEST` profile set up (see §5.13)
+- `fn` CLI installed (`brew install fn` on macOS)
+- Docker available to the `fn` CLI (required to build the Function image)
+- `oci_scaffold` submodule initialized (`git submodule update --init`)
+
+#### Deploy
 
 ```bash
 export NAME_PREFIX="${SLI_FN_APIGW_ROUTER_PREFIX:-sli-router-passthrough-dev}"
@@ -1141,35 +964,192 @@ export FN_FORCE_DEPLOY="${FN_FORCE_DEPLOY:-true}"
 bash tools/cycle_apigw_router_passthrough.sh
 ```
 
-#### Validate router ingest and metrics
+The script is idempotent. On a fresh account it creates the compartment, Fn app, Function, API Gateway, and ingest bucket. On subsequent runs it reuses existing resources and redeploys only the Function code.
+
+#### Read the API Gateway endpoint from the state file
 
 ```bash
-export NAME_PREFIX="${SLI_FN_APIGW_ROUTER_PREFIX:-sli-router-passthrough-dev}"
-export SLI_OCI_STATE_FILE="$(find . -maxdepth 2 -name "state-${NAME_PREFIX}.json" | head -1)"
-[ -n "$SLI_OCI_STATE_FILE" ] || { echo "state file not found for ${NAME_PREFIX}" >&2; exit 1; }
+STATE_FILE="oci_scaffold/state-${NAME_PREFIX}.json"
 
-bash tools/validate_router_ingest_and_metrics.sh --minutes 45 --limit 5
+DEPLOYMENT_ENDPOINT=$(jq -r '.apigw_deployment.endpoint // .apigw.deployment_endpoint // empty' "$STATE_FILE")
+ROUTE_PATH=$(jq -r '.inputs.apigw_route_path // "/"' "$STATE_FILE")
+ROUTER_URL="${DEPLOYMENT_ENDPOINT%/}/${ROUTE_PATH#/}"
+
+echo "Router endpoint: $ROUTER_URL"
 ```
 
-### 5.4 SLI Calculation Track
+Keep `ROUTER_URL` set for the next steps.
 
-The project includes tools that compute rolling-window SLI values from OCI Monitoring metrics. This is the as simple as possible analytical part of the system: it reads collected telemetry and derives higher-level service indicators from it. Simplicity here comes from both a calculation method, and execution, that uses GitHub workflow scheduling.
+### 5.8 Step 7 — Send a Webhook to the Deployed Function
+
+The Function accepts a JSON envelope with `headers`, `body`, and optional `source_meta`. This is the same envelope structure used by the local CLI.
+
+#### Generic POST (no GitHub header)
+
+A payload without an `X-GitHub-Event` header routes to the `no_github_event` bucket prefix.
+
+```bash
+TS="$(date -u +%Y%m%d%H%M%S)"
+curl -sS -w "\nHTTP %{http_code}\n" \
+  -H "content-type: application/json" \
+  --data "$(jq -n --arg fn "test-${TS}.json" \
+    '{body: {test: true, ts: $fn}, source_meta: {file_name: $fn}}')" \
+  "$ROUTER_URL"
+```
+
+Expected response: `{"status":"routed","deliveries":[...]}` with HTTP 200.
+
+#### POST a GitHub ping event
+
+```bash
+PING_OBJ="ping-${TS}.json"
+curl -sS -w "\nHTTP %{http_code}\n" \
+  -H "content-type: application/json" \
+  -H "X-GitHub-Event: ping" \
+  --data "$(jq -n \
+    --arg fn "$PING_OBJ" \
+    --argjson b "$(cat tests/fixtures/github_webhook_samples/ping.json)" \
+    '{body: $b, headers: {"X-GitHub-Event": "ping"}, source_meta: {file_name: $fn}}')" \
+  "$ROUTER_URL"
+```
+
+#### POST a completed workflow_run event
+
+```bash
+WF_OBJ="wf-${TS}.json"
+WF_CREATED="$(date -u -v-5M '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date -u --date='-5 min' '+%Y-%m-%dT%H:%M:%SZ')"
+WF_UPDATED="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+
+curl -sS -w "\nHTTP %{http_code}\n" \
+  -H "content-type: application/json" \
+  -H "X-GitHub-Event: workflow_run" \
+  --data "$(jq -n \
+    --arg fn "$WF_OBJ" \
+    --arg c "$WF_CREATED" \
+    --arg u "$WF_UPDATED" \
+    --argjson b "$(cat tests/fixtures/github_webhook_samples/workflow_run.json)" \
+    '{body: ($b | .workflow_run.created_at = $c | .workflow_run.updated_at = $u),
+      headers: {"X-GitHub-Event": "workflow_run"},
+      source_meta: {file_name: $fn}}')" \
+  "$ROUTER_URL"
+```
+
+A `workflow_run` envelope fires three routes simultaneously: one exclusive route to Object Storage under `ingest/github/workflow_run/`, one fanout route that posts a metric to OCI Monitoring (`github_actions.workflow_run_result`), and one fanout route that writes a log entry to OCI Logging.
+
+### 5.9 Step 8 — Verify Ingest in Object Storage
+
+Read the bucket namespace and name from the state file, then list and inspect ingest objects.
+
+```bash
+NS="$(jq -r '.bucket.namespace' "oci_scaffold/state-${NAME_PREFIX}.json")"
+BUCKET="$(jq -r '.bucket.name' "oci_scaffold/state-${NAME_PREFIX}.json")"
+export OCI_CLI_PROFILE=DEFAULT
+
+# List newest objects per event prefix.
+SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
+  bash tools/list_github_ingest_prefixes.sh --limit 3
+```
+
+To fetch the body of one object:
+
+```bash
+# Replace with an object key from the listing above.
+OBJECT_KEY="ingest/github/workflow_run/${WF_OBJ}"
+
+SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
+  bash tools/get_ingest_object.sh "$OBJECT_KEY" | jq
+```
+
+The body should be the original `workflow_run` payload. It is written as-is by the `passthrough.jsonata` mapping (`$`), which is correct for the archive route. The transformed shapes (log entry, metric payload) go to Logging and Monitoring via the fanout routes, not to Object Storage.
+
+### 5.10 Step 9 — Verify Fan-Out to OCI Monitoring and Logging
+
+`validate_router_ingest_and_metrics.sh` reads the state file, lists recent ingest objects, and queries OCI Monitoring for `github_actions.workflow_run_result` datapoints over the last N minutes.
+
+```bash
+SLI_OCI_STATE_FILE="oci_scaffold/state-${NAME_PREFIX}.json" \
+  bash tools/validate_router_ingest_and_metrics.sh --minutes 45 --limit 5
+```
+
+The script reports:
+
+- newest object keys under each `ingest/github/<event>/` prefix
+- a JSON peek at the newest `workflow_run` object
+- `workflow_run_result` metric datapoints with timestamps and values (1 = success, 0 = other)
+- `workflow_run_duration_s` metric datapoints
+
+If the `workflow_run` POST from step 7 has propagated, you should see at least one datapoint with a timestamp close to `$WF_UPDATED` and a value of `1`.
+
+To open OCI Monitoring and inspect the metric interactively:
+
+```bash
+REGION="$(jq -r '.inputs.oci_region // empty' "oci_scaffold/state-${NAME_PREFIX}.json")"
+echo "Open OCI Metric Explorer: https://cloud.oracle.com/monitoring/explore?region=${REGION}"
+```
+
+Select compartment `SLI_tracker`, namespace `github_actions`, metric name `workflow_run_result`, and press `Update chart`.
+
+### 5.11 SLI Calculation
+
+`sli_compute_sli_metrics.js` queries OCI Monitoring for `workflow_run_result` datapoints over a rolling window, then computes `success / total` and publishes the ratio back as a derived SLI metric.
+
+The simplest way to trigger it is via the scheduled GitHub workflow. The workflow authenticates with `SLI_TEST`, queries the metric namespace, and posts the result.
+
+```bash
+repo="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+
+gh workflow run ".github/workflows/sli_compute_sli_metrics.yml" -R "$repo"
+
+RUN_ID="$(gh run list -R "$repo" \
+  --workflow "sli_compute_sli_metrics.yml" \
+  --limit 1 --json databaseId -q '.[0].databaseId')"
+
+gh run watch "$RUN_ID" -R "$repo"
+echo "https://github.com/${repo}/actions/runs/${RUN_ID}"
+```
+
+After the run completes, the derived SLI metric is visible in OCI Monitoring under namespace `sli_tracker`, metric name `sli`.
 
 Core files:
 
-- [`.github/workflows/sli_compute_sli_metrics.yml`](../.github/workflows/sli_compute_sli_metrics.yml)
 - [`tools/sli_compute_sli_metrics.js`](../tools/sli_compute_sli_metrics.js)
+- [`.github/workflows/sli_compute_sli_metrics.yml`](../.github/workflows/sli_compute_sli_metrics.yml)
 
-### 5.5 Synthetic Event Generator Track
+### 5.12 Synthetic Event Generator
 
-The project also includes tools that generate controlled synthetic outcome streams. These tools are used to validate dashboards, alerts, routing behavior, and SLI calculations under known conditions. On this stage it's a tool to generate synthetic data on a non production platform, however in the future similar technique will be used to push data to a system in an idle period, when users are not generating any traffic.
+`sli_ratio_simulator.sh` injects a controlled stream of success and failure `workflow_run` events into OCI Monitoring. It is used to validate dashboards, alarms, and SLI calculations under known conditions — for example, to confirm that a 75% success ratio produces the expected SLI value.
+
+Run it locally:
+
+```bash
+export OCI_CLI_PROFILE=DEFAULT
+export COMPARTMENT_OCID="$(jq -r '.compartment.ocid' "oci_scaffold/state-${NAME_PREFIX}.json")"
+
+bash tools/sli_ratio_simulator.sh
+```
+
+Or trigger it as a workflow:
+
+```bash
+repo="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+
+gh workflow run ".github/workflows/sli_ratio_simulator.yml" -R "$repo"
+
+RUN_ID="$(gh run list -R "$repo" \
+  --workflow "sli_ratio_simulator.yml" \
+  --limit 1 --json databaseId -q '.[0].databaseId')"
+
+gh run watch "$RUN_ID" -R "$repo"
+```
+
+After the simulator finishes, run `validate_router_ingest_and_metrics.sh` or open OCI Metric Explorer to confirm the injected datapoints are present before triggering `sli_compute_sli_metrics`.
 
 Core files:
 
 - [`tools/sli_ratio_simulator.sh`](../tools/sli_ratio_simulator.sh)
 - [`.github/workflows/sli_ratio_simulator.yml`](../.github/workflows/sli_ratio_simulator.yml)
 
-### 5.6 OCI Authentication Profiles
+### 5.13 OCI Authentication Profiles
 
 This project uses two named OCI profiles:
 

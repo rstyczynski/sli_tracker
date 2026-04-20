@@ -1063,6 +1063,8 @@ cat "$TMP_DIR/file_system/audit_copy/001_audit_to_file.json" | jq
 }
 ```
 
+Stdin is the natural interface for the OCI Function: the Function receives the incoming webhook body and passes it directly to the router — no intermediate file, no extra I/O. The same pattern works on the CLI whenever you want to test an envelope inline without creating a file first.
+
 #### Route from a file
 
 When the envelope comes from a file — for example a captured webhook payload — use `--input` instead of stdin. The routing definition and all other behavior stay identical.

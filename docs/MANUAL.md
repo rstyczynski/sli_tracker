@@ -764,6 +764,12 @@ Core files:
 
 #### Inline expression from stdin
 
+Input:
+
+```json
+{ "value": 21 }
+```
+
 ```bash
 echo '{"value":21}' | \
 node tools/json_transform_cli.js \
@@ -779,7 +785,31 @@ Expected output:
 
 #### Transform with a real project mapping
 
-The project ships a mapping that converts a GitHub `workflow_run` body into an OCI Logging entry shape. Apply it to the sample fixture:
+The project ships a mapping that converts a GitHub `workflow_run` body into an OCI Logging entry shape. Inspect the input fixture first:
+
+```bash
+cat tests/fixtures/github_webhook_samples/workflow_run.json | jq
+```
+
+```json
+{
+  "action": "completed",
+  "workflow_run": {
+    "id": 1001,
+    "name": "CI",
+    "conclusion": "success",
+    "head_branch": "main",
+    "head_sha": "deadbeef",
+    "created_at": "2026-04-12T10:00:00Z",
+    "updated_at": "2026-04-12T10:05:00Z"
+  },
+  "repository": {
+    "full_name": "acme/SLI_tracker"
+  }
+}
+```
+
+Apply the mapping:
 
 ```bash
 node tools/json_transform_cli.js \
@@ -788,13 +818,48 @@ node tools/json_transform_cli.js \
   --pretty
 ```
 
-You should see a `logEntryBatches` structure containing `outcome`, `workflow`, `branch`, `repo`, and a live timestamp from `$now()`. This is the exact shape the OCI Logging adapter expects when the same mapping runs inside the router.
+Expected output (`defaultlogentrytime` reflects the current time):
+
+```json
+{
+  "logEntryBatches": [
+    {
+      "defaultlogentrytime": "2026-04-20T10:00:00.000Z",
+      "entries": [
+        {
+          "data": {
+            "outcome": "success",
+            "workflow": "CI",
+            "run_id": "1001",
+            "branch": "main",
+            "sha": "deadbeef",
+            "repo": "acme/SLI_tracker",
+            "event": "github_workflow_run"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+This is the exact shape the OCI Logging adapter expects when the same mapping runs inside the router.
 
 ### 5.3 Step 2 — Route One Envelope to a File
 
 The simplest router case: one route, one `file_system` destination, no OCI. The mapping `$` passes the body through unchanged.
 
 #### Route from a file
+
+Input:
+
+```json
+{
+  "body": {
+    "audit": { "id": "A-1", "message": "copied to file adapter" }
+  }
+}
+```
 
 ```bash
 TMP_DIR="$(mktemp -d /tmp/sli_router_single.XXXXXX)"
@@ -832,9 +897,48 @@ node tools/json_router_cli.js \
 cat "$TMP_DIR/file_system/audit_copy/001_audit_to_file.json" | jq
 ```
 
-The `--pretty` output shows `"status": "routed"` with a delivery record for `audit_to_file`. The delivered file appears under `$TMP_DIR/file_system/audit_copy/`.
+Router result (`--pretty`):
+
+```json
+{
+  "status": "routed",
+  "deliveries": [
+    {
+      "route": {
+        "id": "audit_to_file",
+        "mode": "exclusive",
+        "destination": { "type": "file_system", "name": "audit_copy" }
+      },
+      "output": {
+        "audit": { "id": "A-1", "message": "copied to file adapter" }
+      }
+    }
+  ]
+}
+```
+
+Delivered file (`file_system/audit_copy/001_audit_to_file.json`):
+
+```json
+{
+  "audit": {
+    "id": "A-1",
+    "message": "copied to file adapter"
+  }
+}
+```
 
 #### Route from stdin
+
+Input:
+
+```json
+{
+  "body": {
+    "audit": { "id": "A-2", "message": "via stdin" }
+  }
+}
+```
 
 ```bash
 cat <<'EOF' | node tools/json_router_cli.js \
@@ -849,6 +953,26 @@ cat <<'EOF' | node tools/json_router_cli.js \
   }
 }
 EOF
+```
+
+Router result:
+
+```json
+{
+  "status": "routed",
+  "deliveries": [
+    {
+      "route": {
+        "id": "audit_to_file",
+        "mode": "exclusive",
+        "destination": { "type": "file_system", "name": "audit_copy" }
+      },
+      "output": {
+        "audit": { "id": "A-2", "message": "via stdin" }
+      }
+    }
+  ]
+}
 ```
 
 #### Adapter label and write location
@@ -869,7 +993,29 @@ The route definition stays unchanged. Only the adapter block controls where data
 
 ### 5.4 Step 3 — Route a GitHub Webhook with a Real Mapping
 
-Use the project's actual `workflow_run` fixture and the OCI Logging mapping. The route matches on the `X-GitHub-Event` header.
+Use the project's actual `workflow_run` fixture and the OCI Logging mapping. The route matches on the `X-GitHub-Event` header. Inspect the input fixture first:
+
+```bash
+cat tests/fixtures/github_webhook_samples/workflow_run.json | jq
+```
+
+```json
+{
+  "action": "completed",
+  "workflow_run": {
+    "id": 1001,
+    "name": "CI",
+    "conclusion": "success",
+    "head_branch": "main",
+    "head_sha": "deadbeef",
+    "created_at": "2026-04-12T10:00:00Z",
+    "updated_at": "2026-04-12T10:05:00Z"
+  },
+  "repository": {
+    "full_name": "acme/SLI_tracker"
+  }
+}
+```
 
 ```bash
 TMP_DIR="$(mktemp -d /tmp/sli_router_wfrun.XXXXXX)"
@@ -901,11 +1047,62 @@ node tools/json_router_cli.js \
 cat "$TMP_DIR/file_system/workflow_logs/"*.json | jq
 ```
 
-The delivered file contains a `logEntryBatches` structure ready for the OCI Logging adapter. Note that the mapping reads `workflow_run.conclusion` directly — not `body.workflow_run.conclusion` — because the transformer receives `body` as its root context.
+Router result (`--pretty`):
+
+```json
+{
+  "status": "routed",
+  "deliveries": [
+    {
+      "route": {
+        "id": "workflow_to_log_shape",
+        "mode": "exclusive",
+        "destination": { "type": "file_system", "name": "workflow_logs" }
+      },
+      "output": {
+        "logEntryBatches": [ { "entries": [ { "data": { "outcome": "success", "workflow": "CI", "branch": "main" } } ] } ]
+      }
+    }
+  ]
+}
+```
+
+Delivered file (`file_system/workflow_logs/001_workflow_to_log_shape.json`):
+
+```json
+{
+  "logEntryBatches": [
+    {
+      "defaultlogentrytime": "2026-04-20T10:00:00.000Z",
+      "entries": [
+        {
+          "data": {
+            "outcome": "success",
+            "workflow": "CI",
+            "run_id": "1001",
+            "branch": "main",
+            "sha": "deadbeef",
+            "repo": "acme/SLI_tracker",
+            "event": "github_workflow_run"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Note that the mapping reads `workflow_run.conclusion` directly — not `body.workflow_run.conclusion` — because the transformer receives `body` as its root context.
 
 ### 5.5 Step 4 — Fan-Out One Envelope to Two Destinations
 
-`fanout` routes fire alongside the first exclusive match. This step reproduces the production pattern for `workflow_run`: one archive copy plus one transformed shape.
+`fanout` routes fire alongside the first exclusive match. This step reproduces the production pattern for `workflow_run`: one archive copy plus one transformed shape. Inspect the input first:
+
+```bash
+cat tests/fixtures/github_webhook_samples/workflow_run.json | jq
+```
+
+(same fixture as step 3 above)
 
 ```bash
 TMP_DIR="$(mktemp -d /tmp/sli_router_fanout.XXXXXX)"
@@ -950,11 +1147,71 @@ echo "--- log shape ---"
 cat "$TMP_DIR/file_system/log_shape/"*.json | jq
 ```
 
-The `--pretty` output shows two deliveries. The `raw_archive` destination has the original body unchanged. The `log_shape` destination has the `logEntryBatches` structure from the mapping. In production the two fanout destinations are OCI Object Storage and OCI Logging instead of two file directories.
+Router result (`--pretty`) — two deliveries from one envelope:
+
+```json
+{
+  "status": "routed",
+  "deliveries": [
+    {
+      "route": { "id": "workflow_run_archive", "mode": "exclusive",
+                 "destination": { "type": "file_system", "name": "raw_archive" } },
+      "output": { "action": "completed", "workflow_run": { "conclusion": "success" }, "repository": { "full_name": "acme/SLI_tracker" } }
+    },
+    {
+      "route": { "id": "workflow_run_to_log_shape", "mode": "fanout",
+                 "destination": { "type": "file_system", "name": "log_shape" } },
+      "output": { "logEntryBatches": [ { "entries": [ { "data": { "outcome": "success", "workflow": "CI" } } ] } ] }
+    }
+  ]
+}
+```
+
+`raw_archive` file — original body unchanged:
+
+```json
+{
+  "action": "completed",
+  "workflow_run": { "id": 1001, "name": "CI", "conclusion": "success", "head_branch": "main" },
+  "repository": { "full_name": "acme/SLI_tracker" }
+}
+```
+
+`log_shape` file — body transformed into OCI Logging entry shape:
+
+```json
+{
+  "logEntryBatches": [
+    {
+      "defaultlogentrytime": "2026-04-20T10:00:00.000Z",
+      "entries": [
+        { "data": { "outcome": "success", "workflow": "CI", "branch": "main", "repo": "acme/SLI_tracker", "event": "github_workflow_run" } }
+      ]
+    }
+  ]
+}
+```
+
+In production the two destinations are OCI Object Storage and OCI Logging instead of two file directories.
 
 ### 5.6 Step 5 — Batch Route a Source Directory
 
-Batch mode feeds a directory of envelope files through the same routing definition and writes results to an output tree.
+Batch mode feeds a directory of envelope files through the same routing definition and writes results to an output tree. Inspect one source envelope to understand the shape:
+
+```bash
+cat tests/fixtures/github_webhook_samples/workflow_run.json | jq '{headers: {"X-GitHub-Event": "workflow_run"}, body: .}'
+```
+
+```json
+{
+  "headers": { "X-GitHub-Event": "workflow_run" },
+  "body": {
+    "action": "completed",
+    "workflow_run": { "id": 1001, "name": "CI", "conclusion": "success" },
+    "repository": { "full_name": "acme/SLI_tracker" }
+  }
+}
+```
 
 ```bash
 SRC_DIR="$(mktemp -d /tmp/sli_router_batch_src.XXXXXX)"
@@ -963,7 +1220,7 @@ TMP_DIR="$(mktemp -d /tmp/sli_router_batch_cfg.XXXXXX)"
 cp tools/mappings/github_workflow_run_to_oci_log.jsonata "$TMP_DIR/"
 echo '$' > "$TMP_DIR/passthrough.jsonata"
 
-# Write several envelopes into the source directory.
+# Write four envelopes with varying conclusions into the source directory.
 for conclusion in success success failure success; do
   jq -n \
     --arg c "$conclusion" \
@@ -1003,7 +1260,18 @@ echo "Files written to $OUT_DIR:"
 find "$OUT_DIR" -type f | sort
 ```
 
-Each source file produces one or more output files under the named destination directories inside `$OUT_DIR`. Fanout routes multiply the output: four input envelopes produce four files under `raw_archive` and four files under `log_shape`.
+Expected `find` output — four inputs produce eight output files, four per destination:
+
+```text
+/tmp/sli_router_batch_out.XXXXXX/raw_archive/001_workflow_run_archive.json
+/tmp/sli_router_batch_out.XXXXXX/raw_archive/002_workflow_run_archive.json
+/tmp/sli_router_batch_out.XXXXXX/raw_archive/003_workflow_run_archive.json
+/tmp/sli_router_batch_out.XXXXXX/raw_archive/004_workflow_run_archive.json
+/tmp/sli_router_batch_out.XXXXXX/log_shape/001_workflow_run_to_log_shape.json
+/tmp/sli_router_batch_out.XXXXXX/log_shape/002_workflow_run_to_log_shape.json
+/tmp/sli_router_batch_out.XXXXXX/log_shape/003_workflow_run_to_log_shape.json
+/tmp/sli_router_batch_out.XXXXXX/log_shape/004_workflow_run_to_log_shape.json
+```
 
 ### 5.7 Step 6 — Deploy the Public Router Function
 

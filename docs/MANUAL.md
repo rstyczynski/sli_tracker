@@ -960,7 +960,7 @@ The envelope carries `audit.id` in `body` — that is the field the route match 
 
 #### Route from stdin
 
-Stdin is the simplest form: the envelope is piped directly into the router without writing it to a file first. Only a routing definition is needed on disk. This is the quickest way to try any envelope against a routing configuration from the command line.
+Stdin is the simplest way to feed the router: pipe the envelope directly, no `--input` file needed. This mirrors how the OCI Function works in production — the Function receives the webhook payload and passes it straight to the router without writing it to disk first.
 
 Create and inspect the routing definition:
 
@@ -993,12 +993,10 @@ cat "$TMP_DIR/routing.json"
 }
 ```
 
-Pipe the envelope directly and run the router:
+Create and inspect the envelope:
 
 ```bash
-cat <<'EOF' | node tools/json_router_cli.js \
-      --routing "$TMP_DIR/routing.json" \
-      --pretty
+cat > "$TMP_DIR/envelope.json" <<'EOF'
 {
   "body": {
     "audit": {
@@ -1008,6 +1006,26 @@ cat <<'EOF' | node tools/json_router_cli.js \
   }
 }
 EOF
+cat "$TMP_DIR/envelope.json"
+```
+
+```json
+{
+  "body": {
+    "audit": {
+      "id": "A-1",
+      "message": "via stdin"
+    }
+  }
+}
+```
+
+Pipe it into the router:
+
+```bash
+cat "$TMP_DIR/envelope.json" | node tools/json_router_cli.js \
+  --routing "$TMP_DIR/routing.json" \
+  --pretty
 ```
 
 After routing, the router prints a JSON execution report to stdout. The report describes every action taken: which route matched, which mode was used, which destination received the delivery, and what the transformed output looked like. This is the primary way to understand what the router did with an envelope — both for learning and for debugging.

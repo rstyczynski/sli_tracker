@@ -69,50 +69,51 @@ The editable source is [`model/model.drawio`](../model/model.drawio).
       - [POST a completed workflow\_run event](#post-a-completed-workflow_run-event)
     - [5.9 Step 8 — Verify Ingest in Object Storage](#59-step-8--verify-ingest-in-object-storage)
     - [5.10 Step 9 — Verify Fan-Out to OCI Monitoring and Logging](#510-step-9--verify-fan-out-to-oci-monitoring-and-logging)
-    - [5.11 SLI Calculation](#511-sli-calculation)
-    - [5.12 Synthetic Event Generator](#512-synthetic-event-generator)
-    - [5.13 OCI Authentication Profiles](#513-oci-authentication-profiles)
+    - [5.11 OCI Authentication Profiles](#511-oci-authentication-profiles)
       - [The Profile Setup Tool](#the-profile-setup-tool)
         - [Mode 1 — Session (browser-authenticated token)](#mode-1--session-browser-authenticated-token)
         - [Mode 2 — Config profile (API-key based)](#mode-2--config-profile-api-key-based)
       - [Profile Restoration on CI Runners](#profile-restoration-on-ci-runners)
-  - [6. Major Techniques Used in This Project](#6-major-techniques-used-in-this-project)
-    - [6.1 Structured Event Emission from GitHub Actions](#61-structured-event-emission-from-github-actions)
-    - [6.2 Backend-Switchable OCI Emission](#62-backend-switchable-oci-emission)
-    - [6.3 Telemetry Sinks](#63-telemetry-sinks)
-    - [6.4 JSONata Transformation](#64-jsonata-transformation)
-    - [6.5 Config-Driven Routing](#65-config-driven-routing)
-    - [6.6 Adapter-Based Delivery](#66-adapter-based-delivery)
-    - [6.7 OCI Function as Public Ingest Endpoint](#67-oci-function-as-public-ingest-endpoint)
-    - [6.8 Test-First Quality Gates](#68-test-first-quality-gates)
-    - [6.9 Infrastructure Lifecycle Scripts](#69-infrastructure-lifecycle-scripts)
-  - [7. Major Tools and Components](#7-major-tools-and-components)
-    - [6.1 GitHub Actions Components](#61-github-actions-components)
-    - [6.2 Workflow Models](#62-workflow-models)
-    - [6.3 Node.js Tooling](#63-nodejs-tooling)
-    - [6.4 Shell Tooling](#64-shell-tooling)
-    - [6.5 OCI-Focused Helpers](#65-oci-focused-helpers)
-    - [6.6 OCI Function Router Components](#66-oci-function-router-components)
-  - [8. Repository Areas and Their Roles](#8-repository-areas-and-their-roles)
-  - [9. Operational Knowledge a Reader Should Gain](#9-operational-knowledge-a-reader-should-gain)
-  - [10. Suggested Reading Order](#10-suggested-reading-order)
-  - [11. Known Knowledge Domains for Future Expansion](#11-known-knowledge-domains-for-future-expansion)
-  - [12. Snippet Catalog](#12-snippet-catalog)
-    - [12.1 Prepare `SLI_TEST` Authentication](#121-prepare-sli_test-authentication)
+  - [6. SLI Calculation](#6-sli-calculation)
+  - [7. Additional Tools](#7-additional-tools)
+    - [7.1 Synthetic Event Generator](#71-synthetic-event-generator)
+  - [8. Major Techniques Used in This Project](#8-major-techniques-used-in-this-project)
+    - [8.1 Structured Event Emission from GitHub Actions](#81-structured-event-emission-from-github-actions)
+    - [8.2 Backend-Switchable OCI Emission](#82-backend-switchable-oci-emission)
+    - [8.3 Telemetry Sinks](#83-telemetry-sinks)
+    - [8.4 JSONata Transformation](#84-jsonata-transformation)
+    - [8.5 Config-Driven Routing](#85-config-driven-routing)
+    - [8.6 Adapter-Based Delivery](#86-adapter-based-delivery)
+    - [8.7 OCI Function as Public Ingest Endpoint](#87-oci-function-as-public-ingest-endpoint)
+    - [8.8 Test-First Quality Gates](#88-test-first-quality-gates)
+    - [8.9 Infrastructure Lifecycle Scripts](#89-infrastructure-lifecycle-scripts)
+  - [9. Major Tools and Components](#9-major-tools-and-components)
+    - [9.1 GitHub Actions Components](#91-github-actions-components)
+    - [9.2 Workflow Models](#92-workflow-models)
+    - [9.3 Node.js Tooling](#93-nodejs-tooling)
+    - [9.4 Shell Tooling](#94-shell-tooling)
+    - [9.5 OCI-Focused Helpers](#95-oci-focused-helpers)
+    - [9.6 OCI Function Router Components](#96-oci-function-router-components)
+  - [10. Repository Areas and Their Roles](#10-repository-areas-and-their-roles)
+  - [11. Operational Knowledge a Reader Should Gain](#11-operational-knowledge-a-reader-should-gain)
+  - [12. Suggested Reading Order](#12-suggested-reading-order)
+  - [13. Known Knowledge Domains for Future Expansion](#13-known-knowledge-domains-for-future-expansion)
+  - [14. Snippet Catalog](#14-snippet-catalog)
+    - [14.1 Prepare `SLI_TEST` Authentication](#141-prepare-sli_test-authentication)
       - [Session-Based `SLI_TEST` Profile](#session-based-sli_test-profile)
       - [API-Key Mirrored `SLI_TEST` Profile](#api-key-mirrored-sli_test-profile)
-    - [12.2 Local SLI Emission](#122-local-sli-emission)
+    - [14.2 Local SLI Emission](#142-local-sli-emission)
       - [Emit one success event locally](#emit-one-success-event-locally)
       - [Emit one failure event locally](#emit-one-failure-event-locally)
-    - [12.3 SLI Simulation and Computation](#123-sli-simulation-and-computation)
+    - [14.3 SLI Simulation and Computation](#143-sli-simulation-and-computation)
       - [Run the ratio simulator](#run-the-ratio-simulator)
       - [Compute SLI from OCI Monitoring](#compute-sli-from-oci-monitoring)
-    - [12.4 Local Transformation and Routing CLI](#124-local-transformation-and-routing-cli)
-    - [12.5 OCI Router Operations](#125-oci-router-operations)
-    - [12.6 Teardown](#126-teardown)
+    - [14.4 Local Transformation and Routing CLI](#144-local-transformation-and-routing-cli)
+    - [14.5 OCI Router Operations](#145-oci-router-operations)
+    - [14.6 Teardown](#146-teardown)
       - [Delete the API Gateway + Fn router stack](#delete-the-api-gateway--fn-router-stack)
       - [Delete all `sli-*` buckets in `/SLI_tracker`](#delete-all-sli--buckets-in-sli_tracker)
-  - [13. Supporting Source Documents](#13-supporting-source-documents)
+  - [15. Supporting Source Documents](#15-supporting-source-documents)
 
 ## 1. Project Overview
 
@@ -1970,7 +1971,7 @@ echo "Open OCI Metric Explorer: https://cloud.oracle.com/monitoring/explore?regi
 
 Select compartment `SLI_tracker`, namespace `github_actions`, metric name `workflow_run_result`, and press `Update chart`.
 
-### 5.11 SLI Calculation
+## 6. SLI Calculation
 
 `sli_compute_sli_metrics.js` queries OCI Monitoring for `workflow_run_result` datapoints over a rolling window, then computes `success / total` and publishes the ratio back as a derived SLI metric.
 
@@ -1996,7 +1997,9 @@ Core files:
 - [`tools/sli_compute_sli_metrics.js`](../tools/sli_compute_sli_metrics.js)
 - [`.github/workflows/sli_compute_sli_metrics.yml`](../.github/workflows/sli_compute_sli_metrics.yml)
 
-### 5.12 Synthetic Event Generator
+## 7. Additional Tools
+
+### 7.1 Synthetic Event Generator
 
 `sli_ratio_simulator.sh` injects a controlled stream of success and failure `workflow_run` events into OCI Monitoring. It is used to validate dashboards, alarms, and SLI calculations under known conditions — for example, to confirm that a 75% success ratio produces the expected SLI value.
 
@@ -2030,7 +2033,7 @@ Core files:
 - [`tools/sli_ratio_simulator.sh`](../tools/sli_ratio_simulator.sh)
 - [`.github/workflows/sli_ratio_simulator.yml`](../.github/workflows/sli_ratio_simulator.yml)
 
-### 5.13 OCI Authentication Profiles
+### 5.11 OCI Authentication Profiles
 
 This project uses two named OCI profiles:
 
@@ -2093,11 +2096,11 @@ Full tool reference:
 - [`.github/actions/oci-profile-setup/setup_oci_github_access.sh`](../.github/actions/oci-profile-setup/setup_oci_github_access.sh)
 - [`.github/actions/oci-profile-setup/README.md`](../.github/actions/oci-profile-setup/README.md)
 
-## 6. Major Techniques Used in This Project
+## 8. Major Techniques Used in This Project
 
 This section names the main technical patterns a reader needs to understand.
 
-### 6.1 Structured Event Emission from GitHub Actions
+### 8.1 Structured Event Emission from GitHub Actions
 
 The project treats GitHub workflow runs as telemetry sources. Rather than logging plain text, it builds structured JSON payloads containing:
 
@@ -2109,7 +2112,7 @@ The project treats GitHub workflow runs as telemetry sources. Rather than loggin
 
 This is the core observability technique of the repository.
 
-### 6.2 Backend-Switchable OCI Emission
+### 8.2 Backend-Switchable OCI Emission
 
 Emission is not tied to one transport implementation. The repository supports multiple backend styles:
 
@@ -2119,7 +2122,7 @@ Emission is not tied to one transport implementation. The repository supports mu
 
 This keeps the payload contract stable while allowing transport changes. It may be beneficial to fully switch to core API accessible via `curl` or Node.js SDK, as it eliminates OCI CLI and python installation steps what saves pipeline execution time.
 
-### 6.3 Telemetry Sinks
+### 8.3 Telemetry Sinks
 
 The same logical event can be sent to more than one destination:
 
@@ -2129,7 +2132,7 @@ The same logical event can be sent to more than one destination:
 
 This is important because logs are better for audit and search, while metrics are better for ratio calculation and alerting. Platform comes with pluggable adapter interface, enabling new sources and destination to be added.
 
-### 6.4 JSONata Transformation
+### 8.4 JSONata Transformation
 
 JSONata expressions are used to transform one JSON document into another. This lets the project convert source-specific payloads into destination-specific contracts without hardcoding every variation in application logic.
 
@@ -2139,7 +2142,7 @@ Relevant files:
 - [`tools/mappings/github_workflow_run_to_oci_log.jsonata`](../tools/mappings/github_workflow_run_to_oci_log.jsonata)
 - [`tools/mappings/health_to_oci_metric.jsonata`](../tools/mappings/health_to_oci_metric.jsonata)
 
-### 6.5 Config-Driven Routing
+### 8.5 Config-Driven Routing
 
 The router identifies payload type, chooses a mapping, and dispatches to one or more destinations based on configuration. This allows new flows to be added by editing routing definitions and mappings instead of rewriting the runtime.
 
@@ -2151,7 +2154,7 @@ Key concepts:
 - adapter registration from config
 - dead-letter handling for failures
 
-### 6.6 Adapter-Based Delivery
+### 8.6 Adapter-Based Delivery
 
 Destination-specific behavior is isolated behind adapters. This is a major design technique in the repo because it separates routing logic from side effects.
 
@@ -2162,11 +2165,11 @@ Examples:
 - OCI Monitoring adapter
 - OCI Logging adapter
 
-### 6.7 OCI Function as Public Ingest Endpoint
+### 8.7 OCI Function as Public Ingest Endpoint
 
 The project includes an OCI Function deployment that accepts public traffic through API Gateway and performs routing plus delivery. This is the bridge between external event producers and OCI-hosted telemetry storage.
 
-### 6.8 Test-First Quality Gates
+### 8.8 Test-First Quality Gates
 
 The repo uses centralized shell-driven test execution with suite and component scoping. Tests are grouped by level:
 
@@ -2183,7 +2186,7 @@ Relevant files:
 - [`tests/unit/README.md`](../tests/unit/README.md)
 - [`tests/integration/README.md`](../tests/integration/README.md)
 
-### 6.9 Infrastructure Lifecycle Scripts
+### 8.9 Infrastructure Lifecycle Scripts
 
 OCI resources are not assumed to exist forever. The repository contains helper scripts to create, validate, and tear down test infrastructure in a repeatable way.
 
@@ -2194,11 +2197,11 @@ This includes:
 - API Gateway router deployment lifecycle
 - bucket cleanup and validation helpers
 
-## 7. Major Tools and Components
+## 9. Major Tools and Components
 
 This section is a compact inventory of the most important building blocks.
 
-### 6.1 GitHub Actions Components
+### 9.1 GitHub Actions Components
 
 - `install-oci-cli`
   Purpose: install OCI CLI on GitHub runners.
@@ -2209,7 +2212,7 @@ This section is a compact inventory of the most important building blocks.
 - `sli-event-js`
   Purpose: emit via JavaScript action lifecycle hooks.
 
-### 6.2 Workflow Models
+### 9.2 Workflow Models
 
 The workflows under [`.github/workflows`](../.github/workflows) serve two roles:
 
@@ -2226,7 +2229,7 @@ Representative workflows:
 - `sli_compute_sli_metrics.yml`
 - `sli_ratio_simulator.yml`
 
-### 6.3 Node.js Tooling
+### 9.3 Node.js Tooling
 
 The root [package.json](../package.json) shows the key libraries:
 
@@ -2244,7 +2247,7 @@ In practice, Node.js is used for:
 - SLI metric computation
 - CLI tools for local validation
 
-### 6.4 Shell Tooling
+### 9.4 Shell Tooling
 
 Shell remains a first-class implementation language in this repo.
 
@@ -2257,7 +2260,7 @@ It is used for:
 - simulator control flow
 - OCI deployment helpers
 
-### 6.5 OCI-Focused Helpers
+### 9.5 OCI-Focused Helpers
 
 Important helpers under [`tools/`](../tools):
 
@@ -2268,7 +2271,7 @@ Important helpers under [`tools/`](../tools):
 - [`list_github_ingest_prefixes.sh`](../tools/list_github_ingest_prefixes.sh)
 - [`get_ingest_object.sh`](../tools/get_ingest_object.sh)
 
-### 6.6 OCI Function Router Components
+### 9.6 OCI Function Router Components
 
 Important files under [`fn/router_passthrough/`](../fn/router_passthrough):
 
@@ -2282,7 +2285,7 @@ Important files under [`fn/router_passthrough/`](../fn/router_passthrough):
 - `lib/oci_logging_adapter.js`
 - `lib/schemas/json_router_definition.schema.json`
 
-## 8. Repository Areas and Their Roles
+## 10. Repository Areas and Their Roles
 
 | Area | Role |
 |------|------|
@@ -2295,7 +2298,7 @@ Important files under [`fn/router_passthrough/`](../fn/router_passthrough):
 | `progress/` | Sprint-by-sprint implementation trace and test evidence |
 | `RUPStrikesBack/` | Delivery process, rules, and agent workflow submodule |
 
-## 9. Operational Knowledge a Reader Should Gain
+## 11. Operational Knowledge a Reader Should Gain
 
 By the time a reader finishes the first part of this manual, they should be able to answer these questions:
 
@@ -2309,7 +2312,7 @@ By the time a reader finishes the first part of this manual, they should be able
 
 These questions will later map to deeper chapters.
 
-## 10. Suggested Reading Order
+## 12. Suggested Reading Order
 
 For a new maintainer, this is the recommended order:
 
@@ -2328,7 +2331,7 @@ Then continue with the code paths that match the reader's focus:
 - OCI deployment path
 - testing path
 
-## 11. Known Knowledge Domains for Future Expansion
+## 13. Known Knowledge Domains for Future Expansion
 
 The next iterations of this manual should likely add dedicated chapters for:
 
@@ -2340,7 +2343,7 @@ The next iterations of this manual should likely add dedicated chapters for:
 6. troubleshooting and failure modes
 7. sprint history and why the architecture evolved the way it did
 
-## 12. Snippet Catalog
+## 14. Snippet Catalog
 
 This section is intentionally placed at the bottom so it can grow into a practical operator cookbook.
 
@@ -2354,7 +2357,7 @@ Each snippet should eventually include:
 - expected outcome
 - follow-up checks
 
-### 12.1 Prepare `SLI_TEST` Authentication
+### 14.1 Prepare `SLI_TEST` Authentication
 
 Most local OCI examples below use `"profile":"SLI_TEST"` inside `SLI_CONTEXT_JSON`. That profile is prepared by the operator-side script [`.github/actions/oci-profile-setup/setup_oci_github_access.sh`](../.github/actions/oci-profile-setup/setup_oci_github_access.sh).
 
@@ -2384,7 +2387,7 @@ Use this mode when you want a non-expiring API-key based `SLI_TEST` profile. The
   --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
 ```
 
-### 12.2 Local SLI Emission
+### 14.2 Local SLI Emission
 
 #### Emit one success event locally
 
@@ -2413,7 +2416,7 @@ export SLI_CONTEXT_JSON='{"oci":{"config-file":"~/.oci/config","profile":"SLI_TE
 bash .github/actions/sli-event/emit.sh
 ```
 
-### 12.3 SLI Simulation and Computation
+### 14.3 SLI Simulation and Computation
 
 #### Run the ratio simulator
 
@@ -2454,7 +2457,7 @@ tools/sli_compute_sli_metrics.js \
   --output json | jq
 ```
 
-### 12.4 Local Transformation and Routing CLI
+### 14.4 Local Transformation and Routing CLI
 
 The canonical router CLI guide now lives in §5.2. This snippet-catalog entry remains only as a navigation point for readers who jump here directly.
 
@@ -2469,11 +2472,11 @@ Use §5.2 for:
 - OCI-backed router capabilities
 - dead-letter handling and common router error cases
 
-### 12.5 OCI Router Operations
+### 14.5 OCI Router Operations
 
 The canonical operational router commands now live in §5.3. This snippet-catalog entry remains only as a navigation point for readers who search for OCI router operations directly.
 
-### 12.6 Teardown
+### 14.6 Teardown
 
 #### Delete the API Gateway + Fn router stack
 
@@ -2489,7 +2492,7 @@ bash tests/cleanup_router_apigw_stack.sh
 bash tests/cleanup_sli_buckets.sh
 ```
 
-## 13. Supporting Source Documents
+## 15. Supporting Source Documents
 
 This manual is the primary operator document. Supporting sprint documents remain useful when you want historical context, implementation rationale, or detailed test evidence behind the router work.
 

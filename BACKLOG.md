@@ -383,3 +383,39 @@ Test: with a routing definition that declares an OCI Queue source, the runtime c
 The current workflow emission path reports one aggregated event per job and uses step context mainly to derive failure reasons. Add support for emitting step-level SLI events so operators can observe which workflow steps succeeded or failed as first-class events instead of only as fields embedded in a job-level record. This matters when one job contains multiple operationally meaningful steps and the product needs finer-grained visibility without losing the existing job-level summary.
 
 Test: a workflow that passes its step context produces distinct emitted events for individual steps with correct step outcome data, while the existing job-level event remains available and consistent.
+
+### SLI-51. MANUAL.md: document teardown and cleanup tools
+
+`teardown_router_apigw_stack.sh` removes the full API Gateway + Fn + VCN stack provisioned by `cycle_apigw_router_passthrough.sh`. `clear_ingest_prefix.sh` deletes objects under a chosen ingest prefix in the Object Storage bucket. Neither tool is mentioned in the manual. Add a Teardown section (e.g. §5.12 or an appendix) that explains when and how to use each, with expected output and a warning about irreversibility.
+
+### SLI-52. MANUAL.md: document list_monitoring_metrics.sh
+
+`tools/list_monitoring_metrics.sh` lists OCI Monitoring metric definitions for the router stack — it is the companion to `validate_router_ingest_and_metrics.sh` for inspecting what metrics exist before querying datapoints. Add a short entry in §5.10 or §7 explaining its purpose, required environment variables, and sample output.
+
+### SLI-53. MANUAL.md: document health_to_oci_metric.jsonata mapping
+
+`tools/mappings/health_to_oci_metric.jsonata` is the second production mapping alongside the workflow_run-to-OCI-log mapping already documented in §5.4. Add coverage showing the mapping content, the envelope shape it expects, and what OCI Monitoring metric it produces.
+
+### SLI-54. MANUAL.md: document model-call, model-reusable, model-pr, model-push workflows
+
+`model-call.yml`, `model-reusable-main.yml`, `model-reusable-sub.yml`, `model-pr.yml`, and `model-push.yml` demonstrate how the SLI emission action is wired into real workflow patterns (call, reusable, PR trigger, push trigger). §4 covers only the emit-family workflows. Extend §4 with a subsection that shows the structure of these model workflows and explains the trigger-to-emission pattern each one illustrates.
+
+### SLI-55. MANUAL.md: document router internal architecture (router_core.js, destination_dispatcher.js)
+
+The manual explains the router from the outside (envelope in, deliveries out) but does not describe its internal structure. `fn/router_passthrough/router_core.js` owns the match-transform-dispatch loop; `tools/adapters/destination_dispatcher.js` resolves adapter labels and calls the correct adapter. Add a subsection in §5.1 or a new §5.12 that walks through the internal call chain so contributors understand where to add a new adapter or change routing behaviour.
+
+### SLI-56. MANUAL.md: document the routing definition JSON schema
+
+`tools/schemas/json_router_definition.schema.json` formally defines every field in `routing.json`. It is never mentioned in the manual. Add a reference in §5.1 Key Concepts pointing to the schema and explaining that it can be used for editor validation and as the authoritative field reference when authoring or debugging routing definitions.
+
+### SLI-57. MANUAL.md: document OCI Object Storage as a routing source
+
+`tools/adapters/oci_object_storage_source_adapter.js` and `oci_object_storage_mapping_source.js` allow the router to load routing definitions and JSONata mappings directly from an Object Storage bucket at runtime rather than from the local filesystem. This capability is not mentioned in the manual. Add coverage in §5.1 or §5.7 explaining how to configure the Function to read its routing definition from the bucket, and why this matters for updating routing logic without redeploying the Function.
+
+### SLI-58. MANUAL.md: document test suites (unit, integration, smoke)
+
+The project has three test layers under `tests/` — unit tests covering individual router components, integration tests covering the full OCI stack, and smoke tests for quick post-deploy validation — but the manual contains no description of the test infrastructure. Add a section (or appendix) that explains how to run each suite, what each layer validates, and which environment variables are required for the integration and smoke tests.
+
+### SLI-59. MANUAL.md: document test-oci-profile-setup.yml CI workflow
+
+`.github/workflows/test-oci-profile-setup.yml` validates that the OCI profile setup action works correctly in a CI runner environment. It is relevant to anyone troubleshooting authentication issues but is not mentioned in the manual. Add a brief entry in §5.11 OCI Authentication Profiles explaining what this workflow tests and how to trigger it manually when debugging profile restoration failures.

@@ -60,8 +60,9 @@ The editable source is [`model/model.drawio`](../model/model.drawio).
       - [Inspect the output](#inspect-the-output)
     - [5.7 Step 6 — Deploy the Public Router Function](#57-step-6--deploy-the-public-router-function)
       - [Prerequisites](#prerequisites)
+      - [Configure](#configure)
       - [Deploy](#deploy)
-      - [Read the API Gateway endpoint from the state file](#read-the-api-gateway-endpoint-from-the-state-file)
+      - [Read the endpoint](#read-the-endpoint)
     - [5.8 Step 7 — Send a Webhook to the Deployed Function](#58-step-7--send-a-webhook-to-the-deployed-function)
       - [Generic POST (no GitHub header)](#generic-post-no-github-header)
       - [POST a GitHub ping event](#post-a-github-ping-event)
@@ -1777,44 +1778,88 @@ Batch mode is useful for replaying captured webhook history, testing routing cha
 
 ### 5.7 Step 6 — Deploy the Public Router Function
 
-The OCI Function is the public webhook listener. It accepts POST requests through an API Gateway endpoint, runs the same router logic, and delivers to OCI Object Storage, OCI Monitoring, and OCI Logging.
+The OCI Function is the live webhook listener. It sits behind an API Gateway, accepts POST requests carrying router envelopes, runs the same routing and mapping logic as the local CLI, and delivers to OCI Object Storage, OCI Monitoring, and OCI Logging. Steps 7–10 use the endpoint this step provisions.
 
 #### Prerequisites
 
-- OCI auth — `DEFAULT` profile or `SLI_TEST` profile set up (see §5.13)
-- `fn` CLI installed (`brew install fn` on macOS)
-- Docker available to the `fn` CLI (required to build the Function image)
-- `oci_scaffold` submodule initialized (`git submodule update --init`)
+- OCI authentication configured — `DEFAULT` profile or `SLI_TEST` profile (see §5.13)
+- `fn` CLI installed: `brew install fn` on macOS
+- Docker daemon running — the `fn` CLI builds the Function image with Docker
+- `oci_scaffold` submodule initialized: `git submodule update --init`
+
+#### Configure
+
+Set the deployment name and OCI targets. Each variable has a working default; change only what differs from the standard layout:
+
+```bash
+# Unique prefix for all OCI resources created by this deployment.
+# A state file oci_scaffold/state-<NAME_PREFIX>.json is written after each run.
+export NAME_PREFIX="sli-router-passthrough-dev"
+
+# OCI compartment path where resources are created.
+export SLI_COMPARTMENT_PATH="/SLI_tracker"
+
+# Fn function name and source directory (relative to oci_scaffold/).
+export FN_FUNCTION_NAME="router_passthrough"
+export FN_FUNCTION_SRC_DIR="../fn/router_passthrough"
+
+# Create the ingest bucket automatically if it does not exist.
+export FN_ROUTER_AUTO_INGEST_BUCKET=true
+
+# Always rebuild and push the Function image on this run.
+export FN_FORCE_DEPLOY=true
+
+# Smoke-test the deployed gateway against the router (not a plain echo endpoint).
+export CYCLE_APIGW_TEST_EXPECT=router
+```
 
 #### Deploy
 
 ```bash
-export NAME_PREFIX="${SLI_FN_APIGW_ROUTER_PREFIX:-sli-router-passthrough-dev}"
-export SLI_COMPARTMENT_PATH="${SLI_COMPARTMENT_PATH:-/SLI_tracker}"
-export FN_FUNCTION_NAME="${FN_FUNCTION_NAME:-router_passthrough}"
-export FN_FUNCTION_SRC_DIR="${FN_FUNCTION_SRC_DIR:-../fn/router_passthrough}"
-export FN_ROUTER_AUTO_INGEST_BUCKET=true
-export CYCLE_APIGW_TEST_EXPECT=router
-export FN_FORCE_DEPLOY="${FN_FORCE_DEPLOY:-true}"
-
 bash tools/cycle_apigw_router_passthrough.sh
 ```
 
-The script is idempotent. On a fresh account it creates the compartment, Fn app, Function, API Gateway, and ingest bucket. On subsequent runs it reuses existing resources and redeploys only the Function code.
+The script is idempotent. On a fresh account it creates the compartment, VCN, Fn app, Function, API Gateway, and ingest bucket in order. On subsequent runs it reuses all existing resources and redeploys only the Function code. The final line shows a resource summary:
 
-#### Read the API Gateway endpoint from the state file
+```text
+  [INFO] compartment path: /SLI_tracker (ocid: ocid1.compartment…)
+  [INFO] fn CLI context: sli_tracker
+  …
+Summary: 2 CREATED, 14 EXISTING, 2 TESTED, 0 FAILED
+```
+
+`CREATED` counts newly provisioned resources; `EXISTING` counts resources that were already present and reused. `FAILED=0` means the deployment succeeded.
+
+#### Read the endpoint
+
+After a successful run the state file holds the full API Gateway deployment endpoint. Inspect the relevant fields:
 
 ```bash
 STATE_FILE="oci_scaffold/state-${NAME_PREFIX}.json"
+cat "$STATE_FILE" | jq '{endpoint: .apigw_deployment.endpoint, bucket: .bucket.name, namespace: .bucket.namespace}'
+```
 
-DEPLOYMENT_ENDPOINT=$(jq -r '.apigw_deployment.endpoint // .apigw.deployment_endpoint // empty' "$STATE_FILE")
-ROUTE_PATH=$(jq -r '.inputs.apigw_route_path // "/"' "$STATE_FILE")
-ROUTER_URL="${DEPLOYMENT_ENDPOINT%/}/${ROUTE_PATH#/}"
+```json
+{
+  "endpoint": "https://c3sveicofz474hz3mrhyj2cucm.apigateway.eu-zurich-1.oci.customer-oci.com/",
+  "bucket": "sli-router-passthrough-dev-bucket",
+  "namespace": "zr83uv6vz6na"
+}
+```
 
+Set `ROUTER_URL` for the steps that follow:
+
+```bash
+DEPLOYMENT_ENDPOINT=$(jq -r '.apigw_deployment.endpoint' "$STATE_FILE")
+ROUTER_URL="${DEPLOYMENT_ENDPOINT%/}"
 echo "Router endpoint: $ROUTER_URL"
 ```
 
-Keep `ROUTER_URL` set for the next steps.
+```text
+Router endpoint: https://c3sveicofz474hz3mrhyj2cucm.apigateway.eu-zurich-1.oci.customer-oci.com
+```
+
+Keep `NAME_PREFIX`, `STATE_FILE`, and `ROUTER_URL` exported — steps 8–10 read from the same state file and post to the same endpoint.
 
 ### 5.8 Step 7 — Send a Webhook to the Deployed Function
 

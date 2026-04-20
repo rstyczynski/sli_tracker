@@ -747,12 +747,14 @@ The next diagram shows the runtime behavioral view: how a single envelope moves 
 
 <p align="center"><img src="../model/router_runtime.jpg" alt="Router runtime behavioral view" width="50%"></p>
 
+The project ships the router and transformer as shared libraries under `tools/`, a CLI interface that wraps them for local use, and a fully working OCI Function implementation that uses the same libraries in a deployed ingest endpoint. The CLI and the Function share the same routing and transformation logic — the only difference is how input arrives and how output is returned.
+
 Core files:
 
-- [`tools/json_router.js`](../tools/json_router.js)
-- [`tools/json_transformer.js`](../tools/json_transformer.js)
-- [`tools/json_router_cli.js`](../tools/json_router_cli.js)
-- [`fn/router_passthrough/func.js`](../fn/router_passthrough/func.js)
+- [`tools/json_router.js`](../tools/json_router.js) — shared routing library: route matching, fanout, dead-letter
+- [`tools/json_transformer.js`](../tools/json_transformer.js) — shared transformation library: JSONata mapping execution
+- [`tools/json_router_cli.js`](../tools/json_router_cli.js) — CLI wrapper: accepts `--input`, `--routing`, `--source-dir`, `--output-dir`
+- [`fn/router_passthrough/func.js`](../fn/router_passthrough/func.js) — fully working OCI Function entry point using the same shared libraries
 
 ### 5.2 Step 1 — Transform a Document with JSONata
 

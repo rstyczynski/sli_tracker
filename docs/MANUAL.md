@@ -914,9 +914,17 @@ This is the exact shape the OCI Logging adapter expects when the same mapping ru
 
 The simplest router case: one route, one `file_system` destination, no OCI.
 
+#### The mapping
+
+The mapping for this step is the JSONata identity expression `$`, which returns the input document unchanged. It is the simplest possible mapping — useful when the goal is to archive or forward the body without any transformation.
+
+```jsonata
+$
+```
+
 #### The route
 
-The route below uses `required_fields` matching — the envelope is accepted only if the field `audit.id` exists in `body`. If the field is absent the envelope is unmatched and goes to dead-letter. The mapping `$` is the JSONata identity expression: it passes the body through unchanged. The destination label `audit_copy` is resolved by the `adapters` section; without an explicit entry the router writes to a `file_system/audit_copy/` subdirectory of the working directory.
+The route uses `required_fields` matching — the envelope is accepted only if `audit.id` exists in `body`. If the field is absent the envelope is unmatched and goes to dead-letter. The `transform` block points to `./mapping_file.jsonata`, which contains the `$` expression above. The destination label `audit_copy` is resolved by the `adapters` section; without an explicit entry the router writes to a `file_system/audit_copy/` subdirectory of the working directory.
 
 ```json
 {

@@ -739,7 +739,7 @@ Route matching sees the whole envelope, headers and body alike. JSONata mappings
 
 **Route** — a match condition, a mapping, and a destination label. The label is a logical name resolved by the `adapters` section. The route expresses intent; the adapter expresses deployment behavior.
 
-**Transformation** — the step that converts the incoming `body` into a destination-specific shape using a JSONata mapping file. The same body can be transformed differently for each destination: one mapping produces an OCI Logging entry, another produces an OCI Monitoring metric datapoint, a third passes the body through unchanged for archiving. Transformation is what makes the router reusable across different sinks without changing router code.
+**Transformation** — the step that converts the incoming `body` into a destination-specific shape. Mappings are written in [JSONata](https://jsonata.org), a standard open-source expression language for JSON transformation — not a custom DSL. Any JSONata expression that runs in the browser playground or in a standalone script will run here unchanged. The same body can be transformed differently for each destination: one mapping produces an OCI Logging entry, another produces an OCI Monitoring metric datapoint, a third passes the body through unchanged for archiving. This is what makes the router reusable across different sinks without touching router code.
 
 **Route modes** — `exclusive` means at most one exclusive route fires per envelope. `fanout` routes always fire alongside the first exclusive match. In production, a `workflow_run` event fires one exclusive route (Object Storage archive) plus two fanout routes (OCI Monitoring, OCI Logging) from the same envelope.
 

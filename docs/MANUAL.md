@@ -53,6 +53,11 @@ The editable source is [`model/model.drawio`](../model/model.drawio).
     - [5.4 Step 3 — Route a GitHub Webhook with a Real Mapping](#54-step-3--route-a-github-webhook-with-a-real-mapping)
     - [5.5 Step 4 — Fan-Out One Envelope to Two Destinations](#55-step-4--fan-out-one-envelope-to-two-destinations)
     - [5.6 Step 5 — Batch Route a Source Directory](#56-step-5--batch-route-a-source-directory)
+      - [The source envelopes](#the-source-envelopes)
+      - [Batch mappings](#batch-mappings)
+      - [Batch routing](#batch-routing)
+      - [Run the batch](#run-the-batch)
+      - [Inspect the output](#inspect-the-output)
     - [5.7 Step 6 — Deploy the Public Router Function](#57-step-6--deploy-the-public-router-function)
       - [Prerequisites](#prerequisites)
       - [Deploy](#deploy)
@@ -1512,10 +1517,35 @@ In production the two file destinations are replaced by OCI Object Storage (raw 
 
 ### 5.6 Step 5 — Batch Route a Source Directory
 
-Batch mode feeds a directory of envelope files through the same routing definition and writes results to an output tree. Inspect one source envelope to understand the shape:
+Batch mode reads every envelope file from a source directory, runs each through the routing definition, and writes results into an output tree. It is the offline equivalent of the live Function: the same routing logic, the same mappings, applied to a collection of captured payloads in one pass.
+
+#### The source envelopes
+
+Prepare a working directory and write three envelopes with different conclusions:
 
 ```bash
-cat tests/fixtures/github_webhook_samples/workflow_run.json | jq '{headers: {"X-GitHub-Event": "workflow_run"}, body: .}'
+TMP_DIR="$(mktemp -d /tmp/sli_router_batch.XXXXXX)"
+SRC_DIR="$TMP_DIR/source"
+OUT_DIR="$TMP_DIR/output"
+mkdir -p "$SRC_DIR"
+
+jq -n --argjson body "$(cat tests/fixtures/github_webhook_samples/workflow_run.json)" \
+  '{"headers": {"X-GitHub-Event": "workflow_run"}, "body": $body}' \
+  > "$SRC_DIR/001_workflow_success.json"
+
+jq -n --argjson body "$(cat tests/fixtures/github_webhook_samples/workflow_run.json)" \
+  '{"headers": {"X-GitHub-Event": "workflow_run"}, "body": ($body | .workflow_run.conclusion = "failure")}' \
+  > "$SRC_DIR/002_workflow_failure.json"
+
+jq -n --argjson body "$(cat tests/fixtures/github_webhook_samples/workflow_run.json)" \
+  '{"headers": {"X-GitHub-Event": "workflow_run"}, "body": ($body | .workflow_run.conclusion = "success")}' \
+  > "$SRC_DIR/003_workflow_success.json"
+```
+
+Inspect one source envelope to confirm the shape:
+
+```bash
+cat "$SRC_DIR/001_workflow_success.json"
 ```
 
 ```json
@@ -1523,28 +1553,62 @@ cat tests/fixtures/github_webhook_samples/workflow_run.json | jq '{headers: {"X-
   "headers": { "X-GitHub-Event": "workflow_run" },
   "body": {
     "action": "completed",
-    "workflow_run": { "id": 1001, "name": "CI", "conclusion": "success" },
+    "workflow_run": {
+      "id": 1001, "name": "CI", "conclusion": "success",
+      "head_branch": "main", "head_sha": "deadbeef",
+      "created_at": "2026-04-12T10:00:00Z", "updated_at": "2026-04-12T10:05:00Z"
+    },
     "repository": { "full_name": "acme/SLI_tracker" }
   }
 }
 ```
 
+#### Batch mappings
+
+The passthrough mapping archives the body unchanged:
+
 ```bash
-SRC_DIR="$(mktemp -d /tmp/sli_router_batch_src.XXXXXX)"
-OUT_DIR="$(mktemp -d /tmp/sli_router_batch_out.XXXXXX)"
-TMP_DIR="$(mktemp -d /tmp/sli_router_batch_cfg.XXXXXX)"
-cp tools/mappings/github_workflow_run_to_oci_log.jsonata "$TMP_DIR/"
 echo '$' > "$TMP_DIR/passthrough.jsonata"
+cat "$TMP_DIR/passthrough.jsonata"
+```
 
-# Write four envelopes with varying conclusions into the source directory.
-for conclusion in success success failure success; do
-  jq -n \
-    --arg c "$conclusion" \
-    --argjson body "$(cat tests/fixtures/github_webhook_samples/workflow_run.json)" \
-    '{"headers": {"X-GitHub-Event": "workflow_run"}, "body": ($body | .workflow_run.conclusion = $c)}' \
-    >> "$SRC_DIR/batch_$(date +%s%N).json"
-done
+```text
+$
+```
 
+The OCI log mapping transforms the body into a structured log entry:
+
+```bash
+cp tools/mappings/github_workflow_run_to_oci_log.jsonata "$TMP_DIR/"
+cat "$TMP_DIR/github_workflow_run_to_oci_log.jsonata"
+```
+
+```jsonata
+{
+  "logEntryBatches": [{
+    "defaultlogentrytime": $now(),
+    "entries": [{
+      "data": {
+        "outcome":    workflow_run.conclusion,
+        "workflow":   workflow_run.name,
+        "run_id":     $string(workflow_run.id),
+        "run_number": $string(workflow_run.run_number),
+        "branch":     workflow_run.head_branch,
+        "sha":        workflow_run.head_sha,
+        "repo":       repository.full_name,
+        "url":        workflow_run.html_url,
+        "event":      "github_workflow_run"
+      }
+    }]
+  }]
+}
+```
+
+#### Batch routing
+
+Same fan-out definition as in step 4 — exclusive archive plus fanout log shape:
+
+```bash
 cat > "$TMP_DIR/routing.json" <<'EOF'
 {
   "routes": [
@@ -1565,29 +1629,151 @@ cat > "$TMP_DIR/routing.json" <<'EOF'
   ]
 }
 EOF
+cat "$TMP_DIR/routing.json"
+```
 
+```json
+{
+  "routes": [
+    {
+      "id": "workflow_run_archive",
+      "mode": "exclusive",
+      "match": { "headers": { "X-GitHub-Event": "workflow_run" } },
+      "transform": { "mapping": "./passthrough.jsonata" },
+      "destination": { "type": "file_system", "name": "raw_archive" }
+    },
+    {
+      "id": "workflow_run_to_log_shape",
+      "mode": "fanout",
+      "match": { "headers": { "X-GitHub-Event": "workflow_run" } },
+      "transform": { "mapping": "./github_workflow_run_to_oci_log.jsonata" },
+      "destination": { "type": "file_system", "name": "log_shape" }
+    }
+  ]
+}
+```
+
+#### Run the batch
+
+```bash
 node tools/json_router_cli.js \
   --routing "$TMP_DIR/routing.json" \
   --source-dir "$SRC_DIR" \
   --output-dir "$OUT_DIR" \
   --pretty
+```
 
-echo "Files written to $OUT_DIR:"
+Batch summary — each input file appears once per matched route, so 3 envelopes × 2 routes = 6 deliveries:
+
+```json
+{
+  "processed": 6,
+  "results": [
+    {
+      "file": "001_workflow_success.json",
+      "route": "workflow_run_archive",
+      "destination": "file_system/raw_archive",
+      "output_path": "/tmp/sli_router_batch.XXXXXX/output/file_system/raw_archive/001_workflow_success.json"
+    },
+    {
+      "file": "001_workflow_success.json",
+      "route": "workflow_run_to_log_shape",
+      "destination": "file_system/log_shape",
+      "output_path": "/tmp/sli_router_batch.XXXXXX/output/file_system/log_shape/001_workflow_success.json"
+    },
+    {
+      "file": "002_workflow_failure.json",
+      "route": "workflow_run_archive",
+      "destination": "file_system/raw_archive",
+      "output_path": "/tmp/sli_router_batch.XXXXXX/output/file_system/raw_archive/002_workflow_failure.json"
+    },
+    {
+      "file": "002_workflow_failure.json",
+      "route": "workflow_run_to_log_shape",
+      "destination": "file_system/log_shape",
+      "output_path": "/tmp/sli_router_batch.XXXXXX/output/file_system/log_shape/002_workflow_failure.json"
+    },
+    {
+      "file": "003_workflow_success.json",
+      "route": "workflow_run_archive",
+      "destination": "file_system/raw_archive",
+      "output_path": "/tmp/sli_router_batch.XXXXXX/output/file_system/raw_archive/003_workflow_success.json"
+    },
+    {
+      "file": "003_workflow_success.json",
+      "route": "workflow_run_to_log_shape",
+      "destination": "file_system/log_shape",
+      "output_path": "/tmp/sli_router_batch.XXXXXX/output/file_system/log_shape/003_workflow_success.json"
+    }
+  ]
+}
+```
+
+#### Inspect the output
+
+List all delivered files:
+
+```bash
 find "$OUT_DIR" -type f | sort
 ```
 
-Expected `find` output — four inputs produce eight output files, four per destination:
-
 ```text
-/tmp/sli_router_batch_out.XXXXXX/raw_archive/001_workflow_run_archive.json
-/tmp/sli_router_batch_out.XXXXXX/raw_archive/002_workflow_run_archive.json
-/tmp/sli_router_batch_out.XXXXXX/raw_archive/003_workflow_run_archive.json
-/tmp/sli_router_batch_out.XXXXXX/raw_archive/004_workflow_run_archive.json
-/tmp/sli_router_batch_out.XXXXXX/log_shape/001_workflow_run_to_log_shape.json
-/tmp/sli_router_batch_out.XXXXXX/log_shape/002_workflow_run_to_log_shape.json
-/tmp/sli_router_batch_out.XXXXXX/log_shape/003_workflow_run_to_log_shape.json
-/tmp/sli_router_batch_out.XXXXXX/log_shape/004_workflow_run_to_log_shape.json
+/tmp/sli_router_batch.XXXXXX/output/file_system/log_shape/001_workflow_success.json
+/tmp/sli_router_batch.XXXXXX/output/file_system/log_shape/002_workflow_failure.json
+/tmp/sli_router_batch.XXXXXX/output/file_system/log_shape/003_workflow_success.json
+/tmp/sli_router_batch.XXXXXX/output/file_system/raw_archive/001_workflow_success.json
+/tmp/sli_router_batch.XXXXXX/output/file_system/raw_archive/002_workflow_failure.json
+/tmp/sli_router_batch.XXXXXX/output/file_system/raw_archive/003_workflow_success.json
 ```
+
+Raw archive — body delivered unchanged:
+
+```bash
+cat "$OUT_DIR/file_system/raw_archive/001_workflow_success.json"
+```
+
+```json
+{
+  "action": "completed",
+  "workflow_run": {
+    "id": 1001, "name": "CI", "conclusion": "success",
+    "head_branch": "main", "head_sha": "deadbeef",
+    "created_at": "2026-04-12T10:00:00Z", "updated_at": "2026-04-12T10:05:00Z"
+  },
+  "repository": { "id": 42, "name": "SLI_tracker", "full_name": "acme/SLI_tracker" }
+}
+```
+
+Log shape — body transformed into OCI Logging entry format:
+
+```bash
+cat "$OUT_DIR/file_system/log_shape/001_workflow_success.json"
+```
+
+```json
+{
+  "logEntryBatches": [
+    {
+      "defaultlogentrytime": "2026-04-12T10:05:00.000Z",
+      "entries": [
+        {
+          "data": {
+            "outcome":  "success",
+            "workflow": "CI",
+            "run_id":   "1001",
+            "branch":   "main",
+            "sha":      "deadbeef",
+            "repo":     "acme/SLI_tracker",
+            "event":    "github_workflow_run"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Batch mode is useful for replaying captured webhook history, testing routing changes against real data, or back-filling metrics after a routing definition is updated. In production the same approach applies: captured OCI Object Storage payloads can be re-routed through an updated definition without re-invoking the Function.
 
 ### 5.7 Step 6 — Deploy the Public Router Function
 

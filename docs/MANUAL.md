@@ -918,7 +918,15 @@ The simplest router case: one route, one `file_system` destination, no OCI.
 
 The mapping for this step is the JSONata identity expression `$`, which returns the input document unchanged. It is the simplest possible mapping — useful when the goal is to archive or forward the body without any transformation.
 
-```jsonata
+Create the file and inspect it:
+
+```bash
+TMP_DIR="$(mktemp -d /tmp/sli_router_single.XXXXXX)"
+echo '$' > "$TMP_DIR/mapping_file.jsonata"
+cat "$TMP_DIR/mapping_file.jsonata"
+```
+
+```text
 $
 ```
 
@@ -952,12 +960,9 @@ The envelope carries `audit.id` in `body` — that is the field the route match 
 
 #### Route from a file
 
-Prepare the working directory, write the envelope and routing definition, run the router, and inspect the delivered file:
+Write the envelope and routing definition, run the router, and inspect the delivered file:
 
 ```bash
-TMP_DIR="$(mktemp -d /tmp/sli_router_single.XXXXXX)"
-echo '$' > "$TMP_DIR/mapping_file.jsonata"
-
 cat > "$TMP_DIR/envelope.json" <<'EOF'
 {
   "body": {

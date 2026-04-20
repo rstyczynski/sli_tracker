@@ -809,6 +809,33 @@ cat tests/fixtures/github_webhook_samples/workflow_run.json | jq
 }
 ```
 
+Inspect the mapping:
+
+```bash
+cat tools/mappings/github_workflow_run_to_oci_log.jsonata
+```
+
+```jsonata
+{
+  "logEntryBatches": [{
+    "defaultlogentrytime": $now(),
+    "entries": [{
+      "data": {
+        "outcome":    workflow_run.conclusion,
+        "workflow":   workflow_run.name,
+        "run_id":     $string(workflow_run.id),
+        "run_number": $string(workflow_run.run_number),
+        "branch":     workflow_run.head_branch,
+        "sha":        workflow_run.head_sha,
+        "repo":       repository.full_name,
+        "url":        workflow_run.html_url,
+        "event":      "github_workflow_run"
+      }
+    }]
+  }]
+}
+```
+
 Apply the mapping:
 
 ```bash
@@ -1014,6 +1041,33 @@ cat tests/fixtures/github_webhook_samples/workflow_run.json | jq
   "repository": {
     "full_name": "acme/SLI_tracker"
   }
+}
+```
+
+Inspect the mapping:
+
+```bash
+cat tools/mappings/github_workflow_run_to_oci_log.jsonata
+```
+
+```jsonata
+{
+  "logEntryBatches": [{
+    "defaultlogentrytime": $now(),
+    "entries": [{
+      "data": {
+        "outcome":    workflow_run.conclusion,
+        "workflow":   workflow_run.name,
+        "run_id":     $string(workflow_run.id),
+        "run_number": $string(workflow_run.run_number),
+        "branch":     workflow_run.head_branch,
+        "sha":        workflow_run.head_sha,
+        "repo":       repository.full_name,
+        "url":        workflow_run.html_url,
+        "event":      "github_workflow_run"
+      }
+    }]
+  }]
 }
 ```
 

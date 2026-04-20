@@ -1878,7 +1878,7 @@ curl -sS -w "\nHTTP %{http_code}\n" \
   "$ROUTER_URL"
 ```
 
-Expected response: `{"status":"routed","deliveries":[...]}` with HTTP 200.
+Expected response: `{"status":"routed","deliveries":[...]}` with HTTP 200. On a cold system the first request may take up to 30 seconds while the Fn instance warms up — subsequent calls are fast.
 
 #### POST a GitHub ping event
 

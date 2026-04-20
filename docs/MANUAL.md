@@ -731,15 +731,19 @@ This chapter walks through the router from the simplest possible local case to t
 
 Route matching sees the whole envelope, headers and body alike. JSONata mappings run on `body` directly, so a mapping reads `workflow_run.conclusion`, not `body.workflow_run.conclusion`.
 
+**Transformation** — the step that converts the incoming `body` into a destination-specific shape using a JSONata mapping file. The same body can be transformed differently for each destination: one mapping produces an OCI Logging entry, another produces an OCI Monitoring metric datapoint, a third passes the body through unchanged for archiving. Transformation is what makes the router reusable across different sinks without changing router code.
+
 **Route** — a match condition, a mapping, and a destination label. The label is a logical name resolved by the `adapters` section. The route expresses intent; the adapter expresses deployment behavior.
 
 **Route modes** — `exclusive` means at most one exclusive route fires per envelope. `fanout` routes always fire alongside the first exclusive match. In production, a `workflow_run` event fires one exclusive route (Object Storage archive) plus two fanout routes (OCI Monitoring, OCI Logging) from the same envelope.
 
 **Adapter** — the concrete implementation behind a destination label. Swapping local file adapters for OCI adapters requires only a change to the `adapters` block, not to route definitions.
 
-Two diagrams show the router from structural and runtime angles.
+The diagram below shows the structural view of the router: the major components and how they relate to each other. The envelope enters on the left, passes through the router which consults the routing definition, dispatches to the destination dispatcher, and arrives at one or more adapters.
 
 <p align="center"><img src="../model/router.jpg" alt="Router structural view" width="50%"></p>
+
+The next diagram shows the runtime behavioral view: how a single envelope moves through the system step by step. The router first evaluates all route matches, then for each matched route it runs the assigned JSONata mapping against `body`, and finally hands the transformed output to the adapter for delivery. Fanout routes repeat this transform-and-deliver step for every matching route before the call returns.
 
 <p align="center"><img src="../model/router_runtime.jpg" alt="Router runtime behavioral view" width="50%"></p>
 

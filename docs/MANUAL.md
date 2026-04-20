@@ -1783,7 +1783,7 @@ The OCI Function is the live webhook listener. It sits behind an API Gateway, ac
 #### Prerequisites
 
 - OCI authentication configured — `DEFAULT` profile or `SLI_TEST` profile (see §5.13)
-- `fn` CLI installed: `brew install fn` on macOS; on Linux follow the [Fn Project install guide](https://fnproject.io/tutorials/install/)
+- `fn` CLI installed: `brew install fn` on macOS; on Linux follow the [Fn Project install guide](https://fnproject.io/tutorials/install/); not supported on Windows
 - Docker daemon running — the `fn` CLI builds the Function image with Docker
 - `oci_scaffold` submodule initialized: `git submodule update --init`
 

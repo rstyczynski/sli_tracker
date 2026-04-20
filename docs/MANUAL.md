@@ -958,22 +958,13 @@ The envelope carries `audit.id` in `body` — that is the field the route match 
 }
 ```
 
-#### Route from a file
+#### Route from stdin
 
-Write the envelope and routing definition, run the router, and inspect the delivered file:
+Stdin is the simplest form: the envelope is piped directly into the router without writing it to a file first. Only a routing definition is needed on disk. This is the quickest way to try any envelope against a routing configuration from the command line.
+
+Create and inspect the routing definition:
 
 ```bash
-cat > "$TMP_DIR/envelope.json" <<'EOF'
-{
-  "body": {
-    "audit": {
-      "id": "A-1",
-      "message": "copied to file adapter"
-    }
-  }
-}
-EOF
-
 cat > "$TMP_DIR/routing.json" <<'EOF'
 {
   "routes": [
@@ -986,15 +977,37 @@ cat > "$TMP_DIR/routing.json" <<'EOF'
   ]
 }
 EOF
+cat "$TMP_DIR/routing.json"
 ```
 
-Run the router:
+```json
+{
+  "routes": [
+    {
+      "id": "audit_to_file",
+      "match": { "required_fields": ["audit.id"] },
+      "transform": { "mapping": "./mapping_file.jsonata" },
+      "destination": { "type": "file_system", "name": "audit_copy" }
+    }
+  ]
+}
+```
+
+Pipe the envelope directly and run the router:
 
 ```bash
-node tools/json_router_cli.js \
-  --routing "$TMP_DIR/routing.json" \
-  --input "$TMP_DIR/envelope.json" \
-  --pretty
+cat <<'EOF' | node tools/json_router_cli.js \
+      --routing "$TMP_DIR/routing.json" \
+      --pretty
+{
+  "body": {
+    "audit": {
+      "id": "A-1",
+      "message": "via stdin"
+    }
+  }
+}
+EOF
 ```
 
 After routing, the router prints a JSON execution report to stdout. The report describes every action taken: which route matched, which mode was used, which destination received the delivery, and what the transformed output looked like. This is the primary way to understand what the router did with an envelope — both for learning and for debugging.
@@ -1010,7 +1023,7 @@ After routing, the router prints a JSON execution report to stdout. The report d
         "destination": { "type": "file_system", "name": "audit_copy" }
       },
       "output": {
-        "audit": { "id": "A-1", "message": "copied to file adapter" }
+        "audit": { "id": "A-1", "message": "via stdin" }
       }
     }
   ]
@@ -1027,39 +1040,50 @@ cat "$TMP_DIR/file_system/audit_copy/001_audit_to_file.json" | jq
 {
   "audit": {
     "id": "A-1",
-    "message": "copied to file adapter"
+    "message": "via stdin"
   }
 }
 ```
 
-#### Route from stdin
+#### Route from a file
 
-Input:
+When the envelope comes from a file — for example a captured webhook payload — use `--input` instead of stdin. The routing definition and all other behavior stay identical.
 
-```json
-{
-  "body": {
-    "audit": { "id": "A-2", "message": "via stdin" }
-  }
-}
-```
+Create and inspect the envelope file:
 
 ```bash
-cat <<'EOF' | node tools/json_router_cli.js \
-      --routing "$TMP_DIR/routing.json" \
-      --pretty
+cat > "$TMP_DIR/envelope.json" <<'EOF'
 {
   "body": {
     "audit": {
       "id": "A-2",
-      "message": "via stdin"
+      "message": "from file"
     }
   }
 }
 EOF
+cat "$TMP_DIR/envelope.json"
 ```
 
-Router result:
+```json
+{
+  "body": {
+    "audit": {
+      "id": "A-2",
+      "message": "from file"
+    }
+  }
+}
+```
+
+Run the router with `--input`:
+
+```bash
+node tools/json_router_cli.js \
+  --routing "$TMP_DIR/routing.json" \
+  --input "$TMP_DIR/envelope.json" \
+  --pretty
+```
 
 ```json
 {
@@ -1072,10 +1096,25 @@ Router result:
         "destination": { "type": "file_system", "name": "audit_copy" }
       },
       "output": {
-        "audit": { "id": "A-2", "message": "via stdin" }
+        "audit": { "id": "A-2", "message": "from file" }
       }
     }
   ]
+}
+```
+
+Inspect the delivered file:
+
+```bash
+cat "$TMP_DIR/file_system/audit_copy/002_audit_to_file.json" | jq
+```
+
+```json
+{
+  "audit": {
+    "id": "A-2",
+    "message": "from file"
+  }
 }
 ```
 

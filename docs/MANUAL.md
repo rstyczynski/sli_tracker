@@ -912,19 +912,39 @@ This is the exact shape the OCI Logging adapter expects when the same mapping ru
 
 ### 5.3 Step 2 — Route One Envelope to a File
 
-The simplest router case: one route, one `file_system` destination, no OCI. The mapping `$` passes the body through unchanged.
+The simplest router case: one route, one `file_system` destination, no OCI.
 
-#### Route from a file
+#### The route
 
-Input:
+The route below uses `required_fields` matching — the envelope is accepted only if the field `audit.id` exists in `body`. If the field is absent the envelope is unmatched and goes to dead-letter. The mapping `$` is the JSONata identity expression: it passes the body through unchanged. The destination label `audit_copy` is resolved by the `adapters` section; without an explicit entry the router writes to a `file_system/audit_copy/` subdirectory of the working directory.
+
+```json
+{
+  "id": "audit_to_file",
+  "match": { "required_fields": ["audit.id"] },
+  "transform": { "mapping": "./mapping_file.jsonata" },
+  "destination": { "type": "file_system", "name": "audit_copy" }
+}
+```
+
+#### The envelope
+
+The envelope carries `audit.id` in `body` — that is the field the route match will look for. Notice that the match condition checks `body` fields directly (not `body.audit.id` with the `body.` prefix), because route matching operates on the body root.
 
 ```json
 {
   "body": {
-    "audit": { "id": "A-1", "message": "copied to file adapter" }
+    "audit": {
+      "id": "A-1",
+      "message": "copied to file adapter"
+    }
   }
 }
 ```
+
+#### Route from a file
+
+Prepare the working directory, write the envelope and routing definition, run the router, and inspect the delivered file:
 
 ```bash
 TMP_DIR="$(mktemp -d /tmp/sli_router_single.XXXXXX)"
@@ -953,16 +973,18 @@ cat > "$TMP_DIR/routing.json" <<'EOF'
   ]
 }
 EOF
+```
 
+Run the router:
+
+```bash
 node tools/json_router_cli.js \
   --routing "$TMP_DIR/routing.json" \
   --input "$TMP_DIR/envelope.json" \
   --pretty
-
-cat "$TMP_DIR/file_system/audit_copy/001_audit_to_file.json" | jq
 ```
 
-Router result (`--pretty`):
+Router result:
 
 ```json
 {
@@ -982,7 +1004,11 @@ Router result (`--pretty`):
 }
 ```
 
-Delivered file (`file_system/audit_copy/001_audit_to_file.json`):
+Inspect the delivered file:
+
+```bash
+cat "$TMP_DIR/file_system/audit_copy/001_audit_to_file.json" | jq
+```
 
 ```json
 {

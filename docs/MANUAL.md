@@ -997,7 +997,7 @@ node tools/json_router_cli.js \
   --pretty
 ```
 
-Router result:
+After routing, the router prints a JSON execution report to stdout. The report describes every action taken: which route matched, which mode was used, which destination received the delivery, and what the transformed output looked like. This is the primary way to understand what the router did with an envelope — both for learning and for debugging.
 
 ```json
 {

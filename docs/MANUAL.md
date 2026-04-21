@@ -2192,11 +2192,23 @@ A `workflow_run` envelope fires three routes simultaneously: one exclusive route
 
 List and inspect ingest objects. Both values come from the state file written to the repo root during deployment in step 7.
 
+Before testing, clear any objects left from previous runs:
+
 ```bash
 export OCI_CLI_PROFILE=DEFAULT
 NS="$(jq -r '.bucket.namespace' "state-${NAME_PREFIX}.json")"
 BUCKET="$(jq -r '.bucket.name' "state-${NAME_PREFIX}.json")"
 
+SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
+  bash tools/clear_ingest_prefix.sh --dry-run   # preview deletions
+
+SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
+  bash tools/clear_ingest_prefix.sh --yes        # execute
+```
+
+Then send your test events (§5.9) and list the results:
+
+```bash
 # List newest objects per event prefix.
 SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
   bash tools/list_github_ingest_prefixes.sh --limit 3

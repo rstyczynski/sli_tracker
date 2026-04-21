@@ -76,19 +76,19 @@ The editable source is [`model/model.drawio`](../model/model.drawio).
       - [Prerequisites](#prerequisites)
       - [Configure](#configure)
       - [Deploy](#deploy)
+    - [Remove any data from previous runs](#remove-any-data-from-previous-runs)
       - [Read the endpoint](#read-the-endpoint)
     - [5.9 Send a Webhook to the Deployed Function](#59-send-a-webhook-to-the-deployed-function)
       - [Generic POST (no GitHub header)](#generic-post-no-github-header)
       - [POST a GitHub ping event](#post-a-github-ping-event)
       - [POST a completed workflow\_run event](#post-a-completed-workflow_run-event)
-    - [5.10 Verify Ingest in Object Storage](#510-verify-ingest-in-object-storage)
-    - [5.11 Verify Fan-Out to OCI Monitoring and Logging](#511-verify-fan-out-to-oci-monitoring-and-logging)
-    - [5.12 OCI Authentication Profiles](#512-oci-authentication-profiles)
+    - [5.10 Verify Fan-Out to OCI Monitoring and Logging](#510-verify-fan-out-to-oci-monitoring-and-logging)
+    - [5.11 OCI Authentication Profiles](#511-oci-authentication-profiles)
       - [The Profile Setup Tool](#the-profile-setup-tool)
         - [Mode 1 — Session (browser-authenticated token)](#mode-1--session-browser-authenticated-token)
         - [Mode 2 — Config profile (API-key based)](#mode-2--config-profile-api-key-based)
       - [Profile Restoration on CI Runners](#profile-restoration-on-ci-runners)
-    - [5.13 Teardown](#513-teardown)
+    - [5.12 Teardown](#512-teardown)
   - [6. SLI Calculation](#6-sli-calculation)
   - [7. Additional Tools](#7-additional-tools)
     - [7.1 Synthetic Event Generator](#71-synthetic-event-generator)
@@ -2043,7 +2043,7 @@ The OCI Function is the live webhook listener. It sits behind an API Gateway, ac
 
 #### Prerequisites
 
-- OCI authentication configured — `DEFAULT` profile or `SLI_TEST` profile (see §5.12)
+- OCI authentication configured — `DEFAULT` profile or `SLI_TEST` profile (see §5.11)
 - `fn` CLI installed: `brew install fn` on macOS; on Linux follow the [Fn Project install guide](https://fnproject.io/tutorials/install/); not supported on Windows
 - Docker daemon running — the `fn` CLI builds the Function image with Docker
 - `oci_scaffold` submodule initialized: `git submodule update --init`
@@ -2080,6 +2080,20 @@ export CYCLE_APIGW_TEST_EXPECT=router
 bash tools/cycle_apigw_router_passthrough.sh
 ```
 
+
+The script is idempotent. On a fresh account it creates the compartment, VCN, Fn app, Function, API Gateway, and ingest bucket in order. On subsequent runs it reuses all existing resources and redeploys only the Function code. The final line shows a resource summary:
+
+```text
+  [INFO] compartment path: /SLI_tracker (ocid: ocid1.compartment…)
+  [INFO] fn CLI context: sli_tracker
+  …
+Summary: 2 CREATED, 14 EXISTING, 2 TESTED, 0 FAILED
+```
+
+`CREATED` counts newly provisioned resources; `EXISTING` counts resources that were already present and reused. `FAILED=0` means the deployment succeeded.
+
+### Remove any data from previous runs
+
 After the stack is up, clear the ingest bucket from any previous runs:
 
 ```bash
@@ -2092,17 +2106,6 @@ SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
 SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
   bash tools/clear_ingest_prefix.sh --yes        # execute
 ```
-
-The script is idempotent. On a fresh account it creates the compartment, VCN, Fn app, Function, API Gateway, and ingest bucket in order. On subsequent runs it reuses all existing resources and redeploys only the Function code. The final line shows a resource summary:
-
-```text
-  [INFO] compartment path: /SLI_tracker (ocid: ocid1.compartment…)
-  [INFO] fn CLI context: sli_tracker
-  …
-Summary: 2 CREATED, 14 EXISTING, 2 TESTED, 0 FAILED
-```
-
-`CREATED` counts newly provisioned resources; `EXISTING` counts resources that were already present and reused. `FAILED=0` means the deployment succeeded.
 
 #### Read the endpoint
 
@@ -2164,6 +2167,13 @@ curl -sS -w "\nHTTP %{http_code}\n" \
 
 Expected response: `{"status":"routed","deliveries":[...]}` with HTTP 200. On a cold system the first request may take up to 30 seconds while the Fn instance warms up — subsequent calls are fast.
 
+Verify the object landed in the bucket:
+
+```bash
+SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
+  bash tools/list_github_ingest_prefixes.sh --limit 1
+```
+
 #### POST a GitHub ping event
 
 ```bash
@@ -2176,6 +2186,13 @@ curl -sS -w "\nHTTP %{http_code}\n" \
     --argjson b "$(cat tests/fixtures/github_webhook_samples/ping.json)" \
     '{body: $b, headers: {"X-GitHub-Event": "ping"}, source_meta: {file_name: $fn}}')" \
   "$ROUTER_URL"
+```
+
+Verify the object landed in the bucket:
+
+```bash
+SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
+  bash tools/list_github_ingest_prefixes.sh --limit 1
 ```
 
 #### POST a completed workflow_run event
@@ -2199,35 +2216,22 @@ curl -sS -w "\nHTTP %{http_code}\n" \
   "$ROUTER_URL"
 ```
 
-A `workflow_run` envelope fires three routes simultaneously: one exclusive route to Object Storage under `ingest/github/workflow_run/`, one fanout route that posts a metric to OCI Monitoring (`github_actions.workflow_run_result`), and one fanout route that writes a log entry to OCI Logging.
-
-### 5.10 Verify Ingest in Object Storage
-
-List and inspect ingest objects. Both values come from the state file written to the repo root during deployment in step 7.
+Verify the object landed in the bucket and inspect its body:
 
 ```bash
-export OCI_CLI_PROFILE=DEFAULT
-NS="$(jq -r '.bucket.namespace' "state-${NAME_PREFIX}.json")"
-BUCKET="$(jq -r '.bucket.name' "state-${NAME_PREFIX}.json")"
-
-# List newest objects per event prefix.
 SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
-  bash tools/list_github_ingest_prefixes.sh --limit 3
-```
+  bash tools/list_github_ingest_prefixes.sh --limit 1
 
-To fetch the body of one object:
-
-```bash
-# Replace with an object key from the listing above.
 OBJECT_KEY="ingest/github/workflow_run/${WF_OBJ}"
-
 SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
   bash tools/get_ingest_object.sh "$OBJECT_KEY" | jq
 ```
 
-The body should be the original `workflow_run` payload. It is written as-is by the `passthrough.jsonata` mapping (`$`), which is correct for the archive route. The transformed shapes (log entry, metric payload) go to Logging and Monitoring via the fanout routes, not to Object Storage.
+The body should be the original `workflow_run` payload written as-is by `passthrough.jsonata`.
 
-### 5.11 Verify Fan-Out to OCI Monitoring and Logging
+A `workflow_run` envelope fires three routes simultaneously: one exclusive route to Object Storage under `ingest/github/workflow_run/`, one fanout route that posts a metric to OCI Monitoring (`github_actions.workflow_run_result`), and one fanout route that writes a log entry to OCI Logging.
+
+### 5.10 Verify Fan-Out to OCI Monitoring and Logging
 
 `validate_router_ingest_and_metrics.sh` reads the state file, lists recent ingest objects, and queries OCI Monitoring for `github_actions.workflow_run_result` datapoints over the last N minutes.
 
@@ -2254,7 +2258,7 @@ echo "Open OCI Metric Explorer: https://cloud.oracle.com/monitoring/explore?regi
 
 Select compartment `SLI_tracker`, namespace `github_actions`, metric name `workflow_run_result`, and press `Update chart`.
 
-### 5.12 OCI Authentication Profiles
+### 5.11 OCI Authentication Profiles
 
 This project uses two named OCI profiles:
 
@@ -2330,7 +2334,7 @@ Full tool reference:
 - [`.github/actions/oci-profile-setup/setup_oci_github_access.sh`](../.github/actions/oci-profile-setup/setup_oci_github_access.sh)
 - [`.github/actions/oci-profile-setup/README.md`](../.github/actions/oci-profile-setup/README.md)
 
-### 5.13 Teardown
+### 5.12 Teardown
 
 After finishing the hands-on steps you may want to remove the OCI resources provisioned in step 7. Two scripts handle different scopes.
 
@@ -2445,7 +2449,7 @@ bash tools/list_monitoring_metrics.sh --subtree
 bash tools/list_monitoring_metrics.sh --any-namespace
 ```
 
-For time-series values over a window, use `oci monitoring metric-data summarize-metrics-data` directly (see §3.5) or run `validate_router_ingest_and_metrics.sh` (see §5.11).
+For time-series values over a window, use `oci monitoring metric-data summarize-metrics-data` directly (see §3.5) or run `validate_router_ingest_and_metrics.sh` (see §5.10).
 
 ## 8. Test Suites
 

@@ -1851,7 +1851,6 @@ cat "$TMP_DIR/routing.json"
 Upload the routing definition to the bucket:
 
 ```bash
-export OCI_CLI_PROFILE=SLI_TEST
 NS="$(oci os ns get --query 'data' --raw-output)"
 
 oci os object put \

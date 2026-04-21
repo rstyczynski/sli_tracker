@@ -1804,6 +1804,8 @@ This step reuses the `SLI_TEST` OCI profile. Make sure it is valid before procee
 Start with a working directory and reuse the three-envelope source from step 5:
 
 ```bash
+export NAME_PREFIX="sli-router-passthrough-dev"   # must match the deployed stack
+
 TMP_DIR="$(mktemp -d /tmp/sli_router_oci_source.XXXXXX)"
 SRC_DIR="$TMP_DIR/source"
 OUT_DIR="$TMP_DIR/output"

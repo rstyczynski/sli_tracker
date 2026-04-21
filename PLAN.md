@@ -404,8 +404,8 @@ Backlog Items:
 
 ## Sprint 30 - Unified source-adapter interface (SLI-60)
 
-Status: Open
-Mode: Manual
+Status: Progress
+Mode: managed
 Test: unit
 Regression: unit
 Regression scope: router

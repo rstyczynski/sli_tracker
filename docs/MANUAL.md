@@ -82,16 +82,16 @@ The editable source is [`model/model.drawio`](../model/model.drawio).
       - [Generic POST (no GitHub header)](#generic-post-no-github-header)
       - [POST a GitHub ping event](#post-a-github-ping-event)
       - [POST a completed workflow\_run event](#post-a-completed-workflow_run-event)
-    - [5.10 OCI Authentication Profiles](#510-oci-authentication-profiles)
+    - [5.10 Teardown](#510-teardown)
+  - [6. SLI Calculation](#6-sli-calculation)
+  - [7. Additional Tools](#7-additional-tools)
+    - [7.1 OCI Authentication Profiles](#71-oci-authentication-profiles)
       - [The Profile Setup Tool](#the-profile-setup-tool)
         - [Mode 1 — Session (browser-authenticated token)](#mode-1--session-browser-authenticated-token)
         - [Mode 2 — Config profile (API-key based)](#mode-2--config-profile-api-key-based)
       - [Profile Restoration on CI Runners](#profile-restoration-on-ci-runners)
-    - [5.11 Teardown](#511-teardown)
-  - [6. SLI Calculation](#6-sli-calculation)
-  - [7. Additional Tools](#7-additional-tools)
-    - [7.1 Synthetic Event Generator](#71-synthetic-event-generator)
-    - [7.2 Monitoring Metric Catalog](#72-monitoring-metric-catalog)
+    - [7.2 Synthetic Event Generator](#72-synthetic-event-generator)
+    - [7.3 Monitoring Metric Catalog](#73-monitoring-metric-catalog)
   - [8. Test Suites](#8-test-suites)
 
 ## 1. Project Overview
@@ -2042,7 +2042,7 @@ The OCI Function is the live webhook listener. It sits behind an API Gateway, ac
 
 #### Prerequisites
 
-- OCI authentication configured — `DEFAULT` profile or `SLI_TEST` profile (see §5.10)
+- OCI authentication configured — `DEFAULT` profile or `SLI_TEST` profile (see §7.1)
 - `fn` CLI installed: `brew install fn` on macOS; on Linux follow the [Fn Project install guide](https://fnproject.io/tutorials/install/); not supported on Windows
 - Docker daemon running — the `fn` CLI builds the Function image with Docker
 - `oci_scaffold` submodule initialized: `git submodule update --init`
@@ -2285,7 +2285,60 @@ Expected content:
 
 A `workflow_run` envelope fires three routes simultaneously: one exclusive route to Object Storage under `ingest/github/workflow_run/`, one fanout route that posts a metric to OCI Monitoring (`github_actions.workflow_run_result`), and one fanout route that writes a log entry to OCI Logging.
 
-### 5.10 OCI Authentication Profiles
+### 5.10 Teardown
+
+After finishing the hands-on steps you may want to remove the OCI resources provisioned in step 7. Two scripts handle different scopes.
+
+**Full stack teardown** — removes the OCI Function, API Gateway, and all associated resources provisioned by `cycle_apigw_router_passthrough.sh`:
+
+```bash
+NAME_PREFIX="sli-router-passthrough-dev" \
+  bash tools/teardown_router_apigw_stack.sh
+```
+
+The script reads `state-${NAME_PREFIX}.json` to locate the resources, then calls `oci_scaffold/do/teardown.sh`. The OCI Object Storage bucket and its contents are not deleted by default — only the compute and networking resources.
+
+**Ingest prefix cleanup** — removes objects from the `ingest/` tree in the bucket without touching the router configuration under `config/`:
+
+```bash
+SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
+  bash tools/clear_ingest_prefix.sh --dry-run   # preview what would be deleted
+
+SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
+  bash tools/clear_ingest_prefix.sh --yes        # execute
+```
+
+Pass `--dir github/workflow_run` to limit deletion to one event prefix, or `--recursive` to include nested paths. Use this between test runs to avoid mixing ingest objects across sessions.
+
+## 6. SLI Calculation
+
+`sli_compute_sli_metrics.js` queries OCI Monitoring for `workflow_run_result` datapoints over a rolling window, then computes `success / total` and publishes the ratio back as a derived SLI metric.
+
+The simplest way to trigger it is via the scheduled GitHub workflow. The workflow authenticates with `SLI_TEST`, queries the metric namespace, and posts the result.
+
+```bash
+repo="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+
+gh workflow run ".github/workflows/sli_compute_sli_metrics.yml" -R "$repo"
+
+RUN_ID="$(gh run list -R "$repo" \
+  --workflow "sli_compute_sli_metrics.yml" \
+  --limit 1 --json databaseId -q '.[0].databaseId')"
+
+gh run watch "$RUN_ID" -R "$repo"
+echo "https://github.com/${repo}/actions/runs/${RUN_ID}"
+```
+
+After the run completes, the derived SLI metric is visible in OCI Monitoring under namespace `sli_tracker`, metric name `sli`.
+
+Core files:
+
+- [`tools/sli_compute_sli_metrics.js`](../tools/sli_compute_sli_metrics.js)
+- [`.github/workflows/sli_compute_sli_metrics.yml`](../.github/workflows/sli_compute_sli_metrics.yml)
+
+## 7. Additional Tools
+
+### 7.1 OCI Authentication Profiles
 
 This project uses two named OCI profiles:
 
@@ -2361,60 +2414,7 @@ Full tool reference:
 - [`.github/actions/oci-profile-setup/setup_oci_github_access.sh`](../.github/actions/oci-profile-setup/setup_oci_github_access.sh)
 - [`.github/actions/oci-profile-setup/README.md`](../.github/actions/oci-profile-setup/README.md)
 
-### 5.11 Teardown
-
-After finishing the hands-on steps you may want to remove the OCI resources provisioned in step 7. Two scripts handle different scopes.
-
-**Full stack teardown** — removes the OCI Function, API Gateway, and all associated resources provisioned by `cycle_apigw_router_passthrough.sh`:
-
-```bash
-NAME_PREFIX="sli-router-passthrough-dev" \
-  bash tools/teardown_router_apigw_stack.sh
-```
-
-The script reads `state-${NAME_PREFIX}.json` to locate the resources, then calls `oci_scaffold/do/teardown.sh`. The OCI Object Storage bucket and its contents are not deleted by default — only the compute and networking resources.
-
-**Ingest prefix cleanup** — removes objects from the `ingest/` tree in the bucket without touching the router configuration under `config/`:
-
-```bash
-SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
-  bash tools/clear_ingest_prefix.sh --dry-run   # preview what would be deleted
-
-SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
-  bash tools/clear_ingest_prefix.sh --yes        # execute
-```
-
-Pass `--dir github/workflow_run` to limit deletion to one event prefix, or `--recursive` to include nested paths. Use this between test runs to avoid mixing ingest objects across sessions.
-
-## 6. SLI Calculation
-
-`sli_compute_sli_metrics.js` queries OCI Monitoring for `workflow_run_result` datapoints over a rolling window, then computes `success / total` and publishes the ratio back as a derived SLI metric.
-
-The simplest way to trigger it is via the scheduled GitHub workflow. The workflow authenticates with `SLI_TEST`, queries the metric namespace, and posts the result.
-
-```bash
-repo="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
-
-gh workflow run ".github/workflows/sli_compute_sli_metrics.yml" -R "$repo"
-
-RUN_ID="$(gh run list -R "$repo" \
-  --workflow "sli_compute_sli_metrics.yml" \
-  --limit 1 --json databaseId -q '.[0].databaseId')"
-
-gh run watch "$RUN_ID" -R "$repo"
-echo "https://github.com/${repo}/actions/runs/${RUN_ID}"
-```
-
-After the run completes, the derived SLI metric is visible in OCI Monitoring under namespace `sli_tracker`, metric name `sli`.
-
-Core files:
-
-- [`tools/sli_compute_sli_metrics.js`](../tools/sli_compute_sli_metrics.js)
-- [`.github/workflows/sli_compute_sli_metrics.yml`](../.github/workflows/sli_compute_sli_metrics.yml)
-
-## 7. Additional Tools
-
-### 7.1 Synthetic Event Generator
+### 7.2 Synthetic Event Generator
 
 `sli_ratio_simulator.sh` injects a controlled stream of success and failure `workflow_run` events into OCI Monitoring. It is used to validate dashboards, alarms, and SLI calculations under known conditions — for example, to confirm that a 75% success ratio produces the expected SLI value.
 
@@ -2448,7 +2448,7 @@ Core files:
 - [`tools/sli_ratio_simulator.sh`](../tools/sli_ratio_simulator.sh)
 - [`.github/workflows/sli_ratio_simulator.yml`](../.github/workflows/sli_ratio_simulator.yml)
 
-### 7.2 Monitoring Metric Catalog
+### 7.3 Monitoring Metric Catalog
 
 `list_monitoring_metrics.sh` queries the OCI Monitoring API to list metric **definitions** — namespace, metric name, and dimension key/value sets — for all custom namespaces this project writes to. It shows what the Monitoring service has learned about your metric shapes; it does not return time-series values or datapoints.
 

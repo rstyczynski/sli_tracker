@@ -41,6 +41,7 @@ The editable source is [`model/model.drawio`](../model/model.drawio).
     - [4.3 curl](#43-curl)
     - [4.4 js](#44-js)
     - [4.5 OCI side data view](#45-oci-side-data-view)
+    - [4.6 Model Workflow Library](#46-model-workflow-library)
   - [5. Router and Ingest Hands-On](#5-router-and-ingest-hands-on)
     - [5.1 Key Concepts](#51-key-concepts)
     - [5.2 Step 1 — Transform a Document with JSONata](#52-step-1--transform-a-document-with-jsonata)
@@ -81,14 +82,17 @@ The editable source is [`model/model.drawio`](../model/model.drawio).
       - [POST a completed workflow\_run event](#post-a-completed-workflow_run-event)
     - [5.10 Step 9 — Verify Ingest in Object Storage](#510-step-9--verify-ingest-in-object-storage)
     - [5.11 Step 10 — Verify Fan-Out to OCI Monitoring and Logging](#511-step-10--verify-fan-out-to-oci-monitoring-and-logging)
-  - [6. SLI Calculation](#6-sli-calculation)
-  - [7. Additional Tools](#7-additional-tools)
-    - [7.1 Synthetic Event Generator](#71-synthetic-event-generator)
     - [5.12 OCI Authentication Profiles](#512-oci-authentication-profiles)
       - [The Profile Setup Tool](#the-profile-setup-tool)
         - [Mode 1 — Session (browser-authenticated token)](#mode-1--session-browser-authenticated-token)
         - [Mode 2 — Config profile (API-key based)](#mode-2--config-profile-api-key-based)
       - [Profile Restoration on CI Runners](#profile-restoration-on-ci-runners)
+    - [5.13 Teardown](#513-teardown)
+  - [6. SLI Calculation](#6-sli-calculation)
+  - [7. Additional Tools](#7-additional-tools)
+    - [7.1 Synthetic Event Generator](#71-synthetic-event-generator)
+    - [7.2 Monitoring Metric Catalog](#72-monitoring-metric-catalog)
+  - [8. Test Suites](#8-test-suites)
 
 ## 1. Project Overview
 
@@ -723,6 +727,36 @@ echo "https://cloud.oracle.com/monitoring/explore?region=${OCI_REGION}"
 
 Note that URL invoke does not accept any parameters, and you need to select compartment `SLI_tracker`, namespace `sli_tracker_manual`, metric name `sli`, and press `Update chart`. You should see a single point near the right edge of the chart. Press `Show Data Table` to inspect the raw datapoint.
 
+### 4.6 Model Workflow Library
+
+The `model-*` files under `.github/workflows/` are a reference library of GitHub Actions patterns used by real production pipelines. Each file isolates one technique so it can be studied, tested, and copied without reading a complex real workflow. They are not application workflows; they are runnable examples that produce SLI events just like a production pipeline would.
+
+| Workflow file | Pattern represented | Key technique |
+| --- | --- | --- |
+| [`model-call.yml`](../.github/workflows/model-call.yml) | External trigger | `workflow_dispatch` + `repository_dispatch` |
+| [`model-reusable-main.yml`](../.github/workflows/model-reusable-main.yml) | Two-job + matrix | `workflow_call`, job `needs`, matrix over environments |
+| [`model-reusable-sub.yml`](../.github/workflows/model-reusable-sub.yml) | Reusable sub-workflow | Step outputs, conditional steps, SLI event emission |
+| [`model-pr.yml`](../.github/workflows/model-pr.yml) | PR trigger | `pull_request` event → delegates to reusable main |
+| [`model-push.yml`](../.github/workflows/model-push.yml) | Push trigger | `push` event → programmatic `workflow_dispatch` |
+| [`model-call-success.yml`](../.github/workflows/model-call-success.yml) | Forced success | Pre-canned call that always succeeds for SLI baseline |
+| [`model-call-failure.yml`](../.github/workflows/model-call-failure.yml) | Forced failure | Pre-canned call that always fails for SLI alert testing |
+
+Trigger `model-call.yml` from the CLI as a quick end-to-end smoke test:
+
+```bash
+repo="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+gh workflow run ".github/workflows/model-call.yml" -R "$repo" \
+  -f simulate-failure=false
+
+RUN_ID="$(gh run list -R "$repo" --workflow "model-call.yml" \
+  --limit 1 --json databaseId -q '.[0].databaseId')"
+
+gh run watch "$RUN_ID" -R "$repo"
+echo "https://github.com/${repo}/actions/runs/${RUN_ID}"
+```
+
+The run dispatches `model-call.yml` → `model-reusable-main.yml` → `model-reusable-sub.yml` and produces a complete two-level SLI emission trace in OCI Logging. Use `model-call-failure.yml` to inject a known-failure event for alarm and dashboard testing.
+
 ## 5. Router and Ingest Hands-On
 
 This chapter walks through the router from the simplest possible local case to the deployed public ingest Function. Each section is runnable on its own and leaves a visible artifact you can inspect.
@@ -776,8 +810,10 @@ Core files:
 
 - [`tools/json_router.js`](../tools/json_router.js) — shared routing library: route matching, fanout, dead-letter
 - [`tools/json_transformer.js`](../tools/json_transformer.js) — shared transformation library: JSONata mapping execution
+- [`tools/adapters/destination_dispatcher.js`](../tools/adapters/destination_dispatcher.js) — selects the right adapter for each routed output; each adapter implements `onRoute(context)`
 - [`tools/json_router_cli.js`](../tools/json_router_cli.js) — CLI wrapper: accepts `--input`, `--routing`, `--source-dir`, `--output-dir`
-- [`fn/router_passthrough/func.js`](../fn/router_passthrough/func.js) — fully working OCI Function entry point using the same shared libraries
+- [`fn/router_passthrough/func.js`](../fn/router_passthrough/func.js) — OCI Function entry point using the same shared libraries
+- [`tools/schemas/json_router_definition.schema.json`](../tools/schemas/json_router_definition.schema.json) — JSON Schema for `routing.json`; validated on every load
 
 ### 5.2 Step 1 — Transform a Document with JSONata
 
@@ -1266,6 +1302,8 @@ Delivered file (`file_system/workflow_logs/001_workflow_to_log_shape.json`):
 ```
 
 Note that the mapping reads `workflow_run.conclusion` directly — not `body.workflow_run.conclusion` — because the transformer receives `body` as its root context.
+
+The project ships a second built-in mapping for general health-check payloads. [`tools/mappings/health_to_oci_metric.jsonata`](../tools/mappings/health_to_oci_metric.jsonata) converts a body of the form `{"status": "UP"}` into an OCI Monitoring metric datapoint under namespace `sli_tracker`, metric name `health_status`, with value `1` for UP and `0` for anything else. It follows the same JSONata pattern as the workflow mapping and can be wired to any route that receives health-check bodies.
 
 ### 5.5 Step 4 — Fan-Out One Envelope to Two Destinations
 
@@ -2019,6 +2057,16 @@ Router endpoint: https://c3sveicofz474hz3mrhyj2cucm.apigateway.eu-zurich-1.oci.c
 
 Keep `NAME_PREFIX`, `STATE_FILE`, and `ROUTER_URL` exported — steps 8–10 read from the same state file and post to the same endpoint.
 
+The deployed Function does **not** read `routing.json` from the Docker image. The cycle script uploads the routing definition and all JSONata mapping files to OCI Object Storage during deployment, then injects the bucket coordinates into the Function environment (`SLI_ROUTING_BUCKET`, `SLI_ROUTING_OBJECT`). At runtime the Function reads `config/routing.json` and the referenced mapping files from the bucket. This means you can update the routing definition or any mapping without rebuilding the Function image — upload the new file to the bucket and the next invocation picks it up. The relevant defaults are:
+
+```bash
+SLI_ROUTING_OBJECT="config/routing.json"           # routing definition in bucket
+SLI_PASSTHROUGH_OBJECT="config/passthrough.jsonata"  # pass-through mapping
+# mapping files also uploaded: config/workflow_run_metric.jsonata, config/workflow_run_log.jsonata
+```
+
+See §5.7 for the equivalent CLI workflow using `--routing oci://bucket/config/routing.json`.
+
 ### 5.9 Step 8 — Send a Webhook to the Deployed Function
 
 The Function accepts a JSON envelope with `headers`, `body`, and optional `source_meta`. This is the same envelope structure used by the local CLI.
@@ -2128,6 +2176,107 @@ echo "Open OCI Metric Explorer: https://cloud.oracle.com/monitoring/explore?regi
 
 Select compartment `SLI_tracker`, namespace `github_actions`, metric name `workflow_run_result`, and press `Update chart`.
 
+### 5.12 OCI Authentication Profiles
+
+This project uses two named OCI profiles:
+
+| Profile | Where used | Lifetime |
+| --- | --- | --- |
+| `DEFAULT` | Local operator commands, §3 examples | Depends on local key — usually non-expiring API key |
+| `SLI_TEST` | Tests, GitHub Actions workflows, operator cookbook | Session: ~60 min · API key: non-expiring |
+
+`DEFAULT` is the standard OCI CLI profile every operator already has locally. The early examples in §3 use it deliberately — no extra setup required, and it proves that OCI ingestion works before introducing any project-specific tooling.
+
+`SLI_TEST` is the project-standard profile name expected by all tests and workflows in this repository. It is created by a dedicated setup tool and optionally packed into a GitHub secret so CI runners can authenticate to OCI.
+
+#### The Profile Setup Tool
+
+`setup_oci_github_access.sh` is the operator-facing script that creates `SLI_TEST` and (optionally) uploads it to GitHub as a repository secret. It supports two authentication modes.
+
+##### Mode 1 — Session (browser-authenticated token)
+
+Use this for short-lived operator-assisted test sessions. The script runs `oci session authenticate`, which opens a browser for OCI IAM login and produces a time-limited session token. The resulting profile and token files are packed into `OCI_CONFIG_PAYLOAD` and uploaded to GitHub.
+
+```bash
+.github/actions/oci-profile-setup/setup_oci_github_access.sh \
+  --account-type session \
+  --profile DEFAULT \
+  --session-profile-name SLI_TEST \
+  --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+```
+
+- Token expires after approximately 60 minutes
+- Must be refreshed before the next test session
+- Suitable for interactive work where an operator is present
+
+##### Mode 2 — Config profile (API-key based)
+
+Use this for longer-running tests or fully automated CI. The script mirrors an existing local profile (usually `DEFAULT`) into `SLI_TEST`, copying the API key configuration. The result is packed and uploaded to GitHub in the same way.
+
+```bash
+.github/actions/oci-profile-setup/setup_oci_github_access.sh \
+  --account-type config_profile \
+  --profile DEFAULT \
+  --session-profile-name SLI_TEST \
+  --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+```
+
+- Token does not expire
+- Copies your local `DEFAULT` private key material into the packed secret — treat the secret accordingly
+- Suitable for unattended pipelines
+
+#### Profile Restoration on CI Runners
+
+On GitHub Actions runners, the packed `OCI_CONFIG_PAYLOAD` secret is unpacked by the restore action:
+
+- [`.github/actions/oci-profile-setup/action.yml`](../.github/actions/oci-profile-setup/action.yml)
+- [`.github/actions/oci-profile-setup/oci_profile_setup.sh`](../.github/actions/oci-profile-setup/oci_profile_setup.sh)
+
+After restoration, the runner has `~/.oci/config` with the `SLI_TEST` profile available for OCI SDK calls and OCI CLI commands.
+
+The [`test-oci-profile-setup.yml`](../.github/workflows/test-oci-profile-setup.yml) CI workflow validates the entire pack-restore-verify cycle on a real GitHub runner. Trigger it manually via `workflow_dispatch` after updating `OCI_CONFIG_PAYLOAD` to confirm the new secret unpacks correctly:
+
+```bash
+repo="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+gh workflow run ".github/workflows/test-oci-profile-setup.yml" -R "$repo" \
+  -f profile=DEFAULT \
+  -f oci-auth-mode=auto
+
+RUN_ID="$(gh run list -R "$repo" --workflow "test-oci-profile-setup.yml" \
+  --limit 1 --json databaseId -q '.[0].databaseId')"
+gh run watch "$RUN_ID" -R "$repo"
+```
+
+Full tool reference:
+
+- [`.github/actions/oci-profile-setup/setup_oci_github_access.sh`](../.github/actions/oci-profile-setup/setup_oci_github_access.sh)
+- [`.github/actions/oci-profile-setup/README.md`](../.github/actions/oci-profile-setup/README.md)
+
+### 5.13 Teardown
+
+After finishing the hands-on steps you may want to remove the OCI resources provisioned in step 7. Two scripts handle different scopes.
+
+**Full stack teardown** — removes the OCI Function, API Gateway, and all associated resources provisioned by `cycle_apigw_router_passthrough.sh`:
+
+```bash
+NAME_PREFIX="sli-router-passthrough-dev" \
+  bash tools/teardown_router_apigw_stack.sh
+```
+
+The script reads `oci_scaffold/state-${NAME_PREFIX}.json` to locate the resources, then calls `oci_scaffold/do/teardown.sh`. The OCI Object Storage bucket and its contents are not deleted by default — only the compute and networking resources.
+
+**Ingest prefix cleanup** — removes objects from the `ingest/` tree in the bucket without touching the router configuration under `config/`:
+
+```bash
+SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
+  bash tools/clear_ingest_prefix.sh --dry-run   # preview what would be deleted
+
+SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
+  bash tools/clear_ingest_prefix.sh --yes        # execute
+```
+
+Pass `--dir github/workflow_run` to limit deletion to one event prefix, or `--recursive` to include nested paths. Use this between test runs to avoid mixing ingest objects across sessions.
+
 ## 6. SLI Calculation
 
 `sli_compute_sli_metrics.js` queries OCI Monitoring for `workflow_run_result` datapoints over a rolling window, then computes `success / total` and publishes the ratio back as a derived SLI metric.
@@ -2190,66 +2339,88 @@ Core files:
 - [`tools/sli_ratio_simulator.sh`](../tools/sli_ratio_simulator.sh)
 - [`.github/workflows/sli_ratio_simulator.yml`](../.github/workflows/sli_ratio_simulator.yml)
 
-### 5.12 OCI Authentication Profiles
+### 7.2 Monitoring Metric Catalog
 
-This project uses two named OCI profiles:
-
-| Profile | Where used | Lifetime |
-| ------- | ---------- | -------- |
-| `DEFAULT` | Local operator commands, §3 examples | Depends on local key — usually non-expiring API key |
-| `SLI_TEST` | Tests, GitHub Actions workflows, operator cookbook | Session: ~60 min · API key: non-expiring |
-
-`DEFAULT` is the standard OCI CLI profile every operator already has locally. The early examples in §3 use it deliberately — no extra setup required, and it proves that OCI ingestion works before introducing any project-specific tooling.
-
-`SLI_TEST` is the project-standard profile name expected by all tests and workflows in this repository. It is created by a dedicated setup tool and optionally packed into a GitHub secret so CI runners can authenticate to OCI.
-
-#### The Profile Setup Tool
-
-`setup_oci_github_access.sh` is the operator-facing script that creates `SLI_TEST` and (optionally) uploads it to GitHub as a repository secret. It supports two authentication modes.
-
-##### Mode 1 — Session (browser-authenticated token)
-
-Use this for short-lived operator-assisted test sessions. The script runs `oci session authenticate`, which opens a browser for OCI IAM login and produces a time-limited session token. The resulting profile and token files are packed into `OCI_CONFIG_PAYLOAD` and uploaded to GitHub.
+`list_monitoring_metrics.sh` queries the OCI Monitoring API to list metric **definitions** — namespace, metric name, and dimension key/value sets — for all custom namespaces this project writes to. It shows what the Monitoring service has learned about your metric shapes; it does not return time-series values or datapoints.
 
 ```bash
-.github/actions/oci-profile-setup/setup_oci_github_access.sh \
-  --account-type session \
-  --profile DEFAULT \
-  --session-profile-name SLI_TEST \
-  --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+OCI_CLI_PROFILE=DEFAULT \
+SLI_OCI_STATE_FILE="oci_scaffold/state-${NAME_PREFIX}.json" \
+  bash tools/list_monitoring_metrics.sh --limit 20
 ```
 
-- Token expires after approximately 60 minutes
-- Must be refreshed before the next test session
-- Suitable for interactive work where an operator is present
+Default namespaces queried:
 
-##### Mode 2 — Config profile (API-key based)
+- `github_actions` — router fan-out metrics (`workflow_run_result`, `workflow_run_duration_s`)
+- `sli_tracker` — emit.sh outcome and derived SLI metrics
 
-Use this for longer-running tests or fully automated CI. The script mirrors an existing local profile (usually `DEFAULT`) into `SLI_TEST`, copying the API key configuration. The result is packed and uploaded to GitHub in the same way.
+Optional flags:
 
 ```bash
-.github/actions/oci-profile-setup/setup_oci_github_access.sh \
-  --account-type config_profile \
-  --profile DEFAULT \
-  --session-profile-name SLI_TEST \
-  --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+# Filter to one metric name
+bash tools/list_monitoring_metrics.sh --metric-name workflow_run_result
+
+# Include subcompartments
+bash tools/list_monitoring_metrics.sh --subtree
+
+# Query all namespaces in one call
+bash tools/list_monitoring_metrics.sh --any-namespace
 ```
 
-- Token does not expire
-- Copies your local `DEFAULT` private key material into the packed secret — treat the secret accordingly
-- Suitable for unattended pipelines
+For time-series values over a window, use `oci monitoring metric-data summarize-metrics-data` directly (see §3.5) or run `validate_router_ingest_and_metrics.sh` (see §5.11).
 
-#### Profile Restoration on CI Runners
+## 8. Test Suites
 
-On GitHub Actions runners, the packed `OCI_CONFIG_PAYLOAD` secret is unpacked by the restore action:
+The project ships three test suites under `tests/`. All tests must be run from the `tests/` directory; the centralized runner `tests/run.sh` enforces this.
 
-- [`.github/actions/oci-profile-setup/action.yml`](../.github/actions/oci-profile-setup/action.yml)
-- [`.github/actions/oci-profile-setup/oci_profile_setup.sh`](../.github/actions/oci-profile-setup/oci_profile_setup.sh)
+```bash
+cd tests
 
-After restoration, the runner has `~/.oci/config` with the `SLI_TEST` profile available for OCI SDK calls and OCI CLI commands.
+# Run all unit tests
+bash run.sh --unit
 
-Full tool reference:
+# Run all integration tests (requires live OCI credentials)
+bash run.sh --integration
 
-- [`.github/actions/oci-profile-setup/setup_oci_github_access.sh`](../.github/actions/oci-profile-setup/setup_oci_github_access.sh)
-- [`.github/actions/oci-profile-setup/README.md`](../.github/actions/oci-profile-setup/README.md)
- 
+# Run smoke tests only
+bash run.sh --smoke
+
+# Run all suites
+bash run.sh --all
+```
+
+**Component scoping** — use `--component` to restrict to one component's tests without running the full suite:
+
+```bash
+bash run.sh --unit --component router
+bash run.sh --integration --component router
+```
+
+Component manifests live under `tests/manifests/`. Each manifest file lists the test scripts belonging to that component by suite prefix:
+
+| Manifest | Component | What it covers |
+| --- | --- | --- |
+| [`component_router.manifest`](../tests/manifests/component_router.manifest) | router | Router, transformer, adapters, mapping, pipeline, Fn passthrough |
+| [`component_emit.manifest`](../tests/manifests/component_emit.manifest) | emit | SLI event emission (emit.sh, curl, JS, full pipeline) |
+| [`component_install.manifest`](../tests/manifests/component_install.manifest) | install | OCI CLI installation script |
+| [`component_oci-setup.manifest`](../tests/manifests/component_oci-setup.manifest) | oci-setup | OCI CLI profile setup and GitHub access configuration |
+
+**Suite descriptions:**
+
+- **Smoke** (`tests/smoke/`) — critical path only; fast; no OCI required. Validates that the most important emission path (`test_critical_emit.sh`) runs without errors.
+- **Unit** (`tests/unit/`) — logic tests with no live OCI dependencies. Covers router, transformer, all adapters, CLI, mapping loader, content-source adapter, and profile setup scripts. Runs in seconds.
+- **Integration** (`tests/integration/`) — end-to-end tests that POST to OCI Logging, OCI Monitoring, OCI Object Storage, and the deployed Fn endpoint. Require `SLI_TEST` profile and a deployed stack.
+
+**New-code gate** — the `--new-only` flag runs only the test functions listed in a spec file, used during sprint delivery to gate only the new code without waiting for the full regression suite:
+
+```bash
+bash run.sh --unit --new-only tests/new_tests.spec
+```
+
+Core files:
+
+- [`tests/run.sh`](../tests/run.sh) — centralized test runner
+- [`tests/manifests/`](../tests/manifests/) — per-component manifest files
+- [`tests/smoke/`](../tests/smoke/) — smoke test scripts
+- [`tests/unit/`](../tests/unit/) — unit test scripts
+- [`tests/integration/`](../tests/integration/) — integration test scripts

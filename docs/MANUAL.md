@@ -1797,14 +1797,14 @@ The previous sections described loading `routing.json` and JSONata mappings from
 
 The CLI selects the storage backend from the `--routing` argument. A plain file path uses the local filesystem; an `oci://bucket/object-key` URI uses OCI Object Storage. Mappings follow the same principle: when `routing.json` declares `"mapping": { "type": "oci_object_storage" }`, the mapping files are fetched from the bucket named in the `adapters` block instead of from disk.
 
-This step reuses the `SLI_TEST` OCI profile. Make sure it is valid before proceeding — run the setup script from §4.1.2 if the session has expired.
+This step uses the `DEFAULT` OCI CLI profile.
 
 #### Create the bucket
 
 Create a dedicated OCI Object Storage bucket for this step using `oci_scaffold`. Run from the repository root — that ensures the state file is written to `./state-${NAME_PREFIX}.json` in the repo root, not inside the submodule directory:
 
 ```bash
-export OCI_CLI_PROFILE=SLI_TEST
+export OCI_CLI_PROFILE=DEFAULT
 export NAME_PREFIX="sli-step6"
 
 # Source oci_scaffold from repo root; STATE_FILE → ./state-${NAME_PREFIX}.json
@@ -1928,7 +1928,7 @@ oci os object list \
 
 #### Run the CLI with bucket routing
 
-Pass the routing definition as an `oci://` URI. The CLI parses the URI, constructs an OCI Object Storage content source adapter using the `SLI_TEST` profile, and fetches `routing.json` from the bucket before processing the envelope:
+Pass the routing definition as an `oci://` URI. The CLI reads the profile from `OCI_CLI_PROFILE` (set to `DEFAULT` above), constructs an OCI Object Storage content source adapter, and fetches `routing.json` from the bucket before processing the envelope:
 
 ```bash
 node tools/json_router_cli.js \

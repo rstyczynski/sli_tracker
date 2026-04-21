@@ -404,10 +404,10 @@ Backlog Items:
 
 ## Sprint 30 - Unified source-adapter interface (SLI-60)
 
-Status: Progress
+Status: Done
 Mode: managed
 Test: unit
-Regression: unit
+Regression: integration
 Regression scope: router
 
 Replace the three inconsistent loading mechanisms (hardwired `loadRoutingDefinition`, bespoke mapping-source interface, source-adapter pattern) with a single source-adapter interface in the router core. Ship two built-in adapters — filesystem and OCI Object Storage — and wire CLI and Fn to select the adapter from configuration, including `--routing oci://bucket/…` support in the CLI.

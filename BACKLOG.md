@@ -425,3 +425,9 @@ The project has three test layers under `tests/` — unit tests covering individ
 The router loads its routing definition, mappings, and input envelopes through three different and inconsistent mechanisms; in particular the routing definition is hardwired to the local filesystem with no way to load it from OCI Object Storage. Introduce a single source-adapter interface in the router core with built-in filesystem and OCI Object Storage implementations, and route all three loading paths through it. CLI and Fn should select the adapter from configuration so operators can point any input at either storage backend without code changes.
 
 Test: routing definition, mapping, and envelopes each loaded from OCI Object Storage produce the same delivery result as when loaded from the local filesystem.
+
+### SLI-61. Compartment path support in oci:// URI scheme
+
+The `oci://` URI scheme introduced in SLI-60 uses bucket name only (`oci://bucket/object-key`) because OCI looks up buckets by name within a namespace/tenancy where names must be unique. Operators in multi-compartment tenancies may want optional compartment path notation for clarity and documentation purposes (`oci://comp1/comp2/bucket/object-key`). This is not required for OCI API calls but improves URI readability and aligns with OCI Console navigation. Applies to both routing definition and mapping source URIs.
+
+Test: URIs with compartment path prefix parse correctly and resolve to the same bucket as the short form; the compartment path is available for logging/display but does not affect OCI SDK calls.

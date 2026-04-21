@@ -218,6 +218,38 @@ function loadRoutingDefinition(filePath) {
     return loadRoutingDefinitionFromObject(parsed, { baseDir: path.dirname(filePath) });
 }
 
+/**
+ * Load routing definition asynchronously via a ContentSourceAdapter.
+ * @param {string} key - Content key (file path or object key depending on adapter).
+ * @param {Object} contentSourceAdapter - Adapter with readContent(key) method.
+ * @param {Object} [options] - Options passed to loadRoutingDefinitionFromObject.
+ * @returns {Promise<Object>} Parsed and validated routing definition.
+ */
+async function loadRoutingDefinitionAsync(key, contentSourceAdapter, options = {}) {
+    if (typeof key !== 'string' || key.trim() === '') {
+        throw new Error('Routing definition key must be a non-empty string');
+    }
+    if (!contentSourceAdapter || typeof contentSourceAdapter.readContent !== 'function') {
+        throw new Error('ContentSourceAdapter with readContent() method is required');
+    }
+
+    let raw;
+    try {
+        raw = await contentSourceAdapter.readContent(key);
+    } catch (err) {
+        throw new Error(`Cannot read routing definition "${key}": ${errorMessage(err)}`);
+    }
+
+    let parsed;
+    try {
+        parsed = JSON.parse(raw);
+    } catch (err) {
+        throw new Error(`Routing definition "${key}" is not valid JSON: ${errorMessage(err)}`);
+    }
+
+    return loadRoutingDefinitionFromObject(parsed, options);
+}
+
 function normalizeRoutingDefinition(router, options = {}) {
     if (typeof router === 'string') {
         return loadRoutingDefinition(router);
@@ -588,6 +620,7 @@ async function routeDirectory(sourceDir, definition, destinationRoot) {
 
 module.exports = {
     loadRoutingDefinition,
+    loadRoutingDefinitionAsync,
     loadRoutingDefinitionFromObject,
     normalizeRoutingDefinition,
     processEnvelope,

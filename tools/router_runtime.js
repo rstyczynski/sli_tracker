@@ -20,6 +20,7 @@ const { createOciMonitoringAdapter } = require('./adapters/oci_monitoring_adapte
 const { createOciLoggingAdapter } = require('./adapters/oci_logging_adapter');
 const { createMappingLoader } = require('./adapters/mapping_loader');
 const { createOciObjectStorageMappingSource } = require('./adapters/oci_object_storage_mapping_source');
+const { createOciObjectStorageContentSourceAdapter } = require('./adapters/oci_object_storage_content_source');
 const { createSourceAdapterFromDefinition } = require('./adapters/source_loader');
 
 function isObject(v) {
@@ -172,7 +173,22 @@ async function createRuntimeFromRoutingDefinition(definition, options = {}) {
             if (!isObject(definition.adapters)) {
                 throw new Error('Runtime requires routing.json adapters for OCI mapping sources');
             }
-            sources.push(createOciObjectStorageMappingSource({ getObject }));
+            // Look up mapping adapter config to create shared content source adapter
+            const mappingName = definition.mapping.name;
+            const adapterKey = mappingName
+                ? `${definition.mapping.type}:${mappingName}`
+                : definition.mapping.type;
+            const adapterConfig = definition.adapters[adapterKey] || definition.adapters[definition.mapping.type];
+            if (!adapterConfig || !adapterConfig.bucket) {
+                throw new Error(`Runtime requires adapters["${adapterKey}"] with bucket for OCI mapping source`);
+            }
+            // Create shared ContentSourceAdapter for mappings
+            const mappingContentSourceAdapter = createOciObjectStorageContentSourceAdapter({
+                bucket: adapterConfig.bucket,
+                prefix: adapterConfig.prefix || '',
+                getObject,
+            });
+            sources.push(createOciObjectStorageMappingSource({ contentSourceAdapter: mappingContentSourceAdapter }));
         }
         if (sources.length === 0) {
             throw new Error(`No mapping source configured for mapping type "${definition.mapping.type}"`);

@@ -5,11 +5,12 @@ const path = require('path');
 const common = require('oci-common');
 const objectstorage = require('oci-objectstorage');
 
-const { loadRoutingDefinitionFromObject, processEnvelope } = require('./lib/json_router');
+const { loadRoutingDefinitionFromObject, loadRoutingDefinitionAsync, processEnvelope } = require('./lib/json_router');
 const { createDestinationDispatcher } = require('./lib/destination_dispatcher');
 const { createOciObjectStorageAdapter } = require('./lib/oci_object_storage_adapter');
 const { createOciMonitoringAdapter } = require('./lib/oci_monitoring_adapter');
 const { createOciLoggingAdapter } = require('./lib/oci_logging_adapter');
+const { createOciObjectStorageContentSourceAdapter } = require('./lib/oci_object_storage_content_source');
 
 function isObject(value) {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -176,6 +177,20 @@ function applyIngestBucketToRoutingObject(obj) {
 }
 
 /**
+ * Build getObject function from OCI Object Storage client.
+ */
+function buildGetObjectFromClient(os) {
+    return async ({ bucket, objectName }) => {
+        const getResp = await os.client.getObject({
+            namespaceName: os.namespaceName,
+            bucketName: bucket,
+            objectName,
+        });
+        return await readGetObjectBodyToString(getResp);
+    };
+}
+
+/**
  * Load routing definition: Object Storage (production) or in-memory (tests via options.routingDefinition).
  *
  * Env (production):
@@ -197,14 +212,17 @@ async function loadRoutingDefinitionForRun(options = {}) {
     }
 
     const os = options.getObjectStorage ? await options.getObjectStorage() : await getDefaultObjectStorageClient();
+    const getObject = buildGetObjectFromClient(os);
+
+    // Use ContentSourceAdapter pattern for routing definition loading
+    const routingAdapter = createOciObjectStorageContentSourceAdapter({
+        bucket: routingBucket,
+        getObject,
+    });
+
     let raw;
     try {
-        const getResp = await os.client.getObject({
-            namespaceName: os.namespaceName,
-            bucketName: routingBucket,
-            objectName: routingObject,
-        });
-        raw = await readGetObjectBodyToString(getResp);
+        raw = await routingAdapter.readContent(routingObject);
     } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         throw new Error(
@@ -229,12 +247,19 @@ async function loadRoutingDefinitionForRun(options = {}) {
  * Any mappingRef basename is loaded from config/<basename> by default.
  * SLI_PASSTHROUGH_OBJECT overrides the Object Storage path **only** for `passthrough.jsonata`
  * (backward compatibility). Other basenames must never use it — otherwise every route would
- * load the same file (e.g. raw GitHub payloads posted as “metrics”).
+ * load the same file (e.g. raw GitHub payloads posted as "metrics").
+ *
+ * Uses ContentSourceAdapter pattern (SLI-60).
  */
 function buildLoadMappingFromRef(options) {
     if (typeof options.loadMappingFromRef === 'function') {
         return options.loadMappingFromRef;
     }
+
+    // Cache the adapter per bucket to reuse across mapping loads
+    let mappingAdapter = null;
+    let cachedBucket = null;
+
     return async ({ mappingRef }) => {
         const base = path.basename(String(mappingRef));
         const mappingBucket = (
@@ -254,15 +279,21 @@ function buildLoadMappingFromRef(options) {
                     'or pass options.loadMappingFromRef (local tests)',
             );
         }
-        const os = options.getObjectStorage ? await options.getObjectStorage() : await getDefaultObjectStorageClient();
+
+        // Create or reuse ContentSourceAdapter for mapping bucket
+        if (!mappingAdapter || cachedBucket !== mappingBucket) {
+            const os = options.getObjectStorage ? await options.getObjectStorage() : await getDefaultObjectStorageClient();
+            const getObject = buildGetObjectFromClient(os);
+            mappingAdapter = createOciObjectStorageContentSourceAdapter({
+                bucket: mappingBucket,
+                getObject,
+            });
+            cachedBucket = mappingBucket;
+        }
+
         let raw;
         try {
-            const getResp = await os.client.getObject({
-                namespaceName: os.namespaceName,
-                bucketName: mappingBucket,
-                objectName: mappingObject,
-            });
-            raw = await readGetObjectBodyToString(getResp);
+            raw = await mappingAdapter.readContent(mappingObject);
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
             throw new Error(

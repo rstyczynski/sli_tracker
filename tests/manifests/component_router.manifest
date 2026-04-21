@@ -13,6 +13,7 @@ unit:test_file_adapter.sh
 unit:test_file_source_adapter.sh
 unit:test_destination_adapters.sh
 unit:test_fn_passthrough_router.sh
+unit:test_content_source_adapter.sh
 integration:test_json_router_mapping_oci_object_storage.sh
 integration:test_json_router_cli_mapping_oci_object_storage.sh
 integration:test_router_flow_1_file_to_bucket_map_file.sh

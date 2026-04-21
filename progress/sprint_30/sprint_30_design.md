@@ -48,6 +48,8 @@ ContentSourceAdapter {
 
 `tools/json_router_cli.js` — `--routing` flag parses `oci://bucket/object-key` to select OCI adapter; plain path selects filesystem adapter. `buildOciObjectStorageGetObject` is refactored into a shared helper used by the adapter factory.
 
+`tools/adapters/mapping_loader.js` — When `mapping` field in the routing definition is a URI string (`oci://bucket/prefix/`), the loader parses the URI and constructs the appropriate `ContentSourceAdapter`. This replaces the verbose `{ "type": "oci_object_storage", "name": "mappings" }` + adapters block pattern with a simple URI.
+
 `fn/router_passthrough/router_core.js` — `loadRoutingDefinitionForRun` and `buildLoadMappingFromRef` are replaced by calls to the shared adapter. The existing env-var contract (`SLI_ROUTING_BUCKET`, `SLI_ROUTING_OBJECT`, `SLI_MAPPING_BUCKET`) is preserved as the source of bucket/key configuration.
 
 **Data flow**
@@ -67,9 +69,18 @@ Fn env: SLI_ROUTING_BUCKET=ingest, SLI_ROUTING_OBJECT=config/routing.json
   → OciObjectStorageContentSourceAdapter("ingest")
   → loadRoutingDefinitionAsync("config/routing.json", adapter)
 
-Mapping load (routing.json declares mapping.type = oci_object_storage)
-  → same adapter instance reused
+Mapping load — URI form (routing.json declares mapping: "oci://sli-mappings/jsonata/")
+  → parse URI → OciObjectStorageContentSourceAdapter("sli-mappings", prefix="jsonata/")
+  → route.transform.mapping = "passthrough.jsonata"
+  → adapter.readContent("jsonata/passthrough.jsonata")
+
+Mapping load — object form (routing.json declares mapping.type = oci_object_storage)
+  → same adapter instance reused (backward compatible)
   → OciObjectStorageContentSourceAdapter.readContent(joinPrefix(prefix, mappingKey))
+
+Mapping load — local path (routing.json declares mapping: "./mappings/")
+  → FileSystemContentSourceAdapter(basePath="./mappings/")
+  → adapter.readContent("passthrough.jsonata")
 ```
 
 **Envelope source adapter (`source_loader.js`)** is out of scope for this sprint. It serves a different purpose (streaming multiple items) and already uses a correct adapter pattern. Unifying it with `ContentSourceAdapter` would require a separate design.
@@ -90,22 +101,36 @@ Mapping load (routing.json declares mapping.type = oci_object_storage)
 #### Recommended Sprint Parameters
 
 - **Test:** unit — pure adapter logic; no OCI infra needed for unit coverage.
-- **Regression:** unit — all existing router unit tests must still pass.
+- **Regression:** integration — all existing router unit AND integration tests must pass.
 - **Regression scope:** router — changes are confined to router adapters and core.
 
 #### Unit Test Targets
 
-| Component | Functions to Test | Key Inputs & Edge Cases | Isolation |
-|-----------|-------------------|-------------------------|-----------|
-| `tools/adapters/content_source_adapter.js` | `createFileSystemContentSourceAdapter.readContent` | existing file, missing file, relative path, absolute path | no mocks (real tmp files) |
-| `tools/adapters/oci_object_storage_content_source.js` | `createOciObjectStorageContentSourceAdapter.readContent` | success, OCI error, non-string response | mock `getObject` function |
-| `tools/json_router.js` | `loadRoutingDefinitionAsync` | valid routing JSON via mock adapter, invalid JSON, adapter read error | mock `ContentSourceAdapter` |
-| `tools/adapters/oci_object_storage_mapping_source.js` | `createOciObjectStorageMappingSource.load` | `.jsonata` key, `.json` key, missing object | mock `ContentSourceAdapter` |
-| `tools/json_router_cli.js` | URI parsing | `oci://bucket/key`, plain path, malformed URI | none (pure parsing logic) |
+Test file: `tests/unit/test_content_source_adapter.sh`
+
+| ID | Test Case | Component | Input | Expected | Isolation |
+|----|-----------|-----------|-------|----------|-----------|
+| T1 | FileSystem reads existing file | `content_source_adapter.js` | tmp file with `{"hello":"world"}` | Returns content string | real tmp file |
+| T2 | FileSystem throws on missing file | `content_source_adapter.js` | non-existent path | Error: "Cannot read content" | none |
+| T3 | OCI adapter reads object from bucket | `oci_object_storage_content_source.js` | bucket=`test-bucket`, key=`config/routing.json` | Returns object content | mock getObject |
+| T4 | OCI adapter propagates bucket error | `oci_object_storage_content_source.js` | bucket=`test-bucket`, key=`missing.json` → OCI 404 | Error: "Object not found" | mock getObject |
+| T5 | loadRoutingDefinitionAsync uses adapter | `json_router.js` | FileSystem adapter + routing.json | Parsed definition object | real tmp file |
+| T6 | loadRoutingDefinition backward compat | `json_router.js` | single file path argument | Parsed definition object | real tmp file |
+| T7 | Mapping source loads from bucket via adapter | `oci_object_storage_mapping_source.js` | adapter reads `passthrough.jsonata` from bucket | Mapping string returned | mock adapter |
+| T8 | URI parsing extracts bucket/key | `content_source_adapter.js` | `oci://bucket/config/routing.json` | `{bucket:"bucket", objectKey:"config/routing.json"}` | none |
+| T9 | URI parsing for mapping prefix | `content_source_adapter.js` | `oci://sli-mappings/jsonata/` | `{bucket:"sli-mappings", objectKey:"jsonata/"}` | none |
+| T10 | isOciUri detects oci:// scheme | `content_source_adapter.js` | `oci://bucket/key`, `./local/path` | true, false | none |
+| T11 | FileSystem with basePath | `content_source_adapter.js` | basePath + relative key | Resolved path content | real tmp file |
 
 #### Integration Test Scenarios
 
-No new integration tests in this sprint. The OCI integration paths are already exercised by `test_json_router_mapping_oci_object_storage.sh` and `test_router_flow_2_file_to_bucket_map_bucket.sh` — once the refactor is in place those tests validate the end-to-end behaviour.
+Regression tests (existing, must pass after refactor):
+
+| Test Script | What It Validates |
+|-------------|-------------------|
+| `test_json_router_mapping_oci_object_storage.sh` | Mapping loaded from OCI Object Storage via adapter |
+| `test_router_flow_2_file_to_bucket_map_bucket.sh` | End-to-end routing with OCI bucket destination |
+| All router component tests via `--component router` | Full router stack unchanged behavior |
 
 #### Smoke Test Candidates
 
@@ -113,7 +138,11 @@ No new smoke tests. Existing router smoke tests cover basic routing validity.
 
 **Success Criteria**
 
-All unit tests for new adapter files pass. All existing router unit tests pass (regression). `loadRoutingDefinition(filePath)` with a plain string path still works without any adapter argument.
+1. All 11 unit tests in `test_content_source_adapter.sh` pass
+2. All existing router unit tests pass (regression): `bash tests/run.sh --unit --component router`
+3. All existing router integration tests pass: `bash tests/run.sh --integration --component router`
+4. `loadRoutingDefinition(filePath)` with a plain string path still works without any adapter argument
+5. Existing routing definitions with object-form `mapping` field continue to work
 
 ### Integration Notes
 
@@ -139,6 +168,14 @@ All unit tests for new adapter files pass. All existing router unit tests pass (
 **Decision 3:** CLI URI scheme is `oci://bucket/object-key`.
 **Rationale:** Unambiguous, easy to parse, consistent with URI conventions already familiar to OCI operators.
 **Alternatives considered:** Separate `--routing-bucket` / `--routing-object` flags — more verbose with no benefit.
+
+**Decision 4:** Mapping source in routing.json supports URI string form `oci://bucket/prefix/` in addition to object form.
+**Rationale:** Simplifies routing definitions — replaces verbose `{ "type": "oci_object_storage", "name": "mappings" }` + adapters block with a single URI string. Object form remains supported for backward compatibility.
+**Alternatives considered:** Object form only — more verbose, requires separate adapter entry.
+
+**Decision 5:** Compartment path in URI (`oci://comp1/comp2/bucket/key`) is deferred to SLI-61.
+**Rationale:** OCI looks up buckets by name within a namespace; bucket names must be unique in a tenancy. Compartment path is optional clarity, not required for API calls.
+**Alternatives considered:** Implement now — not critical, adds parsing complexity without functional benefit.
 
 ### Open Design Questions
 

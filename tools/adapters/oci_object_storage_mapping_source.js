@@ -1,6 +1,7 @@
 'use strict';
 // tools/adapters/oci_object_storage_mapping_source.js
-// Mapping source backed by OCI Object Storage (unit-testable via injected getObject()).
+// Mapping source backed by OCI Object Storage.
+// Supports both ContentSourceAdapter (SLI-60) and legacy getObject injection.
 
 const jsonTransformer = require('../json_transformer');
 const loadMappingFromObject = jsonTransformer.loadMappingFromObject;
@@ -42,28 +43,57 @@ function parseMappingPayload(mappingKey, raw) {
     return loadMappingFromObject(parsed);
 }
 
+/**
+ * Create OCI Object Storage mapping source.
+ * @param {Object} options
+ * @param {Object} [options.contentSourceAdapter] - ContentSourceAdapter with readContent(key).
+ * @param {Function} [options.getObject] - Legacy: async ({ bucket, objectName }) => string.
+ * One of contentSourceAdapter or getObject must be provided.
+ */
 function createOciObjectStorageMappingSource(options = {}) {
     if (!isObject(options)) {
         throw new Error('OCI Object Storage mapping source options must be an object');
     }
-    const getObject = ensureFunction(options.getObject, 'OCI Object Storage mapping source getObject');
 
-    return {
-        supports(destination) {
-            return isObject(destination) && destination.type === 'oci_object_storage';
-        },
+    const contentSourceAdapter = options.contentSourceAdapter;
+    const getObject = options.getObject;
 
-        async load({ mappingKey, target }) {
-            if (!isObject(target)) {
-                throw new Error('OCI Object Storage mapping source target must be an object');
-            }
-            const bucket = ensureString(target.bucket, 'OCI Object Storage mapping source target.bucket');
-            const prefix = target.prefix === undefined ? '' : String(target.prefix);
-            const objectName = joinPrefix(prefix, mappingKey);
-            const raw = await getObject({ bucket, objectName, target });
-            return parseMappingPayload(mappingKey, raw);
-        },
-    };
+    // Validate: one of contentSourceAdapter or getObject must be provided
+    if (contentSourceAdapter && typeof contentSourceAdapter.readContent === 'function') {
+        // New pattern: use ContentSourceAdapter
+        return {
+            supports(destination) {
+                return isObject(destination) && destination.type === 'oci_object_storage';
+            },
+
+            async load({ mappingKey }) {
+                const raw = await contentSourceAdapter.readContent(mappingKey);
+                return parseMappingPayload(mappingKey, raw);
+            },
+        };
+    }
+
+    // Legacy pattern: use getObject function
+    if (typeof getObject === 'function') {
+        return {
+            supports(destination) {
+                return isObject(destination) && destination.type === 'oci_object_storage';
+            },
+
+            async load({ mappingKey, target }) {
+                if (!isObject(target)) {
+                    throw new Error('OCI Object Storage mapping source target must be an object');
+                }
+                const bucket = ensureString(target.bucket, 'OCI Object Storage mapping source target.bucket');
+                const prefix = target.prefix === undefined ? '' : String(target.prefix);
+                const objectName = joinPrefix(prefix, mappingKey);
+                const raw = await getObject({ bucket, objectName, target });
+                return parseMappingPayload(mappingKey, raw);
+            },
+        };
+    }
+
+    throw new Error('OCI Object Storage mapping source requires contentSourceAdapter or getObject');
 }
 
 module.exports = {

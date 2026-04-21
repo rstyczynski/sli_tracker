@@ -415,3 +415,22 @@ Replace the three inconsistent loading mechanisms (hardwired `loadRoutingDefinit
 Backlog Items:
 
 * SLI-60. Unified source-adapter interface for routing definition and mapping loading
+
+## Sprint 31 - MANUAL.md documentation gaps (SLI-51–59)
+
+Status: Done
+Mode: YOLO
+
+Fill documentation gaps identified after Sprint 30 delivery. All items cover `docs/MANUAL.md` only — no code changes.
+
+Backlog Items:
+
+* SLI-51. MANUAL.md: document teardown and cleanup tools
+* SLI-52. MANUAL.md: document list_monitoring_metrics.sh
+* SLI-53. MANUAL.md: document health_to_oci_metric.jsonata mapping
+* SLI-54. MANUAL.md: document model-call, model-reusable, model-pr, model-push workflows
+* SLI-55. MANUAL.md: document router internal architecture (router_core.js, destination_dispatcher.js)
+* SLI-56. MANUAL.md: document the routing definition JSON schema
+* SLI-57. MANUAL.md: document OCI Object Storage as a routing source
+* SLI-58. MANUAL.md: document test suites (unit, integration, smoke)
+* SLI-59. MANUAL.md: document test-oci-profile-setup.yml CI workflow

@@ -1997,6 +1997,46 @@ node tools/json_router_cli.js \
 
 The command succeeds, proving both files were fetched from OCI Object Storage. The local filesystem was not consulted for either the routing definition or the mapping.
 
+Expected output:
+
+```json
+{
+  "status": "routed",
+  "deliveries": [
+    {
+      "route": {
+        "id": "workflow_run_log_shape",
+        "mode": "exclusive",
+        "destination": {
+          "type": "file_system",
+          "name": "output"
+        }
+      },
+      "output": {
+        "logEntryBatches": [
+          {
+            "defaultlogentrytime": "2026-04-21T10:30:40.687Z",
+            "entries": [
+              {
+                "data": {
+                  "outcome": "success",
+                  "workflow": "CI",
+                  "run_id": "1001",
+                  "branch": "main",
+                  "sha": "deadbeef",
+                  "repo": "acme/SLI_tracker",
+                  "event": "github_workflow_run"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
 ### 5.8 Deploy the Public Router Function
 
 The OCI Function is the live webhook listener. It sits behind an API Gateway, accepts POST requests carrying router envelopes, runs the same routing and mapping logic as the local CLI, and delivers to OCI Object Storage, OCI Monitoring, and OCI Logging. The subsequent sections describe how to use the endpoint created by this deployment, including sending webhooks, verifying ingest in Object Storage, and checking fan-out to OCI Monitoring and Logging.

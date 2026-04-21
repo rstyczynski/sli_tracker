@@ -1,0 +1,20 @@
+{
+  "logEntryBatches": [
+    {
+      "defaultlogentrytime": "2026-04-21T10:30:40.687Z",
+      "entries": [
+        {
+          "data": {
+            "outcome": "success",
+            "workflow": "CI",
+            "run_id": "1001",
+            "branch": "main",
+            "sha": "deadbeef",
+            "repo": "acme/SLI_tracker",
+            "event": "github_workflow_run"
+          }
+        }
+      ]
+    }
+  ]
+}

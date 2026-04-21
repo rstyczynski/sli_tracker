@@ -2060,9 +2060,9 @@ export NAME_PREFIX="sli-router-passthrough-dev"
 # OCI compartment path where resources are created.
 export SLI_COMPARTMENT_PATH="/SLI_tracker"
 
-# Fn function name and absolute path to the function source directory.
+# Fn function name and source directory (path relative to oci_scaffold/ — "../" steps to repo root).
 export FN_FUNCTION_NAME="router_passthrough"
-export FN_FUNCTION_SRC_DIR="$(pwd)/fn/router_passthrough"
+export FN_FUNCTION_SRC_DIR="../fn/router_passthrough"
 
 # Create the ingest bucket automatically if it does not exist.
 export FN_ROUTER_AUTO_INGEST_BUCKET=true

@@ -1819,6 +1819,18 @@ jq -n --argjson body "$(cat tests/fixtures/github_webhook_samples/workflow_run.j
 
 Write a routing definition that references its mapping from an OCI Object Storage bucket. The `mapping` block declares the backend type; the matching entry in `adapters` supplies the bucket name and prefix where the mapping files live:
 
+> **Note:** Before you can upload any files to the bucket, ensure the bucket exists in your target compartment. Use the `oci_scaffold` tooling provided in this repository to idempotently create the required Object Storage bucket. 
+>
+> For example, run:
+>
+> ```bash
+> bash oci_scaffold/resource/ensure-bucket.sh <bucket-name> <compartment-ocid>
+> ```
+>
+> Replace `<bucket-name>` with your desired bucket name (it must match the value of `$BUCKET` below) and `<compartment-ocid>` with the OCID of your target compartment.
+>
+> Refer to [oci_scaffold documentation](../oci_scaffold/README.md) for details and other provisioning commands.
+
 ```bash
 BUCKET="${BUCKET:?set BUCKET to your OCI Object Storage bucket name}"
 

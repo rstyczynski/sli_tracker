@@ -2190,12 +2190,12 @@ A `workflow_run` envelope fires three routes simultaneously: one exclusive route
 
 ### 5.10 Verify Ingest in Object Storage
 
-List and inspect ingest objects. `NS` is the OCI Object Storage namespace for your tenancy; `BUCKET` is the ingest bucket created by the deployment in step 7.
+List and inspect ingest objects. Both values come from the state file written to the repo root during deployment in step 7.
 
 ```bash
 export OCI_CLI_PROFILE=DEFAULT
-NS="$(oci os ns get --query 'data' --raw-output)"
-BUCKET="${BUCKET:?set BUCKET to the ingest bucket name from step 7}"
+NS="$(jq -r '.bucket.namespace' "state-${NAME_PREFIX}.json")"
+BUCKET="$(jq -r '.bucket.name' "state-${NAME_PREFIX}.json")"
 
 # List newest objects per event prefix.
 SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \

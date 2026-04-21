@@ -31,7 +31,7 @@ SCAFFOLD="$REPO_ROOT/oci_scaffold"
 export PATH="$SCAFFOLD/do:$SCAFFOLD/resource:$PATH"
 
 export FN_FUNCTION_NAME="${FN_FUNCTION_NAME:-router_passthrough}"
-export FN_FUNCTION_SRC_DIR="${FN_FUNCTION_SRC_DIR:-../fn/router_passthrough}"
+export FN_FUNCTION_SRC_DIR="${FN_FUNCTION_SRC_DIR:-${REPO_ROOT}/fn/router_passthrough}"
 export FN_ROUTER_AUTO_INGEST_BUCKET="${FN_ROUTER_AUTO_INGEST_BUCKET:-true}"
 
 : "${NAME_PREFIX:?NAME_PREFIX must be set}"

@@ -2159,14 +2159,25 @@ A payload without an `X-GitHub-Event` header routes to the `no_github_event` buc
 ```bash
 TS="$(date -u +%Y%m%d%H%M%S)"
 GENERIC_OBJ="test-${TS}.json"
-curl -sS -w "\nHTTP %{http_code}\n" \
+curl -sS \
   -H "content-type: application/json" \
   --data "$(jq -n --arg fn "$GENERIC_OBJ" \
     '{body: {test: true, ts: $fn}, source_meta: {file_name: $fn}}')" \
-  "$ROUTER_URL"
+  "$ROUTER_URL" | jq
 ```
 
-Expected response: `{"status":"routed","deliveries":[...]}` with HTTP 200. On a cold system the first request may take up to 30 seconds while the Fn instance warms up — subsequent calls are fast.
+Expected response (HTTP 200):
+
+```json
+{
+  "status": "routed",
+  "deliveries": [
+    { "route": "no_github_event_to_bucket", "status": "ok" }
+  ]
+}
+```
+
+On a cold system the first request may take up to 30 seconds while the Fn instance warms up — subsequent calls are fast.
 
 Verify — the file lands at `ingest/no_github_event/${GENERIC_OBJ}`:
 
@@ -2191,14 +2202,14 @@ Expected content:
 
 ```bash
 PING_OBJ="ping-${TS}.json"
-curl -sS -w "\nHTTP %{http_code}\n" \
+curl -sS \
   -H "content-type: application/json" \
   -H "X-GitHub-Event: ping" \
   --data "$(jq -n \
     --arg fn "$PING_OBJ" \
     --argjson b "$(cat tests/fixtures/github_webhook_samples/ping.json)" \
     '{body: $b, headers: {"X-GitHub-Event": "ping"}, source_meta: {file_name: $fn}}')" \
-  "$ROUTER_URL"
+  "$ROUTER_URL" | jq
 ```
 
 Verify — the file lands at `ingest/github/ping/${PING_OBJ}`:
@@ -2229,7 +2240,7 @@ WF_OBJ="wf-${TS}.json"
 WF_CREATED="$(date -u -v-5M '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date -u --date='-5 min' '+%Y-%m-%dT%H:%M:%SZ')"
 WF_UPDATED="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
-curl -sS -w "\nHTTP %{http_code}\n" \
+curl -sS \
   -H "content-type: application/json" \
   -H "X-GitHub-Event: workflow_run" \
   --data "$(jq -n \
@@ -2240,7 +2251,7 @@ curl -sS -w "\nHTTP %{http_code}\n" \
     '{body: ($b | .workflow_run.created_at = $c | .workflow_run.updated_at = $u),
       headers: {"X-GitHub-Event": "workflow_run"},
       source_meta: {file_name: $fn}}')" \
-  "$ROUTER_URL"
+  "$ROUTER_URL" | jq
 ```
 
 Verify — the file lands at `ingest/github/workflow_run/${WF_OBJ}`:

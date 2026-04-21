@@ -1801,10 +1801,11 @@ This step reuses the `SLI_TEST` OCI profile. Make sure it is valid before procee
 
 #### Upload the routing definition to the bucket
 
-Start with a working directory and reuse the three-envelope source from step 5:
+Start with a working directory and reuse the three-envelope source from step 5. Set the bucket name you want to use — any existing OCI Object Storage bucket in your tenancy works:
 
 ```bash
-export NAME_PREFIX="sli-router-passthrough-dev"   # must match the deployed stack
+export OCI_CLI_PROFILE=SLI_TEST
+export BUCKET="my-sli-bucket"   # set to your bucket name
 
 TMP_DIR="$(mktemp -d /tmp/sli_router_oci_source.XXXXXX)"
 SRC_DIR="$TMP_DIR/source"
@@ -1819,7 +1820,7 @@ jq -n --argjson body "$(cat tests/fixtures/github_webhook_samples/workflow_run.j
 Write a routing definition that references its mapping from an OCI Object Storage bucket. The `mapping` block declares the backend type; the matching entry in `adapters` supplies the bucket name and prefix where the mapping files live:
 
 ```bash
-BUCKET="$(jq -r '.bucket.name' "oci_scaffold/state-${NAME_PREFIX}.json")"
+BUCKET="${BUCKET:?set BUCKET to your OCI Object Storage bucket name}"
 
 cat > "$TMP_DIR/routing.json" <<EOF
 {
@@ -1851,7 +1852,7 @@ Upload the routing definition to the bucket:
 
 ```bash
 export OCI_CLI_PROFILE=SLI_TEST
-NS="$(jq -r '.bucket.namespace' "oci_scaffold/state-${NAME_PREFIX}.json")"
+NS="$(oci os ns get --query 'data' --raw-output)"
 
 oci os object put \
   --namespace-name "$NS" \
@@ -2127,12 +2128,12 @@ A `workflow_run` envelope fires three routes simultaneously: one exclusive route
 
 ### 5.10 Verify Ingest in Object Storage
 
-Read the bucket namespace and name from the state file, then list and inspect ingest objects.
+List and inspect ingest objects. `NS` is the OCI Object Storage namespace for your tenancy; `BUCKET` is the ingest bucket created by the deployment in step 7.
 
 ```bash
-NS="$(jq -r '.bucket.namespace' "oci_scaffold/state-${NAME_PREFIX}.json")"
-BUCKET="$(jq -r '.bucket.name' "oci_scaffold/state-${NAME_PREFIX}.json")"
 export OCI_CLI_PROFILE=DEFAULT
+NS="$(oci os ns get --query 'data' --raw-output)"
+BUCKET="${BUCKET:?set BUCKET to the ingest bucket name from step 7}"
 
 # List newest objects per event prefix.
 SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \

@@ -1810,13 +1810,13 @@ export NAME_PREFIX="sli-step6"
 # Source oci_scaffold from repo root; STATE_FILE → ./state-${NAME_PREFIX}.json
 source oci_scaffold/do/oci_scaffold.sh
 
-_state_set ‘.inputs.name_prefix’      "$NAME_PREFIX"
-_state_set ‘.inputs.compartment_path’ "/SLI_tracker"
+_state_set '.inputs.name_prefix'      "$NAME_PREFIX"
+_state_set '.inputs.compartment_path' "/SLI_tracker"
 
 bash oci_scaffold/resource/ensure-compartment.sh
 bash oci_scaffold/resource/ensure-bucket.sh
 
-BUCKET="$(_state_get ‘.bucket.name’)"
+BUCKET="$(_state_get '.bucket.name')"
 echo "Bucket: $BUCKET"
 ```
 
@@ -1827,7 +1827,7 @@ echo "Bucket: $BUCKET"
 Create a working directory and a source envelope:
 
 ```bash
-NS="$(oci os ns get --query ‘data’ --raw-output)"
+NS="$(oci os ns get --query 'data' --raw-output)"
 
 TMP_DIR="$(mktemp -d /tmp/sli_router_oci_source.XXXXXX)"
 SRC_DIR="$TMP_DIR/source"
@@ -1835,7 +1835,7 @@ OUT_DIR="$TMP_DIR/output"
 mkdir -p "$SRC_DIR"
 
 jq -n --argjson body "$(cat tests/fixtures/github_webhook_samples/workflow_run.json)" \
-  ‘{"headers": {"X-GitHub-Event": "workflow_run"}, "body": $body}’ \
+  '{"headers": {"X-GitHub-Event": "workflow_run"}, "body": $body}' \
   > "$SRC_DIR/event.json"
 ```
 

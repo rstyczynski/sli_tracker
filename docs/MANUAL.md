@@ -82,13 +82,12 @@ The editable source is [`model/model.drawio`](../model/model.drawio).
       - [Generic POST (no GitHub header)](#generic-post-no-github-header)
       - [POST a GitHub ping event](#post-a-github-ping-event)
       - [POST a completed workflow\_run event](#post-a-completed-workflow_run-event)
-    - [5.10 Verify Fan-Out to OCI Monitoring and Logging](#510-verify-fan-out-to-oci-monitoring-and-logging)
-    - [5.11 OCI Authentication Profiles](#511-oci-authentication-profiles)
+    - [5.10 OCI Authentication Profiles](#510-oci-authentication-profiles)
       - [The Profile Setup Tool](#the-profile-setup-tool)
         - [Mode 1 — Session (browser-authenticated token)](#mode-1--session-browser-authenticated-token)
         - [Mode 2 — Config profile (API-key based)](#mode-2--config-profile-api-key-based)
       - [Profile Restoration on CI Runners](#profile-restoration-on-ci-runners)
-    - [5.12 Teardown](#512-teardown)
+    - [5.11 Teardown](#511-teardown)
   - [6. SLI Calculation](#6-sli-calculation)
   - [7. Additional Tools](#7-additional-tools)
     - [7.1 Synthetic Event Generator](#71-synthetic-event-generator)
@@ -2043,7 +2042,7 @@ The OCI Function is the live webhook listener. It sits behind an API Gateway, ac
 
 #### Prerequisites
 
-- OCI authentication configured — `DEFAULT` profile or `SLI_TEST` profile (see §5.11)
+- OCI authentication configured — `DEFAULT` profile or `SLI_TEST` profile (see §5.10)
 - `fn` CLI installed: `brew install fn` on macOS; on Linux follow the [Fn Project install guide](https://fnproject.io/tutorials/install/); not supported on Windows
 - Docker daemon running — the `fn` CLI builds the Function image with Docker
 - `oci_scaffold` submodule initialized: `git submodule update --init`
@@ -2286,34 +2285,7 @@ Expected content:
 
 A `workflow_run` envelope fires three routes simultaneously: one exclusive route to Object Storage under `ingest/github/workflow_run/`, one fanout route that posts a metric to OCI Monitoring (`github_actions.workflow_run_result`), and one fanout route that writes a log entry to OCI Logging.
 
-### 5.10 Verify Fan-Out to OCI Monitoring and Logging
-
-`validate_router_ingest_and_metrics.sh` reads the state file, lists recent ingest objects, and queries OCI Monitoring for `github_actions.workflow_run_result` datapoints over the last N minutes.
-
-```bash
-SLI_OCI_STATE_FILE="state-${NAME_PREFIX}.json" \
-  bash tools/validate_router_ingest_and_metrics.sh --minutes 45 --limit 5
-```
-
-The script reports:
-
-- newest object keys under each `ingest/github/<event>/` prefix
-- a JSON peek at the newest `workflow_run` object
-- `workflow_run_result` metric datapoints with timestamps and values (1 = success, 0 = other)
-- `workflow_run_duration_s` metric datapoints
-
-If the `workflow_run` POST from step 7 has propagated, you should see at least one datapoint with a timestamp close to `$WF_UPDATED` and a value of `1`.
-
-To open OCI Monitoring and inspect the metric interactively:
-
-```bash
-REGION="$(jq -r '.inputs.oci_region // empty' "state-${NAME_PREFIX}.json")"
-echo "Open OCI Metric Explorer: https://cloud.oracle.com/monitoring/explore?region=${REGION}"
-```
-
-Select compartment `SLI_tracker`, namespace `github_actions`, metric name `workflow_run_result`, and press `Update chart`.
-
-### 5.11 OCI Authentication Profiles
+### 5.10 OCI Authentication Profiles
 
 This project uses two named OCI profiles:
 
@@ -2389,7 +2361,7 @@ Full tool reference:
 - [`.github/actions/oci-profile-setup/setup_oci_github_access.sh`](../.github/actions/oci-profile-setup/setup_oci_github_access.sh)
 - [`.github/actions/oci-profile-setup/README.md`](../.github/actions/oci-profile-setup/README.md)
 
-### 5.12 Teardown
+### 5.11 Teardown
 
 After finishing the hands-on steps you may want to remove the OCI resources provisioned in step 7. Two scripts handle different scopes.
 
@@ -2504,7 +2476,7 @@ bash tools/list_monitoring_metrics.sh --subtree
 bash tools/list_monitoring_metrics.sh --any-namespace
 ```
 
-For time-series values over a window, use `oci monitoring metric-data summarize-metrics-data` directly (see §3.5) or run `validate_router_ingest_and_metrics.sh` (see §5.10).
+For time-series values over a window, use `oci monitoring metric-data summarize-metrics-data` directly (see §3.5) or run `validate_router_ingest_and_metrics.sh` directly.
 
 ## 8. Test Suites
 

@@ -2417,10 +2417,11 @@ Pass `--dir github/workflow_run` to limit deletion to one event prefix, or `--re
 
 ```bash
 export OCI_CLI_PROFILE=DEFAULT
-export NAME_PREFIX="sli-router-passthrough-dev"
+export NAME_PREFIX="sli-step6"
+source oci_scaffold/do/oci_scaffold.sh
 
-NS="$(jq -r '.bucket.namespace' "state-${NAME_PREFIX}.json")"
-BUCKET="$(jq -r '.bucket.name' "state-${NAME_PREFIX}.json")"
+NS="$(_state_get '.bucket.namespace')"
+BUCKET="$(_state_get '.bucket.name')"
 
 # Delete all objects — ingest/ and config/ trees
 oci os object bulk-delete \

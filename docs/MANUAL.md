@@ -2172,7 +2172,24 @@ Verify — the file lands at `ingest/no_github_event/${GENERIC_OBJ}`:
 
 ```bash
 SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
+  bash tools/list_github_ingest_prefixes.sh --limit 1
+
+SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
   bash tools/get_ingest_object.sh "ingest/no_github_event/${GENERIC_OBJ}" | jq
+```
+
+Expected content:
+
+```json
+{
+  "body": {
+    "test": true,
+    "ts": "test-20260421120000.json"
+  },
+  "source_meta": {
+    "file_name": "test-20260421120000.json"
+  }
+}
 ```
 
 #### POST a GitHub ping event
@@ -2193,7 +2210,25 @@ Verify — the file lands at `ingest/github/ping/${PING_OBJ}`:
 
 ```bash
 SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
+  bash tools/list_github_ingest_prefixes.sh --limit 1
+
+SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
   bash tools/get_ingest_object.sh "ingest/github/ping/${PING_OBJ}" | jq
+```
+
+Expected content:
+
+```json
+{
+  "body": {
+    "zen": "Non-blocking is better than blocking.",
+    "hook_id": 1,
+    "hook": { "type": "Repository", "id": 1, "name": "web", "active": true, "events": ["push"] },
+    "repository": { "id": 42, "name": "SLI_tracker", "full_name": "acme/SLI_tracker" }
+  },
+  "headers": { "X-GitHub-Event": "ping" },
+  "source_meta": { "file_name": "ping-20260421120000.json" }
+}
 ```
 
 #### POST a completed workflow_run event
@@ -2221,10 +2256,35 @@ Verify — the file lands at `ingest/github/workflow_run/${WF_OBJ}`:
 
 ```bash
 SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
+  bash tools/list_github_ingest_prefixes.sh --limit 1
+
+SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
   bash tools/get_ingest_object.sh "ingest/github/workflow_run/${WF_OBJ}" | jq
 ```
 
-The body should be the original `workflow_run` payload written as-is by `passthrough.jsonata`.
+Expected content:
+
+```json
+{
+  "body": {
+    "action": "completed",
+    "workflow_run": {
+      "id": 1001,
+      "name": "CI",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "push",
+      "head_branch": "main",
+      "head_sha": "deadbeef",
+      "created_at": "2026-04-21T11:55:00Z",
+      "updated_at": "2026-04-21T12:00:00Z"
+    },
+    "repository": { "id": 42, "name": "SLI_tracker", "full_name": "acme/SLI_tracker" }
+  },
+  "headers": { "X-GitHub-Event": "workflow_run" },
+  "source_meta": { "file_name": "wf-20260421120000.json" }
+}
+```
 
 A `workflow_run` envelope fires three routes simultaneously: one exclusive route to Object Storage under `ingest/github/workflow_run/`, one fanout route that posts a metric to OCI Monitoring (`github_actions.workflow_run_result`), and one fanout route that writes a log entry to OCI Logging.
 

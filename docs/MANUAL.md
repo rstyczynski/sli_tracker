@@ -2080,6 +2080,19 @@ export CYCLE_APIGW_TEST_EXPECT=router
 bash tools/cycle_apigw_router_passthrough.sh
 ```
 
+After the stack is up, clear the ingest bucket from any previous runs:
+
+```bash
+NS="$(jq -r '.bucket.namespace' "state-${NAME_PREFIX}.json")"
+BUCKET="$(jq -r '.bucket.name' "state-${NAME_PREFIX}.json")"
+
+SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
+  bash tools/clear_ingest_prefix.sh --dry-run   # preview deletions
+
+SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
+  bash tools/clear_ingest_prefix.sh --yes        # execute
+```
+
 The script is idempotent. On a fresh account it creates the compartment, VCN, Fn app, Function, API Gateway, and ingest bucket in order. On subsequent runs it reuses all existing resources and redeploys only the Function code. The final line shows a resource summary:
 
 ```text
@@ -2192,23 +2205,11 @@ A `workflow_run` envelope fires three routes simultaneously: one exclusive route
 
 List and inspect ingest objects. Both values come from the state file written to the repo root during deployment in step 7.
 
-Before testing, clear any objects left from previous runs:
-
 ```bash
 export OCI_CLI_PROFILE=DEFAULT
 NS="$(jq -r '.bucket.namespace' "state-${NAME_PREFIX}.json")"
 BUCKET="$(jq -r '.bucket.name' "state-${NAME_PREFIX}.json")"
 
-SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
-  bash tools/clear_ingest_prefix.sh --dry-run   # preview deletions
-
-SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
-  bash tools/clear_ingest_prefix.sh --yes        # execute
-```
-
-Then send your test events (§5.9) and list the results:
-
-```bash
 # List newest objects per event prefix.
 SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
   bash tools/list_github_ingest_prefixes.sh --limit 3

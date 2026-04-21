@@ -2182,13 +2182,8 @@ Expected content:
 
 ```json
 {
-  "body": {
-    "test": true,
-    "ts": "test-20260421120000.json"
-  },
-  "source_meta": {
-    "file_name": "test-20260421120000.json"
-  }
+  "test": true,
+  "ts": "test-20260421120000.json"
 }
 ```
 
@@ -2220,14 +2215,10 @@ Expected content:
 
 ```json
 {
-  "body": {
-    "zen": "Non-blocking is better than blocking.",
-    "hook_id": 1,
-    "hook": { "type": "Repository", "id": 1, "name": "web", "active": true, "events": ["push"] },
-    "repository": { "id": 42, "name": "SLI_tracker", "full_name": "acme/SLI_tracker" }
-  },
-  "headers": { "X-GitHub-Event": "ping" },
-  "source_meta": { "file_name": "ping-20260421120000.json" }
+  "zen": "Non-blocking is better than blocking.",
+  "hook_id": 1,
+  "hook": { "type": "Repository", "id": 1, "name": "web", "active": true, "events": ["push"] },
+  "repository": { "id": 42, "name": "SLI_tracker", "full_name": "acme/SLI_tracker" }
 }
 ```
 
@@ -2266,23 +2257,19 @@ Expected content:
 
 ```json
 {
-  "body": {
-    "action": "completed",
-    "workflow_run": {
-      "id": 1001,
-      "name": "CI",
-      "status": "completed",
-      "conclusion": "success",
-      "event": "push",
-      "head_branch": "main",
-      "head_sha": "deadbeef",
-      "created_at": "2026-04-21T11:55:00Z",
-      "updated_at": "2026-04-21T12:00:00Z"
-    },
-    "repository": { "id": 42, "name": "SLI_tracker", "full_name": "acme/SLI_tracker" }
+  "action": "completed",
+  "workflow_run": {
+    "id": 1001,
+    "name": "CI",
+    "status": "completed",
+    "conclusion": "success",
+    "event": "push",
+    "head_branch": "main",
+    "head_sha": "deadbeef",
+    "created_at": "2026-04-21T11:55:00Z",
+    "updated_at": "2026-04-21T12:00:00Z"
   },
-  "headers": { "X-GitHub-Event": "workflow_run" },
-  "source_meta": { "file_name": "wf-20260421120000.json" }
+  "repository": { "id": 42, "name": "SLI_tracker", "full_name": "acme/SLI_tracker" }
 }
 ```
 

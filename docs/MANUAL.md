@@ -67,6 +67,7 @@ The editable source is [`model/model.drawio`](../model/model.drawio).
       - [Run the batch](#run-the-batch)
       - [Inspect the output](#inspect-the-output)
     - [5.7 Route with Routing Definition and Mappings from OCI Object Storage](#57-route-with-routing-definition-and-mappings-from-oci-object-storage)
+      - [Create the bucket](#create-the-bucket)
       - [Upload the routing definition to the bucket](#upload-the-routing-definition-to-the-bucket)
       - [Upload the mapping to the bucket](#upload-the-mapping-to-the-bucket)
       - [Run the CLI with bucket routing](#run-the-cli-with-bucket-routing)
@@ -1807,16 +1808,19 @@ Create a dedicated OCI Object Storage bucket for this step using `oci_scaffold`.
 export OCI_CLI_PROFILE=DEFAULT
 export NAME_PREFIX="sli-step6"
 
-# Source oci_scaffold from repo root; STATE_FILE → ./state-${NAME_PREFIX}.json
+# Remove any leftover state file from a previous run to guarantee a clean start.
+rm -f "state-${NAME_PREFIX}.json"
+
+# Source oci_scaffold from repo root; STATE_FILE goes to ./state-${NAME_PREFIX}.json
 source oci_scaffold/do/oci_scaffold.sh
 
-_state_set '.inputs.name_prefix'      "$NAME_PREFIX"
-_state_set '.inputs.compartment_path' "/SLI_tracker"
+_state_set .inputs.name_prefix      "$NAME_PREFIX"
+_state_set .inputs.compartment_path "/SLI_tracker"
 
 bash oci_scaffold/resource/ensure-compartment.sh
 bash oci_scaffold/resource/ensure-bucket.sh
 
-BUCKET="$(_state_get '.bucket.name')"
+BUCKET="$(_state_get .bucket.name)"
 echo "Bucket: $BUCKET"
 ```
 

@@ -2054,7 +2054,7 @@ Set the deployment name and OCI targets. Each variable has a working default; ch
 
 ```bash
 # Unique prefix for all OCI resources created by this deployment.
-# A state file oci_scaffold/state-<NAME_PREFIX>.json is written after each run.
+# A state file state-<NAME_PREFIX>.json is written in the repo root after each run.
 export NAME_PREFIX="sli-router-passthrough-dev"
 
 # OCI compartment path where resources are created.
@@ -2062,7 +2062,7 @@ export SLI_COMPARTMENT_PATH="/SLI_tracker"
 
 # Fn function name and source directory (relative to oci_scaffold/).
 export FN_FUNCTION_NAME="router_passthrough"
-export FN_FUNCTION_SRC_DIR="../fn/router_passthrough"
+export FN_FUNCTION_SRC_DIR="fn/router_passthrough"
 
 # Create the ingest bucket automatically if it does not exist.
 export FN_ROUTER_AUTO_INGEST_BUCKET=true
@@ -2096,7 +2096,7 @@ Summary: 2 CREATED, 14 EXISTING, 2 TESTED, 0 FAILED
 After a successful run the state file holds the full API Gateway deployment endpoint. Inspect the relevant fields:
 
 ```bash
-STATE_FILE="oci_scaffold/state-${NAME_PREFIX}.json"
+STATE_FILE="state-${NAME_PREFIX}.json"
 cat "$STATE_FILE" | jq '{endpoint: .apigw_deployment.endpoint, bucket: .bucket.name, namespace: .bucket.namespace}'
 ```
 
@@ -2219,7 +2219,7 @@ The body should be the original `workflow_run` payload. It is written as-is by t
 `validate_router_ingest_and_metrics.sh` reads the state file, lists recent ingest objects, and queries OCI Monitoring for `github_actions.workflow_run_result` datapoints over the last N minutes.
 
 ```bash
-SLI_OCI_STATE_FILE="oci_scaffold/state-${NAME_PREFIX}.json" \
+SLI_OCI_STATE_FILE="state-${NAME_PREFIX}.json" \
   bash tools/validate_router_ingest_and_metrics.sh --minutes 45 --limit 5
 ```
 
@@ -2235,7 +2235,7 @@ If the `workflow_run` POST from step 7 has propagated, you should see at least o
 To open OCI Monitoring and inspect the metric interactively:
 
 ```bash
-REGION="$(jq -r '.inputs.oci_region // empty' "oci_scaffold/state-${NAME_PREFIX}.json")"
+REGION="$(jq -r '.inputs.oci_region // empty' "state-${NAME_PREFIX}.json")"
 echo "Open OCI Metric Explorer: https://cloud.oracle.com/monitoring/explore?region=${REGION}"
 ```
 
@@ -2328,7 +2328,7 @@ NAME_PREFIX="sli-router-passthrough-dev" \
   bash tools/teardown_router_apigw_stack.sh
 ```
 
-The script reads `oci_scaffold/state-${NAME_PREFIX}.json` to locate the resources, then calls `oci_scaffold/do/teardown.sh`. The OCI Object Storage bucket and its contents are not deleted by default — only the compute and networking resources.
+The script reads `state-${NAME_PREFIX}.json` to locate the resources, then calls `oci_scaffold/do/teardown.sh`. The OCI Object Storage bucket and its contents are not deleted by default — only the compute and networking resources.
 
 **Ingest prefix cleanup** — removes objects from the `ingest/` tree in the bucket without touching the router configuration under `config/`:
 
@@ -2378,7 +2378,7 @@ Run it locally:
 
 ```bash
 export OCI_CLI_PROFILE=DEFAULT
-export COMPARTMENT_OCID="$(jq -r '.compartment.ocid' "oci_scaffold/state-${NAME_PREFIX}.json")"
+export COMPARTMENT_OCID="$(jq -r '.compartment.ocid' "state-${NAME_PREFIX}.json")"
 
 bash tools/sli_ratio_simulator.sh
 ```
@@ -2410,7 +2410,7 @@ Core files:
 
 ```bash
 OCI_CLI_PROFILE=DEFAULT \
-SLI_OCI_STATE_FILE="oci_scaffold/state-${NAME_PREFIX}.json" \
+SLI_OCI_STATE_FILE="state-${NAME_PREFIX}.json" \
   bash tools/list_monitoring_metrics.sh --limit 20
 ```
 

@@ -1808,9 +1808,6 @@ Create a dedicated OCI Object Storage bucket for this step using `oci_scaffold`.
 export OCI_CLI_PROFILE=DEFAULT
 export NAME_PREFIX="sli-step6"
 
-# Remove any leftover state file from a previous run to guarantee a clean start.
-rm -f "state-${NAME_PREFIX}.json"
-
 # Source oci_scaffold from repo root; STATE_FILE goes to ./state-${NAME_PREFIX}.json
 source oci_scaffold/do/oci_scaffold.sh
 

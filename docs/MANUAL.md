@@ -2413,6 +2413,31 @@ SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
 
 Pass `--dir github/workflow_run` to limit deletion to one event prefix, or `--recursive` to include nested paths. Use this between test runs to avoid mixing ingest objects across sessions.
 
+**Bucket and compartment teardown** — the inverse of the `ensure-bucket.sh` + `ensure-compartment.sh` calls in §5.7. Empties the bucket (all objects including `config/`), deletes the bucket, then deletes the compartment:
+
+```bash
+export OCI_CLI_PROFILE=DEFAULT
+export NAME_PREFIX="sli-router-passthrough-dev"
+source oci_scaffold/do/oci_scaffold.sh
+
+NS="$(_state_get '.bucket.namespace')"
+BUCKET="$(_state_get '.bucket.name')"
+
+# Delete all objects — ingest/ and config/ trees
+oci os object bulk-delete \
+  --namespace-name "$NS" \
+  --bucket-name "$BUCKET" \
+  --force
+
+# Delete the now-empty bucket
+bash oci_scaffold/resource/teardown-bucket.sh
+
+# Delete the compartment created by ensure-compartment.sh
+bash oci_scaffold/resource/teardown-compartment.sh
+```
+
+The compartment must be empty (no child resources) before OCI will delete it. Run the full stack teardown first to ensure the Fn app, API Gateway, and networking resources are removed.
+
 ## 6. SLI Calculation
 
 `sli_compute_sli_metrics.js` queries OCI Monitoring for `workflow_run_result` datapoints over a rolling window, then computes `success / total` and publishes the ratio back as a derived SLI metric.

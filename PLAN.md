@@ -434,3 +434,5 @@ Backlog Items:
 * SLI-57. MANUAL.md: document OCI Object Storage as a routing source
 * SLI-58. MANUAL.md: document test suites (unit, integration, smoke)
 * SLI-59. MANUAL.md: document test-oci-profile-setup.yml CI workflow
+* SLI-62. MANUAL.md: dead-letter training section in §5.10
+* SLI-63. MANUAL.md: pit-stop clean-slate section at start of §5.8

@@ -426,6 +426,14 @@ The router loads its routing definition, mappings, and input envelopes through t
 
 Test: routing definition, mapping, and envelopes each loaded from OCI Object Storage produce the same delivery result as when loaded from the local filesystem.
 
+### SLI-62. MANUAL.md: dead-letter training section in §5.10
+
+Add a hands-on training exercise to §5.10 that deliberately breaks `config/passthrough.jsonata` in OCI Object Storage, sends a generic POST to the deployed router, and shows the resulting dead-letter object in `ingest/dead_letter/`. The section must include: the upload-broken-mapping command, the curl send, the expected `{"status":"dead_letter",...}` response, listing and fetching the dead-letter object with the known key (`source_meta.file_name` is preserved), expected dead-letter content (`{error, envelope}`), and the restore command to re-upload the correct mapping.
+
+### SLI-63. MANUAL.md: pit-stop clean-slate section at start of §5.8
+
+Add a pit-stop subsection at the beginning of §5.8 that tears down any previous deployment before starting a new hands-on session. The section should check for an existing state file, clear all ingest objects via `clear_ingest_prefix.sh`, tear down the OCI stack via `teardown_router_apigw_stack.sh`, and delete the state file. Skips gracefully when no previous deployment exists.
+
 ### SLI-61. Compartment path support in oci:// URI scheme
 
 The `oci://` URI scheme introduced in SLI-60 uses bucket name only (`oci://bucket/object-key`) because OCI looks up buckets by name within a namespace/tenancy where names must be unique. Operators in multi-compartment tenancies may want optional compartment path notation for clarity and documentation purposes (`oci://comp1/comp2/bucket/object-key`). This is not required for OCI API calls but improves URI readability and aligns with OCI Console navigation. Applies to both routing definition and mapping source URIs.

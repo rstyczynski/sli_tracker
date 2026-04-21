@@ -82,7 +82,8 @@ The editable source is [`model/model.drawio`](../model/model.drawio).
       - [Generic POST (no GitHub header)](#generic-post-no-github-header)
       - [POST a GitHub ping event](#post-a-github-ping-event)
       - [POST a completed workflow\_run event](#post-a-completed-workflow_run-event)
-    - [5.10 Teardown](#510-teardown)
+    - [5.10 Dead-Letter Training: Trigger a Transform Failure](#510-dead-letter-training-trigger-a-transform-failure)
+    - [5.11 Teardown](#511-teardown)
   - [6. SLI Calculation](#6-sli-calculation)
   - [7. Additional Tools](#7-additional-tools)
     - [7.1 OCI Authentication Profiles](#71-oci-authentication-profiles)
@@ -2040,6 +2041,31 @@ Expected output:
 
 The OCI Function is the live webhook listener. It sits behind an API Gateway, accepts POST requests carrying router envelopes, runs the same routing and mapping logic as the local CLI, and delivers to OCI Object Storage, OCI Monitoring, and OCI Logging. The subsequent sections describe how to use the endpoint created by this deployment, including sending webhooks, verifying ingest in Object Storage, and checking fan-out to OCI Monitoring and Logging.
 
+#### Pit-Stop: Tear Down Any Previous Deployment
+
+Run this before every hands-on session to start from a clean slate. If a previous state file exists, the script removes all ingest objects, tears down the OCI stack, and deletes the state file.
+
+```bash
+export NAME_PREFIX="${NAME_PREFIX:-sli-router-passthrough-dev}"
+STATE_FILE="state-${NAME_PREFIX}.json"
+
+if [[ -f "$STATE_FILE" ]]; then
+  NS="$(jq -r '.bucket.namespace' "$STATE_FILE")"
+  BUCKET="$(jq -r '.bucket.name' "$STATE_FILE")"
+
+  SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
+    bash tools/clear_ingest_prefix.sh --yes
+
+  NAME_PREFIX="$NAME_PREFIX" \
+    bash tools/teardown_router_apigw_stack.sh
+
+  rm -f "$STATE_FILE"
+  echo "Clean slate — ready to deploy."
+else
+  echo "No previous state file — nothing to tear down."
+fi
+```
+
 #### Prerequisites
 
 - OCI authentication configured — `DEFAULT` profile or `SLI_TEST` profile (see §7.1)
@@ -2285,7 +2311,84 @@ Expected content:
 
 A `workflow_run` envelope fires three routes simultaneously: one exclusive route to Object Storage under `ingest/github/workflow_run/`, one fanout route that posts a metric to OCI Monitoring (`github_actions.workflow_run_result`), and one fanout route that writes a log entry to OCI Logging.
 
-### 5.10 Teardown
+### 5.10 Dead-Letter Training: Trigger a Transform Failure
+
+This exercise deliberately breaks the `passthrough.jsonata` mapping in OCI Object Storage to force every route to fail, demonstrating the dead-letter path. The router detects the transform error and writes the original envelope plus the error message to `ingest/dead_letter/` instead of the normal destination.
+
+#### Step 1 — upload a broken mapping
+
+```bash
+echo 'INVALID >>>' > /tmp/broken.jsonata
+oci os object put \
+  --profile DEFAULT \
+  --namespace-name "$NS" \
+  --bucket-name "$BUCKET" \
+  --name "config/passthrough.jsonata" \
+  --file /tmp/broken.jsonata \
+  --force
+```
+
+#### Step 2 — send a test event
+
+```bash
+TS="$(date -u +%Y%m%d%H%M%S)"
+DL_OBJ="deadletter-${TS}.json"
+curl -sS \
+  -H "content-type: application/json" \
+  --data "$(jq -n --arg fn "$DL_OBJ" \
+    '{body: {test: true, ts: $fn}, source_meta: {file_name: $fn}}')" \
+  "$ROUTER_URL" | jq
+```
+
+Expected response — the router reports `dead_letter` status instead of `routed`:
+
+```json
+{
+  "status": "dead_letter",
+  "error": "..."
+}
+```
+
+#### Step 3 — verify the dead-letter object
+
+The router uses `source_meta.file_name` as the object key, so the dead-letter key is predictable.
+
+```bash
+SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
+  bash tools/list_github_ingest_prefixes.sh --limit 1
+
+SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
+  bash tools/get_ingest_object.sh "ingest/dead_letter/${DL_OBJ}" | jq
+```
+
+Expected content — the original envelope plus the routing error:
+
+```json
+{
+  "error": "JSONata evaluation failed: ...",
+  "envelope": {
+    "body": { "test": true, "ts": "deadletter-20260421120000.json" },
+    "source_meta": { "file_name": "deadletter-20260421120000.json" },
+    "headers": {}
+  }
+}
+```
+
+#### Step 4 — restore the mapping
+
+```bash
+oci os object put \
+  --profile DEFAULT \
+  --namespace-name "$NS" \
+  --bucket-name "$BUCKET" \
+  --name "config/passthrough.jsonata" \
+  --file "fn/router_passthrough/passthrough.jsonata" \
+  --force
+```
+
+Resend the same event (§5.9 Generic POST) to confirm the router is healthy again.
+
+### 5.11 Teardown
 
 After finishing the hands-on steps you may want to remove the OCI resources provisioned in step 7. Two scripts handle different scopes.
 

@@ -419,3 +419,35 @@ The project has three test layers under `tests/` — unit tests covering individ
 ### SLI-59. MANUAL.md: document test-oci-profile-setup.yml CI workflow
 
 `.github/workflows/test-oci-profile-setup.yml` validates that the OCI profile setup action works correctly in a CI runner environment. It is relevant to anyone troubleshooting authentication issues but is not mentioned in the manual. Add a brief entry in §5.11 OCI Authentication Profiles explaining what this workflow tests and how to trigger it manually when debugging profile restoration failures.
+
+### SLI-60. Unified source-adapter interface for routing definition and mapping loading
+
+Currently the router uses three different mechanisms to load its three configuration inputs at runtime:
+
+- **Routing definition** (`routing.json`): hardwired to `loadRoutingDefinition(filePath)` — always a local file, no extension point.
+- **Mappings** (JSONata / JSON): a bespoke mapping-source interface (`supports` / `load`) implemented by `oci_object_storage_mapping_source.js`, assembled via `mapping_loader.js`.
+- **Input envelopes (source)**: a proper source-adapter pattern dispatched by `source_loader.js` to `file_source_adapter.js` or `oci_object_storage_source_adapter.js`.
+
+This inconsistency means operators cannot load a routing definition from OCI Object Storage through the CLI or the Function without code changes, and there is no single mental model for "where does this configuration come from?"
+
+Unify all three under one **source-adapter interface** defined in the router core library:
+
+```js
+{
+  async read({ key }): string | object   // fetch raw content by key (path, object name, …)
+}
+```
+
+The core ships two built-in implementations:
+
+- `FileSystemSourceAdapter` — reads from the local filesystem; default for CLI when a plain path is given.
+- `OciObjectStorageSourceAdapter` — reads from an OCI Object Storage bucket; selected when the configuration declares `type: oci_object_storage`.
+
+Routing definition loading, mapping loading, and envelope source loading all go through this interface. `source_loader.js`, `mapping_loader.js`, and `loadRoutingDefinition` are refactored to accept an injected source adapter rather than hard-coding their I/O. The existing `oci_object_storage_mapping_source.js` and `oci_object_storage_source_adapter.js` are replaced by the unified adapter.
+
+CLI and Fn pick the adapter from configuration:
+
+- CLI: `--routing oci://bucket/prefix/routing.json` selects the OCI adapter; a plain file path selects the filesystem adapter.
+- Fn: the Function wrapper injects the adapter configured in the Fn application environment (OCI Object Storage by default for deployed stacks).
+
+Test: given the same routing definition, mapping, and envelope stored in OCI Object Storage, CLI and Fn both execute the routing and produce the same delivery result as when the same files are served from the local filesystem.

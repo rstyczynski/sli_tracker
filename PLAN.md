@@ -401,3 +401,17 @@ Make the router CLI and the deployed OCI Function execute the same routing defin
 Backlog Items:
 
 * SLI-48. Make router CLI and Fn execution use the same universal delivery path
+
+## Sprint 30 - Unified source-adapter interface (SLI-60)
+
+Status: Open
+Mode: Manual
+Test: unit
+Regression: unit
+Regression scope: router
+
+Replace the three inconsistent loading mechanisms (hardwired `loadRoutingDefinition`, bespoke mapping-source interface, source-adapter pattern) with a single source-adapter interface in the router core. Ship two built-in adapters — filesystem and OCI Object Storage — and wire CLI and Fn to select the adapter from configuration, including `--routing oci://bucket/…` support in the CLI.
+
+Backlog Items:
+
+* SLI-60. Unified source-adapter interface for routing definition and mapping loading

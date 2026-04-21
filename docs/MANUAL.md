@@ -1793,7 +1793,7 @@ Batch mode is useful for replaying captured webhook history, testing routing cha
 
 ### 5.7 Step 6 — Route with Routing Definition and Mappings from OCI Object Storage
 
-Steps 1–5 loaded `routing.json` and JSONata mappings from the local filesystem. Before moving to the deployed Function, this step demonstrates the same routing run entirely from OCI Object Storage: the routing definition is supplied as an `oci://` URI, and the mappings are fetched from the bucket at runtime. The operator experience is identical to the local case — the only change is where the files live.
+The previous sections described loading `routing.json` and JSONata mappings from the local filesystem. Before moving to the deployed Function, this section demonstrates the same routing run entirely from OCI Object Storage: the routing definition is supplied as an `oci://` URI, and the mappings are fetched from the bucket at runtime. The operator experience is identical to the local case — the only change is where the files live.
 
 The CLI selects the storage backend from the `--routing` argument. A plain file path uses the local filesystem; an `oci://bucket/object-key` URI uses OCI Object Storage. Mappings follow the same principle: when `routing.json` declares `"mapping": { "type": "oci_object_storage" }`, the mapping files are fetched from the bucket named in the `adapters` block instead of from disk.
 

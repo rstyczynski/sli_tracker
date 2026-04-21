@@ -65,21 +65,26 @@ The editable source is [`model/model.drawio`](../model/model.drawio).
       - [Batch routing](#batch-routing)
       - [Run the batch](#run-the-batch)
       - [Inspect the output](#inspect-the-output)
-    - [5.7 Step 6 — Deploy the Public Router Function](#57-step-6--deploy-the-public-router-function)
+    - [5.7 Step 6 — Route with Routing Definition and Mappings from OCI Object Storage](#57-step-6--route-with-routing-definition-and-mappings-from-oci-object-storage)
+      - [Upload the routing definition to the bucket](#upload-the-routing-definition-to-the-bucket)
+      - [Upload the mapping to the bucket](#upload-the-mapping-to-the-bucket)
+      - [Run the CLI with bucket routing](#run-the-cli-with-bucket-routing)
+      - [Load both routing definition and mappings from the bucket](#load-both-routing-definition-and-mappings-from-the-bucket)
+    - [5.8 Step 7 — Deploy the Public Router Function](#58-step-7--deploy-the-public-router-function)
       - [Prerequisites](#prerequisites)
       - [Configure](#configure)
       - [Deploy](#deploy)
       - [Read the endpoint](#read-the-endpoint)
-    - [5.8 Step 7 — Send a Webhook to the Deployed Function](#58-step-7--send-a-webhook-to-the-deployed-function)
+    - [5.9 Step 8 — Send a Webhook to the Deployed Function](#59-step-8--send-a-webhook-to-the-deployed-function)
       - [Generic POST (no GitHub header)](#generic-post-no-github-header)
       - [POST a GitHub ping event](#post-a-github-ping-event)
       - [POST a completed workflow\_run event](#post-a-completed-workflow_run-event)
-    - [5.9 Step 8 — Verify Ingest in Object Storage](#59-step-8--verify-ingest-in-object-storage)
-    - [5.10 Step 9 — Verify Fan-Out to OCI Monitoring and Logging](#510-step-9--verify-fan-out-to-oci-monitoring-and-logging)
+    - [5.10 Step 9 — Verify Ingest in Object Storage](#510-step-9--verify-ingest-in-object-storage)
+    - [5.11 Step 10 — Verify Fan-Out to OCI Monitoring and Logging](#511-step-10--verify-fan-out-to-oci-monitoring-and-logging)
   - [6. SLI Calculation](#6-sli-calculation)
   - [7. Additional Tools](#7-additional-tools)
     - [7.1 Synthetic Event Generator](#71-synthetic-event-generator)
-    - [5.11 OCI Authentication Profiles](#511-oci-authentication-profiles)
+    - [5.12 OCI Authentication Profiles](#512-oci-authentication-profiles)
       - [The Profile Setup Tool](#the-profile-setup-tool)
         - [Mode 1 — Session (browser-authenticated token)](#mode-1--session-browser-authenticated-token)
         - [Mode 2 — Config profile (API-key based)](#mode-2--config-profile-api-key-based)
@@ -733,10 +738,11 @@ The progression in this chapter is:
 3. route a real GitHub `workflow_run` shape with the project mapping
 4. fan-out one envelope to two file destinations
 5. batch route a directory of envelopes
-6. deploy the public router Function to OCI
-7. send a webhook to the deployed Function
-8. verify ingest in Object Storage
-9. verify fan-out to OCI Monitoring and Logging
+6. route with routing definition and mappings loaded from OCI Object Storage
+7. deploy the public router Function to OCI
+8. send a webhook to the deployed Function
+9. verify ingest in Object Storage
+10. verify fan-out to OCI Monitoring and Logging
 
 ### 5.1 Key Concepts
 
@@ -1747,13 +1753,194 @@ cat "$OUT_DIR/file_system/log_shape/001_workflow_success.json"
 
 Batch mode is useful for replaying captured webhook history, testing routing changes against real data, or back-filling metrics after a routing definition is updated. In production the same approach applies: captured OCI Object Storage payloads can be re-routed through an updated definition without re-invoking the Function.
 
-### 5.7 Step 6 — Deploy the Public Router Function
+### 5.7 Step 6 — Route with Routing Definition and Mappings from OCI Object Storage
 
-The OCI Function is the live webhook listener. It sits behind an API Gateway, accepts POST requests carrying router envelopes, runs the same routing and mapping logic as the local CLI, and delivers to OCI Object Storage, OCI Monitoring, and OCI Logging. Steps 7–10 use the endpoint this step provisions.
+Steps 1–5 loaded `routing.json` and JSONata mappings from the local filesystem. Before moving to the deployed Function, this step demonstrates the same routing run entirely from OCI Object Storage: the routing definition is supplied as an `oci://` URI, and the mappings are fetched from the bucket at runtime. The operator experience is identical to the local case — the only change is where the files live.
+
+The CLI selects the storage backend from the `--routing` argument. A plain file path uses the local filesystem; an `oci://bucket/object-key` URI uses OCI Object Storage. Mappings follow the same principle: when `routing.json` declares `"mapping": { "type": "oci_object_storage" }`, the mapping files are fetched from the bucket named in the `adapters` block instead of from disk.
+
+This step reuses the `SLI_TEST` OCI profile. Make sure it is valid before proceeding — run the setup script from §4.1.2 if the session has expired.
+
+#### Upload the routing definition to the bucket
+
+Start with a working directory and reuse the three-envelope source from step 5:
+
+```bash
+TMP_DIR="$(mktemp -d /tmp/sli_router_oci_source.XXXXXX)"
+SRC_DIR="$TMP_DIR/source"
+OUT_DIR="$TMP_DIR/output"
+mkdir -p "$SRC_DIR"
+
+jq -n --argjson body "$(cat tests/fixtures/github_webhook_samples/workflow_run.json)" \
+  '{"headers": {"X-GitHub-Event": "workflow_run"}, "body": $body}' \
+  > "$SRC_DIR/event.json"
+```
+
+Write a routing definition that references its mapping from an OCI Object Storage bucket. The `mapping` block declares the backend type; the matching entry in `adapters` supplies the bucket name and prefix where the mapping files live:
+
+```bash
+BUCKET="$(jq -r '.bucket.name' "oci_scaffold/state-${NAME_PREFIX}.json")"
+
+cat > "$TMP_DIR/routing.json" <<EOF
+{
+  "mapping": {
+    "type": "oci_object_storage",
+    "name": "mappings"
+  },
+  "adapters": {
+    "oci_object_storage:mappings": {
+      "bucket": "${BUCKET}",
+      "prefix": "config/"
+    },
+    "file_system:output": {}
+  },
+  "routes": [
+    {
+      "id": "workflow_run_log_shape",
+      "match": { "headers": { "X-GitHub-Event": "workflow_run" } },
+      "transform": { "mapping": "github_workflow_run_to_oci_log.jsonata" },
+      "destination": { "type": "file_system", "name": "output" }
+    }
+  ]
+}
+EOF
+cat "$TMP_DIR/routing.json"
+```
+
+Upload the routing definition to the bucket:
+
+```bash
+export OCI_CLI_PROFILE=SLI_TEST
+NS="$(jq -r '.bucket.namespace' "oci_scaffold/state-${NAME_PREFIX}.json")"
+
+oci os object put \
+  --namespace-name "$NS" \
+  --bucket-name "$BUCKET" \
+  --name "config/routing.json" \
+  --file "$TMP_DIR/routing.json" \
+  --force
+```
+
+Expected output:
+
+```json
+{
+  "etag": "...",
+  "last-modified": "...",
+  "opc-content-md5": "..."
+}
+```
+
+#### Upload the mapping to the bucket
+
+The routing definition references `github_workflow_run_to_oci_log.jsonata` under the `config/` prefix. Upload the project mapping from the `tools/mappings/` directory:
+
+```bash
+oci os object put \
+  --namespace-name "$NS" \
+  --bucket-name "$BUCKET" \
+  --name "config/github_workflow_run_to_oci_log.jsonata" \
+  --file "tools/mappings/github_workflow_run_to_oci_log.jsonata" \
+  --force
+```
+
+Verify both objects are present:
+
+```bash
+oci os object list \
+  --namespace-name "$NS" \
+  --bucket-name "$BUCKET" \
+  --prefix "config/" \
+  --query 'data[].name' \
+  --output table
+```
+
+```text
++---------------------------------------------------+
+| Column1                                           |
++---------------------------------------------------+
+| config/github_workflow_run_to_oci_log.jsonata     |
+| config/routing.json                               |
++---------------------------------------------------+
+```
+
+#### Run the CLI with bucket routing
+
+Pass the routing definition as an `oci://` URI. The CLI parses the URI, constructs an OCI Object Storage content source adapter using the `SLI_TEST` profile, and fetches `routing.json` from the bucket before processing the envelope:
+
+```bash
+node tools/json_router_cli.js \
+  --routing "oci://${BUCKET}/config/routing.json" \
+  --input "$SRC_DIR/event.json" \
+  --pretty
+```
+
+The routing definition is fetched from the bucket; the mapping `config/github_workflow_run_to_oci_log.jsonata` is also fetched from the bucket because `routing.json` declared `mapping.type = oci_object_storage`. The output is identical to running the same definition from the local filesystem:
+
+```json
+{
+  "processed": 1,
+  "results": [
+    {
+      "route": "workflow_run_log_shape",
+      "destination": "file_system/output",
+      "output": {
+        "logEntryBatches": [
+          {
+            "defaultlogentrytime": "...",
+            "entries": [
+              {
+                "data": {
+                  "outcome":  "success",
+                  "workflow": "CI",
+                  "run_id":   "1001",
+                  "branch":   "main",
+                  "sha":      "deadbeef",
+                  "repo":     "acme/SLI_tracker",
+                  "event":    "github_workflow_run"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+#### Load both routing definition and mappings from the bucket
+
+The two OCI source capabilities are independent and composable:
+
+| `--routing` argument | Routing definition source | Mapping source |
+| --- | --- | --- |
+| `./routing.json` | local filesystem | determined by `routing.json` content |
+| `oci://bucket/config/routing.json` | OCI Object Storage | determined by `routing.json` content |
+| either, with `mapping.type = oci_object_storage` in routing.json | as above | OCI Object Storage |
+| either, with `mapping: "./mappings/"` in routing.json | as above | local filesystem |
+
+The example above already uses both: `--routing oci://...` fetches the definition, and the definition's `mapping.type = oci_object_storage` fetches the mapping. No code changes are needed to switch a working local setup to a fully bucket-backed one — update the `--routing` flag and set the bucket in `routing.json`.
+
+To confirm the mapping was really fetched from the bucket and not from disk, remove the local copy and re-run:
+
+```bash
+# No local copy of the mapping — only the bucket version exists.
+node tools/json_router_cli.js \
+  --routing "oci://${BUCKET}/config/routing.json" \
+  --input "$SRC_DIR/event.json" \
+  --pretty
+```
+
+The command succeeds, proving both files were fetched from OCI Object Storage. The local filesystem was not consulted for either the routing definition or the mapping.
+
+### 5.8 Step 7 — Deploy the Public Router Function
+
+The OCI Function is the live webhook listener. It sits behind an API Gateway, accepts POST requests carrying router envelopes, runs the same routing and mapping logic as the local CLI, and delivers to OCI Object Storage, OCI Monitoring, and OCI Logging. Steps 8–11 use the endpoint this step provisions.
 
 #### Prerequisites
 
-- OCI authentication configured — `DEFAULT` profile or `SLI_TEST` profile (see §5.13)
+- OCI authentication configured — `DEFAULT` profile or `SLI_TEST` profile (see §5.12)
 - `fn` CLI installed: `brew install fn` on macOS; on Linux follow the [Fn Project install guide](https://fnproject.io/tutorials/install/); not supported on Windows
 - Docker daemon running — the `fn` CLI builds the Function image with Docker
 - `oci_scaffold` submodule initialized: `git submodule update --init`
@@ -1832,7 +2019,7 @@ Router endpoint: https://c3sveicofz474hz3mrhyj2cucm.apigateway.eu-zurich-1.oci.c
 
 Keep `NAME_PREFIX`, `STATE_FILE`, and `ROUTER_URL` exported — steps 8–10 read from the same state file and post to the same endpoint.
 
-### 5.8 Step 7 — Send a Webhook to the Deployed Function
+### 5.9 Step 8 — Send a Webhook to the Deployed Function
 
 The Function accepts a JSON envelope with `headers`, `body`, and optional `source_meta`. This is the same envelope structure used by the local CLI.
 
@@ -1888,7 +2075,7 @@ curl -sS -w "\nHTTP %{http_code}\n" \
 
 A `workflow_run` envelope fires three routes simultaneously: one exclusive route to Object Storage under `ingest/github/workflow_run/`, one fanout route that posts a metric to OCI Monitoring (`github_actions.workflow_run_result`), and one fanout route that writes a log entry to OCI Logging.
 
-### 5.9 Step 8 — Verify Ingest in Object Storage
+### 5.10 Step 9 — Verify Ingest in Object Storage
 
 Read the bucket namespace and name from the state file, then list and inspect ingest objects.
 
@@ -1914,7 +2101,7 @@ SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
 
 The body should be the original `workflow_run` payload. It is written as-is by the `passthrough.jsonata` mapping (`$`), which is correct for the archive route. The transformed shapes (log entry, metric payload) go to Logging and Monitoring via the fanout routes, not to Object Storage.
 
-### 5.10 Step 9 — Verify Fan-Out to OCI Monitoring and Logging
+### 5.11 Step 10 — Verify Fan-Out to OCI Monitoring and Logging
 
 `validate_router_ingest_and_metrics.sh` reads the state file, lists recent ingest objects, and queries OCI Monitoring for `github_actions.workflow_run_result` datapoints over the last N minutes.
 
@@ -2003,7 +2190,7 @@ Core files:
 - [`tools/sli_ratio_simulator.sh`](../tools/sli_ratio_simulator.sh)
 - [`.github/workflows/sli_ratio_simulator.yml`](../.github/workflows/sli_ratio_simulator.yml)
 
-### 5.11 OCI Authentication Profiles
+### 5.12 OCI Authentication Profiles
 
 This project uses two named OCI profiles:
 

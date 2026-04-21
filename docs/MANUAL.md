@@ -2158,20 +2158,21 @@ A payload without an `X-GitHub-Event` header routes to the `no_github_event` buc
 
 ```bash
 TS="$(date -u +%Y%m%d%H%M%S)"
+GENERIC_OBJ="test-${TS}.json"
 curl -sS -w "\nHTTP %{http_code}\n" \
   -H "content-type: application/json" \
-  --data "$(jq -n --arg fn "test-${TS}.json" \
+  --data "$(jq -n --arg fn "$GENERIC_OBJ" \
     '{body: {test: true, ts: $fn}, source_meta: {file_name: $fn}}')" \
   "$ROUTER_URL"
 ```
 
 Expected response: `{"status":"routed","deliveries":[...]}` with HTTP 200. On a cold system the first request may take up to 30 seconds while the Fn instance warms up — subsequent calls are fast.
 
-Verify the object landed in the bucket:
+Verify — the file lands at `ingest/no_github_event/${GENERIC_OBJ}`:
 
 ```bash
 SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
-  bash tools/list_github_ingest_prefixes.sh --limit 1
+  bash tools/get_ingest_object.sh "ingest/no_github_event/${GENERIC_OBJ}" | jq
 ```
 
 #### POST a GitHub ping event
@@ -2188,11 +2189,11 @@ curl -sS -w "\nHTTP %{http_code}\n" \
   "$ROUTER_URL"
 ```
 
-Verify the object landed in the bucket:
+Verify — the file lands at `ingest/github/ping/${PING_OBJ}`:
 
 ```bash
 SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
-  bash tools/list_github_ingest_prefixes.sh --limit 1
+  bash tools/get_ingest_object.sh "ingest/github/ping/${PING_OBJ}" | jq
 ```
 
 #### POST a completed workflow_run event
@@ -2216,15 +2217,11 @@ curl -sS -w "\nHTTP %{http_code}\n" \
   "$ROUTER_URL"
 ```
 
-Verify the object landed in the bucket and inspect its body:
+Verify — the file lands at `ingest/github/workflow_run/${WF_OBJ}`:
 
 ```bash
 SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
-  bash tools/list_github_ingest_prefixes.sh --limit 1
-
-OBJECT_KEY="ingest/github/workflow_run/${WF_OBJ}"
-SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
-  bash tools/get_ingest_object.sh "$OBJECT_KEY" | jq
+  bash tools/get_ingest_object.sh "ingest/github/workflow_run/${WF_OBJ}" | jq
 ```
 
 The body should be the original `workflow_run` payload written as-is by `passthrough.jsonata`.

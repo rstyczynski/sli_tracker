@@ -1974,7 +1974,7 @@ The command succeeds, proving both files were fetched from OCI Object Storage. T
 
 ### 5.8 Step 7 — Deploy the Public Router Function
 
-The OCI Function is the live webhook listener. It sits behind an API Gateway, accepts POST requests carrying router envelopes, runs the same routing and mapping logic as the local CLI, and delivers to OCI Object Storage, OCI Monitoring, and OCI Logging. Steps 8–11 use the endpoint this step provisions.
+The OCI Function is the live webhook listener. It sits behind an API Gateway, accepts POST requests carrying router envelopes, runs the same routing and mapping logic as the local CLI, and delivers to OCI Object Storage, OCI Monitoring, and OCI Logging. The subsequent sections describe how to use the endpoint created by this deployment, including sending webhooks, verifying ingest in Object Storage, and checking fan-out to OCI Monitoring and Logging.
 
 #### Prerequisites
 

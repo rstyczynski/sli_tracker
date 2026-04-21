@@ -44,44 +44,44 @@ The editable source is [`model/model.drawio`](../model/model.drawio).
     - [4.6 Model Workflow Library](#46-model-workflow-library)
   - [5. Router and Ingest Hands-On](#5-router-and-ingest-hands-on)
     - [5.1 Key Concepts](#51-key-concepts)
-    - [5.2 Step 1 — Transform a Document with JSONata](#52-step-1--transform-a-document-with-jsonata)
+    - [5.2 Transform a Document with JSONata](#52-transform-a-document-with-jsonata)
       - [Inline expression from stdin](#inline-expression-from-stdin)
       - [Transform with a real project mapping](#transform-with-a-real-project-mapping)
-    - [5.3 Step 2 — Route One Envelope to a File](#53-step-2--route-one-envelope-to-a-file)
+    - [5.3 Route One Envelope to a File](#53-route-one-envelope-to-a-file)
       - [The mapping](#the-mapping)
       - [The route](#the-route)
       - [The envelope](#the-envelope)
       - [Route from stdin](#route-from-stdin)
       - [Route from a file](#route-from-a-file)
       - [Adapter label and write location](#adapter-label-and-write-location)
-    - [5.4 Step 3 — Route a GitHub Webhook with a Real Mapping](#54-step-3--route-a-github-webhook-with-a-real-mapping)
-    - [5.5 Step 4 — Fan-Out One Envelope to Two Destinations](#55-step-4--fan-out-one-envelope-to-two-destinations)
+    - [5.4 Route a GitHub Webhook with a Real Mapping](#54-route-a-github-webhook-with-a-real-mapping)
+    - [5.5 Fan-Out One Envelope to Two Destinations](#55-fan-out-one-envelope-to-two-destinations)
       - [The fixture](#the-fixture)
       - [The mappings](#the-mappings)
       - [The routing](#the-routing)
       - [Fan-out from stdin](#fan-out-from-stdin)
-    - [5.6 Step 5 — Batch Route a Source Directory](#56-step-5--batch-route-a-source-directory)
+    - [5.6 Batch Route a Source Directory](#56-batch-route-a-source-directory)
       - [The source envelopes](#the-source-envelopes)
       - [Batch mappings](#batch-mappings)
       - [Batch routing](#batch-routing)
       - [Run the batch](#run-the-batch)
       - [Inspect the output](#inspect-the-output)
-    - [5.7 Step 6 — Route with Routing Definition and Mappings from OCI Object Storage](#57-step-6--route-with-routing-definition-and-mappings-from-oci-object-storage)
+    - [5.7 Route with Routing Definition and Mappings from OCI Object Storage](#57-route-with-routing-definition-and-mappings-from-oci-object-storage)
       - [Upload the routing definition to the bucket](#upload-the-routing-definition-to-the-bucket)
       - [Upload the mapping to the bucket](#upload-the-mapping-to-the-bucket)
       - [Run the CLI with bucket routing](#run-the-cli-with-bucket-routing)
       - [Load both routing definition and mappings from the bucket](#load-both-routing-definition-and-mappings-from-the-bucket)
-    - [5.8 Step 7 — Deploy the Public Router Function](#58-step-7--deploy-the-public-router-function)
+    - [5.8 Deploy the Public Router Function](#58-deploy-the-public-router-function)
       - [Prerequisites](#prerequisites)
       - [Configure](#configure)
       - [Deploy](#deploy)
       - [Read the endpoint](#read-the-endpoint)
-    - [5.9 Step 8 — Send a Webhook to the Deployed Function](#59-step-8--send-a-webhook-to-the-deployed-function)
+    - [5.9 Send a Webhook to the Deployed Function](#59-send-a-webhook-to-the-deployed-function)
       - [Generic POST (no GitHub header)](#generic-post-no-github-header)
       - [POST a GitHub ping event](#post-a-github-ping-event)
       - [POST a completed workflow\_run event](#post-a-completed-workflow_run-event)
-    - [5.10 Step 9 — Verify Ingest in Object Storage](#510-step-9--verify-ingest-in-object-storage)
-    - [5.11 Step 10 — Verify Fan-Out to OCI Monitoring and Logging](#511-step-10--verify-fan-out-to-oci-monitoring-and-logging)
+    - [5.10 Verify Ingest in Object Storage](#510-verify-ingest-in-object-storage)
+    - [5.11 Verify Fan-Out to OCI Monitoring and Logging](#511-verify-fan-out-to-oci-monitoring-and-logging)
     - [5.12 OCI Authentication Profiles](#512-oci-authentication-profiles)
       - [The Profile Setup Tool](#the-profile-setup-tool)
         - [Mode 1 — Session (browser-authenticated token)](#mode-1--session-browser-authenticated-token)
@@ -815,7 +815,7 @@ Core files:
 - [`fn/router_passthrough/func.js`](../fn/router_passthrough/func.js) — OCI Function entry point using the same shared libraries
 - [`tools/schemas/json_router_definition.schema.json`](../tools/schemas/json_router_definition.schema.json) — JSON Schema for `routing.json`; validated on every load
 
-### 5.2 Step 1 — Transform a Document with JSONata
+### 5.2 Transform a Document with JSONata
 
 `json_transform_cli.js` applies one JSONata mapping to one JSON document. There is no routing and no OCI at this step. It is the right tool to debug a mapping expression in isolation before connecting it to a route.
 
@@ -929,7 +929,7 @@ Expected output (`defaultlogentrytime` reflects the current time):
 
 This is the exact shape the OCI Logging adapter expects when the same mapping runs inside the router.
 
-### 5.3 Step 2 — Route One Envelope to a File
+### 5.3 Route One Envelope to a File
 
 The simplest router case: one route, one `file_system` destination, no OCI.
 
@@ -1173,7 +1173,7 @@ The route uses the label `"name": "audit_copy"`. Without an explicit adapter ent
 
 The route definition stays unchanged. Only the adapter block controls where data lands, which is the same mechanism used later when switching from local files to OCI Object Storage.
 
-### 5.4 Step 3 — Route a GitHub Webhook with a Real Mapping
+### 5.4 Route a GitHub Webhook with a Real Mapping
 
 Use the project's actual `workflow_run` fixture and the OCI Logging mapping. The route matches on the `X-GitHub-Event` header. Inspect the input fixture first:
 
@@ -1305,7 +1305,7 @@ Note that the mapping reads `workflow_run.conclusion` directly — not `body.wor
 
 The project ships a second built-in mapping for general health-check payloads. [`tools/mappings/health_to_oci_metric.jsonata`](../tools/mappings/health_to_oci_metric.jsonata) converts a body of the form `{"status": "UP"}` into an OCI Monitoring metric datapoint under namespace `sli_tracker`, metric name `health_status`, with value `1` for UP and `0` for anything else. It follows the same JSONata pattern as the workflow mapping and can be wired to any route that receives health-check bodies.
 
-### 5.5 Step 4 — Fan-Out One Envelope to Two Destinations
+### 5.5 Fan-Out One Envelope to Two Destinations
 
 A single envelope can trigger multiple routes simultaneously. `exclusive` mode means at most one exclusive route fires; `fanout` routes fire alongside that exclusive match. This step reproduces the production pattern for `workflow_run`: the same event is archived raw by the exclusive route and transformed into an OCI Logging shape by the fanout route — two deliveries, one envelope.
 
@@ -1531,7 +1531,7 @@ cat "$TMP_DIR/file_system/log_shape/"*.json | jq
 
 In production the two file destinations are replaced by OCI Object Storage (raw archive under `ingest/github/workflow_run/`) and OCI Logging (structured log entry). The routing definition and both mappings are identical — only the adapter targets change.
 
-### 5.6 Step 5 — Batch Route a Source Directory
+### 5.6 Batch Route a Source Directory
 
 Batch mode reads every envelope file from a source directory, runs each through the routing definition, and writes results into an output tree. It is the offline equivalent of the live Function: the same routing logic, the same mappings, applied to a collection of captured payloads in one pass.
 
@@ -1791,7 +1791,7 @@ cat "$OUT_DIR/file_system/log_shape/001_workflow_success.json"
 
 Batch mode is useful for replaying captured webhook history, testing routing changes against real data, or back-filling metrics after a routing definition is updated. In production the same approach applies: captured OCI Object Storage payloads can be re-routed through an updated definition without re-invoking the Function.
 
-### 5.7 Step 6 — Route with Routing Definition and Mappings from OCI Object Storage
+### 5.7 Route with Routing Definition and Mappings from OCI Object Storage
 
 The previous sections described loading `routing.json` and JSONata mappings from the local filesystem. Before moving to the deployed Function, this section demonstrates the same routing run entirely from OCI Object Storage: the routing definition is supplied as an `oci://` URI, and the mappings are fetched from the bucket at runtime. The operator experience is identical to the local case — the only change is where the files live.
 
@@ -1972,7 +1972,7 @@ node tools/json_router_cli.js \
 
 The command succeeds, proving both files were fetched from OCI Object Storage. The local filesystem was not consulted for either the routing definition or the mapping.
 
-### 5.8 Step 7 — Deploy the Public Router Function
+### 5.8 Deploy the Public Router Function
 
 The OCI Function is the live webhook listener. It sits behind an API Gateway, accepts POST requests carrying router envelopes, runs the same routing and mapping logic as the local CLI, and delivers to OCI Object Storage, OCI Monitoring, and OCI Logging. The subsequent sections describe how to use the endpoint created by this deployment, including sending webhooks, verifying ingest in Object Storage, and checking fan-out to OCI Monitoring and Logging.
 
@@ -2067,7 +2067,7 @@ SLI_PASSTHROUGH_OBJECT="config/passthrough.jsonata"  # pass-through mapping
 
 See §5.7 for the equivalent CLI workflow using `--routing oci://bucket/config/routing.json`.
 
-### 5.9 Step 8 — Send a Webhook to the Deployed Function
+### 5.9 Send a Webhook to the Deployed Function
 
 The Function accepts a JSON envelope with `headers`, `body`, and optional `source_meta`. This is the same envelope structure used by the local CLI.
 
@@ -2123,7 +2123,7 @@ curl -sS -w "\nHTTP %{http_code}\n" \
 
 A `workflow_run` envelope fires three routes simultaneously: one exclusive route to Object Storage under `ingest/github/workflow_run/`, one fanout route that posts a metric to OCI Monitoring (`github_actions.workflow_run_result`), and one fanout route that writes a log entry to OCI Logging.
 
-### 5.10 Step 9 — Verify Ingest in Object Storage
+### 5.10 Verify Ingest in Object Storage
 
 Read the bucket namespace and name from the state file, then list and inspect ingest objects.
 
@@ -2149,7 +2149,7 @@ SLI_OS_NAMESPACE="$NS" SLI_INGEST_BUCKET="$BUCKET" \
 
 The body should be the original `workflow_run` payload. It is written as-is by the `passthrough.jsonata` mapping (`$`), which is correct for the archive route. The transformed shapes (log entry, metric payload) go to Logging and Monitoring via the fanout routes, not to Object Storage.
 
-### 5.11 Step 10 — Verify Fan-Out to OCI Monitoring and Logging
+### 5.11 Verify Fan-Out to OCI Monitoring and Logging
 
 `validate_router_ingest_and_metrics.sh` reads the state file, lists recent ingest objects, and queries OCI Monitoring for `github_actions.workflow_run_result` datapoints over the last N minutes.
 

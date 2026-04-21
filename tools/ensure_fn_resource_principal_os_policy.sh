@@ -4,8 +4,7 @@
 # Creates a dynamic group matching fnfunc resources in the scaffold compartment and a tenancy
 # policy allowing that group to manage objects in the same compartment.
 #
-# Intended to be run while cwd and STATE_FILE match oci_scaffold (e.g. from
-# tools/cycle_apigw_router_passthrough.sh). Sources oci_scaffold helpers only.
+# Must be run from the project root. STATE_FILE is written to the project root.
 #
 # Reads from state.json:
 #   .inputs.oci_compartment   (required)
@@ -19,7 +18,6 @@
 #   .fn_rp_os.policy.ocid
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$REPO_ROOT/oci_scaffold"
 # shellcheck source=../oci_scaffold/do/oci_scaffold.sh
 source "$REPO_ROOT/oci_scaffold/do/oci_scaffold.sh"
 

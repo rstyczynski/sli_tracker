@@ -2674,22 +2674,25 @@ For time-series values over a window, use `oci monitoring metric-data summarize-
 
 `ensure_dashboard.sh` deploys a pre-built OCI Console dashboard that visualizes three panels: current SLI ratio (30-day rolling), SLI outcome events from OCI Logging, and raw outcome metric over time.
 
-The dashboard template path and all substitution values are read from the state file. The template contains four placeholders substituted at deploy time:
+The dashboard template path and all substitution values are read from the state file. `ensure_dashboard.sh` reads every `.inputs.dashboard_var_*` key and substitutes the corresponding `__KEY__` placeholder in the template, so no variable names are hardcoded in the script.
 
-| Placeholder | State key | Description |
+The project ships a ready-to-use template at [`etc/dashboard_sli_tracker.json`](../etc/dashboard_sli_tracker.json) with four placeholders:
+
+| Placeholder | `.inputs.dashboard_var_*` key | Description |
 | --- | --- | --- |
-| _(template path)_ | `.inputs.dashboard_template` | Path to the JSON template file |
-| `__COMPARTMENT_OCID__` | `.inputs.oci_compartment` | Deployment compartment |
-| `__LOG_GROUP_OCID__` | `.log_group.ocid` | OCI log group for SLI events |
-| `__LOG_OCID__` | `.log.ocid` | OCI log for SLI events |
-| `__REGION_ID__` | home region (OCI API) | OCI region of the deployment |
+| `__COMPARTMENT_OCID__` | `.inputs.dashboard_var_COMPARTMENT_OCID` | Deployment compartment |
+| `__LOG_GROUP_OCID__` | `.inputs.dashboard_var_LOG_GROUP_OCID` | OCI log group for SLI events |
+| `__LOG_OCID__` | `.inputs.dashboard_var_LOG_OCID` | OCI log for SLI events |
+| `__REGION_ID__` | `.inputs.dashboard_var_REGION_ID` | OCI region of the deployment |
 
-The project ships a ready-to-use template at [`etc/dashboard_sli_tracker.json`](../etc/dashboard_sli_tracker.json).
-
-**Prerequisites:** Set `.inputs.dashboard_template` in state and run the oci_scaffold log-resource setup so that `.log_group.ocid` and `.log.ocid` are present alongside `.inputs.oci_compartment` and `.inputs.name_prefix`.
+**Prerequisites:** Set the template path and all substitution variables in state before running the script.
 
 ```bash
-_state_set '.inputs.dashboard_template' "$(pwd)/etc/dashboard_sli_tracker.json"
+_state_set '.inputs.dashboard_template'              "$(pwd)/etc/dashboard_sli_tracker.json"
+_state_set '.inputs.dashboard_var_COMPARTMENT_OCID'  "<compartment-ocid>"
+_state_set '.inputs.dashboard_var_LOG_GROUP_OCID'    "<log-group-ocid>"
+_state_set '.inputs.dashboard_var_LOG_OCID'          "<log-ocid>"
+_state_set '.inputs.dashboard_var_REGION_ID'         "<region-id, e.g. eu-zurich-1>"
 ```
 
 **Deploy the dashboard:**

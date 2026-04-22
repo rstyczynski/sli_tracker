@@ -7,7 +7,7 @@ Sprint parameters (reopened): `Test: unit, integration`, `Regression: none`
 | Gate | Result | Retries | Pass Rate |
 | --- | --- | --- | --- |
 | A2 Unit | PASS | 0 | 100% (18/18) |
-| A3 Integration | PENDING | — | — |
+| A3 Integration | PASS | 1 | 100% (18/18) |
 
 ## Gate Commands
 
@@ -32,6 +32,7 @@ bash tests/integration/test_dashboard.sh 2>&1 | tee "$LOG"
 | Gate | Log File |
 | --- | --- |
 | A2 Unit | `test_run_A2_unit_20260422_212712.log` |
+| A3 Integration | `test_run_A3_integration_20260422_214457.log` |
 
 ## Failures
 

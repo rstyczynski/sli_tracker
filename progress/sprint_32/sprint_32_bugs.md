@@ -4,7 +4,7 @@
 
 **Item:** SLI-64
 **Severity:** high
-**Status:** open
+**Status:** fixed
 
 - **Symptom**: Sprint closed with `Test: none` / `Regression: none`. No unit or integration tests exist for `ensure_dashboard.sh`, `ensure_dashboard_group.sh`, teardown scripts, or `dashboard_var_*` substitution logic. Defects (wrong compartment, empty widget vars) were discovered manually against a live OCI environment — not caught by automated gates.
 - **Root cause**: Sprint was initially marked YOLO with `Test: none` as a shortcut. The substitution guard added post-close (empty/null var detection, unsubstituted placeholder scan) has no test coverage. Integration path (deploy → OCI API → read state → compare) was never defined or executed.

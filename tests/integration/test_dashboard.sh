@@ -101,6 +101,9 @@ echo "=== Setup: initialise test state ==="
 export NAME_PREFIX="$TEST_NAME_PREFIX"
 # shellcheck source=../../oci_scaffold/do/oci_scaffold.sh
 source "$REPO_ROOT/oci_scaffold/do/oci_scaffold.sh"
+# Redefine test assertion helpers — sourcing oci_scaffold overrides them
+_pass() { echo "PASS: $*"; ((passed += 1)) || true; }
+_fail() { echo "FAIL: $*"; ((failed += 1)) || true; }
 
 # Remove any leftover state from previous run
 rm -f "$STATE_FILE_PATH"
@@ -108,6 +111,8 @@ rm -f "$STATE_FILE_PATH"
 _state_set '.inputs.name_prefix'                    "$TEST_NAME_PREFIX"
 _state_set '.inputs.oci_compartment'                "$COMPARTMENT_OCID"
 _state_set '.inputs.dashboard_tiles_file'           "$REPO_ROOT/etc/dashboard_sli_tracker.json"
+_state_set '.inputs.dashboard_group_name'            "${TEST_NAME_PREFIX}-group"
+_state_set '.inputs.dashboard_name'                 "${TEST_NAME_PREFIX}-dashboard"
 _state_set '.inputs.dashboard_var_COMPARTMENT_OCID' "$COMPARTMENT_OCID"
 _state_set '.inputs.dashboard_var_LOG_GROUP_OCID'   "$LOG_GROUP_ID"
 _state_set '.inputs.dashboard_var_LOG_OCID'         "$LOG_ID"
@@ -146,13 +151,13 @@ DEPLOYED="$(_state_get '.dashboard.deployed')"
 assert_eq "$DEPLOYED" "true" "IT-1b: .dashboard.deployed is true"
 
 # Verify name against OCI API
-DASH_NAME_OCI="$(oci dashboard-service dashboard get-dashboard-v1 \
+DASH_NAME_OCI="$(oci dashboard-service dashboard get \
   --dashboard-id "$DASH_OCID" \
   --query 'data."display-name"' --raw-output 2>/dev/null)" || DASH_NAME_OCI=""
 assert_eq "$DASH_NAME_OCI" "${TEST_NAME_PREFIX}-dashboard" "IT-1b: OCI dashboard display-name matches state"
 
 # Verify widgets are non-empty
-WIDGET_COUNT="$(oci dashboard-service dashboard get-dashboard-v1 \
+WIDGET_COUNT="$(oci dashboard-service dashboard get \
   --dashboard-id "$DASH_OCID" \
   --query 'length(data.widgets)' --raw-output 2>/dev/null)" || WIDGET_COUNT="0"
 if [[ "$WIDGET_COUNT" -gt 0 ]]; then _pass "IT-1b: dashboard has $WIDGET_COUNT widget(s)"
@@ -171,6 +176,9 @@ assert_eq "$DASH_OCID2" "$DASH_OCID" "IT-1c: dashboard OCID unchanged on second 
 
 # ── IT-1d: teardown ───────────────────────────────────────────────────────────
 echo "=== IT-1d: teardown ==="
+# Force created=true so teardown scripts delete even if resources were adopted
+_state_set '.dashboard.created'       true
+_state_set '.dashboard_group.created' true
 if bash "$REPO_ROOT/tools/teardown_dashboard.sh"; then
   _pass "IT-1d: teardown_dashboard exited 0"
 else
@@ -184,7 +192,7 @@ else
 fi
 
 # Verify resources are gone (expect OCI CLI to return error or null)
-DASH_GONE="$(oci dashboard-service dashboard get-dashboard-v1 \
+DASH_GONE="$(oci dashboard-service dashboard get \
   --dashboard-id "$DASH_OCID" \
   --query 'data.id' --raw-output 2>/dev/null)" || DASH_GONE=""
 if [[ -z "$DASH_GONE" ]] || [[ "$DASH_GONE" == "null" ]]; then

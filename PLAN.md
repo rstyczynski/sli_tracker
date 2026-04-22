@@ -436,3 +436,17 @@ Backlog Items:
 * SLI-59. MANUAL.md: document test-oci-profile-setup.yml CI workflow
 * SLI-62. MANUAL.md: dead-letter training section in §5.10
 * SLI-63. MANUAL.md: pit-stop clean-slate section at start of §5.8
+
+## Sprint 32 - OCI Console Dashboard (SLI-64, SLI-65)
+
+Status: Progress
+Mode: YOLO
+Test: none
+Regression: none
+
+Deploy an OCI Console dashboard for SLI Tracker metrics and document the deployment procedure in the manual.
+
+Backlog Items:
+
+* SLI-64. OCI Console Dashboard for SLI Tracker
+* SLI-65. MANUAL.md: document OCI Console Dashboard creation

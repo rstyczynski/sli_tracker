@@ -100,6 +100,7 @@ The editable source is [`model/model.drawio`](../model/model.drawio).
       - [Profile Restoration on CI Runners](#profile-restoration-on-ci-runners)
     - [7.2 Synthetic Event Generator](#72-synthetic-event-generator)
     - [7.3 Monitoring Metric Catalog](#73-monitoring-metric-catalog)
+    - [7.4 OCI Console Dashboard](#74-oci-console-dashboard)
   - [8. Test Suites](#8-test-suites)
 
 ## 1. Project Overview
@@ -2668,6 +2669,40 @@ bash tools/list_monitoring_metrics.sh --any-namespace
 ```
 
 For time-series values over a window, use `oci monitoring metric-data summarize-metrics-data` directly (see §3.5) or run `validate_router_ingest_and_metrics.sh` directly.
+
+### 7.4 OCI Console Dashboard
+
+`ensure_dashboard.sh` deploys a pre-built OCI Console dashboard that visualizes the two key SLI Tracker metric series — raw `outcome` event volume and the computed `sli_ratio` — scoped to the project compartment.
+
+The dashboard template is stored in [`etc/dashboard_sli_tracker.json`](../etc/dashboard_sli_tracker.json). On first run, if the template file is empty, the script fetches the config from the project source dashboard and generalizes it (replacing the source compartment OCID with a placeholder), then saves the result back to `etc/dashboard_sli_tracker.json`. Commit that file to keep the template under version control.
+
+**Prerequisites:** The state file for the deployment must contain `.inputs.oci_compartment` and `.inputs.name_prefix` (these are set by the standard oci_scaffold setup steps).
+
+**Deploy the dashboard:**
+
+```bash
+export NAME_PREFIX="<your-prefix>"
+bash tools/ensure_dashboard.sh
+```
+
+The script is idempotent — running it again when the dashboard already exists prints `[existing]` and exits cleanly.
+
+On completion, two OCIDs are recorded in state:
+
+| State key | Value |
+| --- | --- |
+| `.dashboard.group.ocid` | Dashboard group OCID |
+| `.dashboard.ocid` | Dashboard OCID |
+
+**Verify:** Open OCI Console → **Observability & Management → Dashboards** and locate the dashboard named `<NAME_PREFIX>-sli-tracker`. The `outcome` chart shows event counts; the `sli_ratio` chart shows the rolling SLI value written by `sli_compute_sli_metrics.js`.
+
+**Teardown:**
+
+```bash
+bash tools/teardown_dashboard.sh
+```
+
+This deletes the dashboard and its group. The template file in `etc/` is not removed — it can be reused for re-deployment.
 
 ## 8. Test Suites
 

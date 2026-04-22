@@ -90,6 +90,8 @@ The editable source is [`model/model.drawio`](../model/model.drawio).
       - [Step 4 — restore the mapping](#step-4--restore-the-mapping)
     - [5.11 Teardown](#511-teardown)
   - [6. SLI Calculation](#6-sli-calculation)
+    - [6.1 Manual SLI calculator trigger](#61-manual-sli-calculator-trigger)
+    - [6.2 Continous SLI calculator run](#62-continous-sli-calculator-run)
   - [7. Additional Tools](#7-additional-tools)
     - [7.1 OCI Authentication Profiles](#71-oci-authentication-profiles)
       - [The Profile Setup Tool](#the-profile-setup-tool)
@@ -2454,6 +2456,8 @@ outcome[1d].count()   # total events in the window
 
 `SLI = sum / count`. `sli_compute_sli_metrics.js` issues both queries, divides the results, and optionally persists the ratio as a derived `sli_ratio` metric in the same namespace. The metric name, namespace, window length, and resolution are all configurable (`--metric-name`, `--namespace`, `--window-days`, `--mql-resolution`). Dimension filters narrow the query to a specific repository, branch, or workflow name.
 
+### 6.1 Manual SLI calculator trigger
+
 The simplest way to trigger it is via the scheduled GitHub workflow. The workflow authenticates with `SLI_TEST`, queries the metric namespace, and posts the result, so we need to authenticate this session first:
 
 ```bash
@@ -2508,6 +2512,8 @@ Having OCI Metric Explorer open:
 You see a single dot on a chart - it's our computed SLI ratio. Toggle `Show Data Table` to see the data as a number.
 
 SLI computation is performed using [`tools/sli_compute_sli_metrics.js`](../tools/sli_compute_sli_metrics.js), and triggered by a GitHub workflow [`.github/workflows/sli_compute_sli_metrics.yml`](../.github/workflows/sli_compute_sli_metrics.yml). 
+
+### 6.2 Continous SLI calculator run
 
 The workflow is configured with cron to be executed each 30 minutes. However to run in such continous mode it's mandatory to switch from token to key based authentication for GitHub workflows.
 

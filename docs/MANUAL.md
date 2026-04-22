@@ -2452,9 +2452,9 @@ outcome[1d].sum()     # total successes in the window
 outcome[1d].count()   # total events in the window
 ```
 
-`SLI = sum / count`. The window length defaults to **30 days** (`--window-days 30`) and the resolution to **1d** (`--mql-resolution 1d`); both are configurable. Dimension filters narrow the query to a specific repository, branch, or workflow name.
+`SLI = sum / count`. The window length defaults to 30 days (`--window-days 30`) and the resolution to 1d (`--mql-resolution 1d`); both are configurable. Dimension filters narrow the query to a specific repository, branch, or workflow name.
 
-`sli_compute_sli_metrics.js` queries OCI Monitoring for `workflow_run_result` datapoints over a rolling window, then computes `success / total` and publishes the ratio back as a derived SLI metric.
+`sli_compute_sli_metrics.js` queries OCI Monitoring for `outcome` datapoints (namespace `sli_tracker`) over a rolling window, computes `success / total`, and optionally publishes the ratio back as a derived `sli` metric in the same namespace.
 
 The simplest way to trigger it is via the scheduled GitHub workflow. The workflow authenticates with `SLI_TEST`, queries the metric namespace, and posts the result, so we need to authenticate this session first:
 

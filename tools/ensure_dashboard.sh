@@ -154,20 +154,33 @@ if [ -n "$TILES_FILE" ] && [ -f "$TILES_FILE" ]; then
   trap 'rm -f "$_SUBST_TMP"' EXIT
 
   # Build sed args from all .inputs.dashboard_var_* state keys
+  # Fails immediately on empty or null values — a missing value means broken widgets.
   SED_ARGS=()
   while IFS=$'\t' read -r var_name value; do
-    [ -n "$var_name" ] && SED_ARGS+=(-e "s|__${var_name}__|${value}|g")
+    [ -z "$var_name" ] && continue
+    if [ -z "$value" ] || [ "$value" = "null" ]; then
+      _fail "dashboard_var_${var_name} is empty or null — set it in state before deploying"
+      exit 1
+    fi
+    SED_ARGS+=(-e "s|__${var_name}__|${value}|g")
   done < <(jq -r '
     .inputs // {} |
     to_entries[] |
     select(.key | startswith("dashboard_var_")) |
-    [(.key | ltrimstr("dashboard_var_")), .value] |
+    [(.key | ltrimstr("dashboard_var_")), (.value // "")] |
     @tsv' "$STATE_FILE")
 
   if [ ${#SED_ARGS[@]} -gt 0 ]; then
     sed "${SED_ARGS[@]}" "$TILES_FILE" > "$_SUBST_TMP"
   else
     cp "$TILES_FILE" "$_SUBST_TMP"
+  fi
+
+  # Fail if any __KEY__ placeholders remain unsubstituted after sed pass
+  remaining=$(grep -oP '__[A-Z0-9_]+__' "$_SUBST_TMP" | sort -u | tr '\n' ' ') || true
+  if [ -n "$remaining" ]; then
+    _fail "Unsubstituted placeholders remain in tiles file: ${remaining}— add matching .inputs.dashboard_var_* keys to state"
+    exit 1
   fi
 
   # Support OCI Console export format {"widgets":[...]} and plain array [...]

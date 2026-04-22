@@ -434,6 +434,12 @@ Add a hands-on training exercise to §5.10 that deliberately breaks `config/pass
 
 Add a pit-stop subsection at the beginning of §5.8 that tears down any previous deployment before starting a new hands-on session. The section should check for an existing state file, clear all ingest objects via `clear_ingest_prefix.sh`, tear down the OCI stack via `teardown_router_apigw_stack.sh`, and delete the state file. Skips gracefully when no previous deployment exists.
 
+### SLI-64. OCI Console Dashboard for SLI Tracker
+
+Operators have no single-pane view of SLI health. Provide an OCI Console dashboard template that visualizes the key SLI Tracker metrics (outcome events, computed SLI ratio) scoped to the project compartment and log. The template is stored in the project repository and deployed via oci_scaffold so it can be reproduced in any environment from state alone.
+
+Test: running the ensure script creates the dashboard in OCI Console and the dashboard displays live data from the configured compartment and log.
+
 ### SLI-61. Compartment path support in oci:// URI scheme
 
 The `oci://` URI scheme introduced in SLI-60 uses bucket name only (`oci://bucket/object-key`) because OCI looks up buckets by name within a namespace/tenancy where names must be unique. Operators in multi-compartment tenancies may want optional compartment path notation for clarity and documentation purposes (`oci://comp1/comp2/bucket/object-key`). This is not required for OCI API calls but improves URI readability and aligns with OCI Console navigation. Applies to both routing definition and mapping source URIs.

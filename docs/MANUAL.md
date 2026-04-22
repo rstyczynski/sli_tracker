@@ -2685,20 +2685,19 @@ The project ships a ready-to-use template at [`etc/dashboard_sli_tracker.json`](
 | `__LOG_OCID__` | `.inputs.dashboard_var_LOG_OCID` | OCI log for SLI events |
 | `__REGION_ID__` | `.inputs.dashboard_var_REGION_ID` | OCI region of the deployment |
 
-**Prerequisites:** Set the template path and all substitution variables in state before running the script.
+**Deploy the dashboard:**
 
 ```bash
+# NAME_PREFIX must match the prefix used when the OCI resources were created
+export NAME_PREFIX="sli-step6"
+source oci_scaffold/do/oci_scaffold.sh
+
 _state_set '.inputs.dashboard_template'             "$(pwd)/etc/dashboard_sli_tracker.json"
 _state_set '.inputs.dashboard_var_COMPARTMENT_OCID' "$(_state_get '.compartment.ocid')"
 _state_set '.inputs.dashboard_var_LOG_GROUP_OCID'   "$(_state_get '.log_group.ocid')"
 _state_set '.inputs.dashboard_var_LOG_OCID'         "$(_state_get '.log.ocid')"
 _state_set '.inputs.dashboard_var_REGION_ID'        "$(echo "$(_state_get '.log.ocid')" | cut -d. -f4)"
-```
 
-**Deploy the dashboard:**
-
-```bash
-export NAME_PREFIX="<your-prefix>"
 bash tools/ensure_dashboard.sh
 ```
 
@@ -2716,6 +2715,9 @@ On completion, two OCIDs are recorded in state:
 **Teardown:**
 
 ```bash
+export NAME_PREFIX="sli-step6"
+source oci_scaffold/do/oci_scaffold.sh
+
 bash tools/teardown_dashboard.sh
 ```
 

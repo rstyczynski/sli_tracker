@@ -2690,11 +2690,22 @@ The project ships a ready-to-use widget file at [`etc/dashboard_sli_tracker.json
 export NAME_PREFIX="sli-step6"
 source oci_scaffold/do/oci_scaffold.sh
 
-_state_set '.inputs.dashboard_tiles_file'           "$(pwd)/etc/dashboard_sli_tracker.json"
+# Widget file
+_state_set '.inputs.dashboard_tiles_file' "$(pwd)/etc/dashboard_sli_tracker.json"
+
+# Compartment for the dashboard group — must be set explicitly for ensure_dashboard_group.sh
+_state_set '.inputs.oci_compartment' "$(_state_get '.compartment.ocid')"
+
+# Widget placeholder values — log OCIDs come from GitHub Actions repo variables
+repo="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+LOG_ID="$(gh variable get SLI_OCI_LOG_ID       -R "$repo")"
+LOG_GROUP_ID="$(gh variable get SLI_OCI_LOG_GROUP_ID -R "$repo")"
+OCI_REGION="$(echo "$LOG_ID" | cut -d. -f4)"
+
 _state_set '.inputs.dashboard_var_COMPARTMENT_OCID' "$(_state_get '.compartment.ocid')"
-_state_set '.inputs.dashboard_var_LOG_GROUP_OCID'   "$(_state_get '.log_group.ocid')"
-_state_set '.inputs.dashboard_var_LOG_OCID'         "$(_state_get '.log.ocid')"
-_state_set '.inputs.dashboard_var_REGION_ID'        "$(echo "$(_state_get '.log.ocid')" | cut -d. -f4)"
+_state_set '.inputs.dashboard_var_LOG_GROUP_OCID'   "$LOG_GROUP_ID"
+_state_set '.inputs.dashboard_var_LOG_OCID'         "$LOG_ID"
+_state_set '.inputs.dashboard_var_REGION_ID'        "$OCI_REGION"
 
 bash tools/ensure_dashboard_group.sh
 bash tools/ensure_dashboard.sh

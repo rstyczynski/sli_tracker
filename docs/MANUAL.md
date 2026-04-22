@@ -92,7 +92,6 @@ The editable source is [`model/model.drawio`](../model/model.drawio).
   - [6. SLI Calculation](#6-sli-calculation)
     - [6.1 Manual SLI calculator trigger](#61-manual-sli-calculator-trigger)
     - [6.2 Continous SLI calculator run](#62-continous-sli-calculator-run)
-    - [6.3 Collecting more than one SLI](#63-collecting-more-than-one-sli)
   - [7. Additional Tools](#7-additional-tools)
     - [7.1 OCI Authentication Profiles](#71-oci-authentication-profiles)
       - [The Profile Setup Tool](#the-profile-setup-tool)
@@ -2527,32 +2526,6 @@ The workflow is configured with cron to be executed each 30 minutes. However to 
 ```
 
 > **Note:** Emitting events and logs is treated as a supportive action. If the process fails (for example, due to authentication issues), the workflow will not be interrupted. Instead, the error will be reported in the workflow log as a non-critical issue.
-
-### 6.3 Collecting more than one SLI
-
-The default scheduled workflow (`sli_compute_sli_metrics.yml`) runs `sli_compute_sli_metrics.js` with no dimension filter, producing a single **aggregate SLI** across every event ever emitted — all workflows, repos, and branches combined. That is useful as a fleet-wide health indicator but tells you nothing about individual workflows.
-
-To track SLI separately for each workflow (or repo, or branch), run the script once per scope, adding `--dimension k=v` flags to narrow the query. Available dimension keys mirror the metadata emitted by the GitHub Actions step:
-
-| Key | Matches |
-| --- | --- |
-| `workflow` | GitHub workflow name (e.g. `CI`, `Release`) |
-| `repo` | Repository in `owner/name` form (e.g. `acme/api-service`) |
-| `branch` | Branch name (e.g. `main`, `release/v2`) |
-
-Flags are repeatable and combine with AND semantics, so `--dimension workflow="CI" --dimension branch="main"` scopes to CI runs on `main` only.
-
-**Example — one SLI per workflow:**
-
-```bash
-for wf in "CI" "Release" "Deploy"; do
-  node tools/sli_compute_sli_metrics.js \
-    --dimension workflow="$wf" \
-    --window-days 30
-done
-```
-
-Each invocation writes a `sli_ratio` datapoint to OCI Monitoring with the dimension set included, so the resulting metric series are distinguishable in dashboards and alerts. Running the script without any `--dimension` flag in the same cycle still produces the aggregate series — the two coexist without conflict.
 
 ## 7. Additional Tools
 

@@ -2672,11 +2672,9 @@ For time-series values over a window, use `oci monitoring metric-data summarize-
 
 ### 7.4 OCI Console Dashboard
 
-`ensure_dashboard.sh` deploys a pre-built OCI Console dashboard that visualizes three panels: current SLI ratio (30-day rolling), SLI outcome events from OCI Logging, and raw outcome metric over time.
+Three scripts deploy and tear down the dashboard. `tools/ensure_dashboard.sh` is a local extension of the oci_scaffold resource — it adds generic `dashboard_var_*` placeholder substitution and handles the OCI Console export format (`{"widgets":[...]}`). The group and teardown scripts are copied directly from oci_scaffold.
 
-The dashboard template path and all substitution values are read from the state file. `ensure_dashboard.sh` reads every `.inputs.dashboard_var_*` key and substitutes the corresponding `__KEY__` placeholder in the template, so no variable names are hardcoded in the script.
-
-The project ships a ready-to-use template at [`etc/dashboard_sli_tracker.json`](../etc/dashboard_sli_tracker.json) with four placeholders:
+The project ships a ready-to-use widget file at [`etc/dashboard_sli_tracker.json`](../etc/dashboard_sli_tracker.json) with four placeholders:
 
 | Placeholder | `.inputs.dashboard_var_*` key | Description |
 | --- | --- | --- |
@@ -2692,25 +2690,29 @@ The project ships a ready-to-use template at [`etc/dashboard_sli_tracker.json`](
 export NAME_PREFIX="sli-step6"
 source oci_scaffold/do/oci_scaffold.sh
 
-_state_set '.inputs.dashboard_template'             "$(pwd)/etc/dashboard_sli_tracker.json"
+_state_set '.inputs.dashboard_tiles_file'           "$(pwd)/etc/dashboard_sli_tracker.json"
 _state_set '.inputs.dashboard_var_COMPARTMENT_OCID' "$(_state_get '.compartment.ocid')"
 _state_set '.inputs.dashboard_var_LOG_GROUP_OCID'   "$(_state_get '.log_group.ocid')"
 _state_set '.inputs.dashboard_var_LOG_OCID'         "$(_state_get '.log.ocid')"
 _state_set '.inputs.dashboard_var_REGION_ID'        "$(echo "$(_state_get '.log.ocid')" | cut -d. -f4)"
 
+bash tools/ensure_dashboard_group.sh
 bash tools/ensure_dashboard.sh
 ```
 
-The script is idempotent — running it again when the dashboard already exists prints `[existing]` and exits cleanly.
+All three scripts are idempotent — re-running when resources already exist prints `[existing]` and exits cleanly.
 
-On completion, two OCIDs are recorded in state:
+On completion the following keys are recorded in state:
 
 | State key | Value |
 | --- | --- |
-| `.dashboard.group.ocid` | Dashboard group OCID |
+| `.dashboard_group.ocid` | Dashboard group OCID |
+| `.dashboard_group.name` | Dashboard group display name |
 | `.dashboard.ocid` | Dashboard OCID |
+| `.dashboard.name` | Dashboard display name |
+| `.dashboard.deployed` | `true` when widgets were applied |
 
-**Verify:** Open OCI Console → **Observability & Management → Dashboards** and locate the dashboard named `<NAME_PREFIX>-sli-tracker`. The `outcome` chart shows event counts; the `sli_ratio` chart shows the rolling SLI value written by `sli_compute_sli_metrics.js`.
+**Verify:** Open OCI Console → **Observability & Management → Dashboards** and locate the dashboard named `<NAME_PREFIX>-group` / `<NAME_PREFIX>-dashboard`. The `outcome` chart shows event counts; the `sli_ratio` chart shows the rolling SLI value written by `sli_compute_sli_metrics.js`.
 
 **Teardown:**
 
@@ -2719,9 +2721,10 @@ export NAME_PREFIX="sli-step6"
 source oci_scaffold/do/oci_scaffold.sh
 
 bash tools/teardown_dashboard.sh
+bash tools/teardown_dashboard_group.sh
 ```
 
-This deletes the dashboard and its group. The template file in `etc/` is not removed — it can be reused for re-deployment.
+This deletes the dashboard then the group. The widget file in `etc/` is not removed — it can be reused for re-deployment.
 
 ## 8. Test Suites
 

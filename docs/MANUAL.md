@@ -2672,11 +2672,18 @@ For time-series values over a window, use `oci monitoring metric-data summarize-
 
 ### 7.4 OCI Console Dashboard
 
-`ensure_dashboard.sh` deploys a pre-built OCI Console dashboard that visualizes the two key SLI Tracker metric series — raw `outcome` event volume and the computed `sli_ratio` — scoped to the project compartment.
+`ensure_dashboard.sh` deploys a pre-built OCI Console dashboard that visualizes three panels: current SLI ratio (30-day rolling), SLI outcome events from OCI Logging, and raw outcome metric over time.
 
-The dashboard template is stored in [`etc/dashboard_sli_tracker.json`](../etc/dashboard_sli_tracker.json). On first run, if the template file is empty, the script fetches the config from the project source dashboard and generalizes it (replacing the source compartment OCID with a placeholder), then saves the result back to `etc/dashboard_sli_tracker.json`. Commit that file to keep the template under version control.
+The dashboard template is stored in [`etc/dashboard_sli_tracker.json`](../etc/dashboard_sli_tracker.json) and contains four placeholders that the script substitutes at deploy time from state:
 
-**Prerequisites:** The state file for the deployment must contain `.inputs.oci_compartment` and `.inputs.name_prefix` (these are set by the standard oci_scaffold setup steps).
+| Placeholder | State key | Description |
+| --- | --- | --- |
+| `__COMPARTMENT_OCID__` | `.inputs.oci_compartment` | Deployment compartment |
+| `__LOG_GROUP_OCID__` | `.log_group.ocid` | OCI log group for SLI events |
+| `__LOG_OCID__` | `.log.ocid` | OCI log for SLI events |
+| `__REGION_ID__` | home region (OCI API) | OCI region of the deployment |
+
+**Prerequisites:** Run the standard oci_scaffold log-resource setup first so that `.log_group.ocid` and `.log.ocid` are present in the state file alongside `.inputs.oci_compartment` and `.inputs.name_prefix`.
 
 **Deploy the dashboard:**
 

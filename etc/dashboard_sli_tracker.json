@@ -1,1 +1,132 @@
-{}
+{
+  "widgets": [
+    {
+      "data": {
+        "api": {
+          "templateId": "monitoring",
+          "type": "urlTemplate",
+          "variables": [
+            {
+              "compartmentId": {
+                "value": "__COMPARTMENT_OCID__"
+              },
+              "namespace": {
+                "value": "sli_tracker"
+              },
+              "query": {
+                "value": "sli_ratio[${interval}]{window_days = \"30\"}.mean()"
+              },
+              "regionId": {
+                "value": "__REGION_ID__"
+              },
+              "resourceGroup": {}
+            }
+          ]
+        },
+        "dataSource": "Monitoring"
+      },
+      "description": "",
+      "id": "Monitoring_862c8d8b-8613",
+      "layout": {
+        "height": 9,
+        "left": 0,
+        "minH": 6,
+        "minW": 9,
+        "top": 0,
+        "width": 8
+      },
+      "title": "Current SLI for 30 days window (metrics)",
+      "type": "Line"
+    },
+    {
+      "data": {
+        "api": {
+          "templateId": "loggingChart",
+          "type": "urlTemplate",
+          "variables": [
+            {
+              "fields": {
+                "value": [
+                  "dashboard_log_table_datetime",
+                  "dashboard_log_table_type",
+                  "dashboard_log_table_data_message"
+                ]
+              },
+              "groupBy": {
+                "value": "data.outcome"
+              },
+              "mode": {
+                "value": "basic"
+              },
+              "regionId": {
+                "value": "__REGION_ID__"
+              },
+              "savedSearchCompartmentId": {},
+              "savedSearchId": {},
+              "searchQuery": {
+                "value": "search \"__COMPARTMENT_OCID__/__LOG_GROUP_OCID__/__LOG_OCID__\" | summarize count() by rounddown(datetime, '${interval}'), data.outcome"
+              },
+              "xAxis": {
+                "value": "rounddown(datetime, '${interval}')"
+              },
+              "yAxis": {
+                "value": "data.outcome"
+              }
+            }
+          ]
+        },
+        "dataSource": "LoggingChart"
+      },
+      "description": "",
+      "id": "LoggingChart_180bc451-99f2",
+      "layout": {
+        "height": 9,
+        "left": 8,
+        "minH": 3,
+        "minW": 4,
+        "top": 0,
+        "width": 16
+      },
+      "title": "SLI Events (logs)",
+      "type": "Bar"
+    },
+    {
+      "data": {
+        "api": {
+          "templateId": "monitoring",
+          "type": "urlTemplate",
+          "variables": [
+            {
+              "compartmentId": {
+                "value": "__COMPARTMENT_OCID__"
+              },
+              "namespace": {
+                "value": "sli_tracker"
+              },
+              "query": {
+                "value": "outcome[${interval}].mean()"
+              },
+              "regionId": {
+                "value": "__REGION_ID__"
+              },
+              "resourceGroup": {}
+            }
+          ]
+        },
+        "dataSource": "Monitoring"
+      },
+      "description": "",
+      "id": "Monitoring_b18c702d-93ff",
+      "layout": {
+        "height": 6,
+        "left": 0,
+        "minH": 6,
+        "minW": 9,
+        "top": 9,
+        "width": 24
+      },
+      "title": "Outcome events (metrics)",
+      "type": "Line"
+    }
+  ]
+}

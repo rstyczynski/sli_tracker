@@ -2674,16 +2674,23 @@ For time-series values over a window, use `oci monitoring metric-data summarize-
 
 `ensure_dashboard.sh` deploys a pre-built OCI Console dashboard that visualizes three panels: current SLI ratio (30-day rolling), SLI outcome events from OCI Logging, and raw outcome metric over time.
 
-The dashboard template is stored in [`etc/dashboard_sli_tracker.json`](../etc/dashboard_sli_tracker.json) and contains four placeholders that the script substitutes at deploy time from state:
+The dashboard template path and all substitution values are read from the state file. The template contains four placeholders substituted at deploy time:
 
 | Placeholder | State key | Description |
 | --- | --- | --- |
+| _(template path)_ | `.inputs.dashboard_template` | Path to the JSON template file |
 | `__COMPARTMENT_OCID__` | `.inputs.oci_compartment` | Deployment compartment |
 | `__LOG_GROUP_OCID__` | `.log_group.ocid` | OCI log group for SLI events |
 | `__LOG_OCID__` | `.log.ocid` | OCI log for SLI events |
 | `__REGION_ID__` | home region (OCI API) | OCI region of the deployment |
 
-**Prerequisites:** Run the standard oci_scaffold log-resource setup first so that `.log_group.ocid` and `.log.ocid` are present in the state file alongside `.inputs.oci_compartment` and `.inputs.name_prefix`.
+The project ships a ready-to-use template at [`etc/dashboard_sli_tracker.json`](../etc/dashboard_sli_tracker.json).
+
+**Prerequisites:** Set `.inputs.dashboard_template` in state and run the oci_scaffold log-resource setup so that `.log_group.ocid` and `.log.ocid` are present alongside `.inputs.oci_compartment` and `.inputs.name_prefix`.
+
+```bash
+_state_set '.inputs.dashboard_template' "$(pwd)/etc/dashboard_sli_tracker.json"
+```
 
 **Deploy the dashboard:**
 

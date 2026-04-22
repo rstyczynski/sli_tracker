@@ -2470,12 +2470,37 @@ gh run watch "$RUN_ID" -R "$repo"
 echo "https://github.com/${repo}/actions/runs/${RUN_ID}"
 ```
 
-After the run completes, the derived SLI metric is visible in OCI Monitoring under namespace `sli_tracker`, metric name `sli`.
+After the run completes, the derived SLI metric is visible in OCI Logging. Prevously GitHub env were set with log destination - let's use it now to see the log event.
 
-Core files:
+```bash
+LOG_ID="$(gh variable get SLI_OCI_LOG_ID -R "$repo")"
+LOG_GROUP_ID="$(gh variable get SLI_OCI_LOG_GROUP_ID -R "$repo")"
+OCI_REGION="$(echo "$LOG_ID" | cut -d. -f4)"
 
-- [`tools/sli_compute_sli_metrics.js`](../tools/sli_compute_sli_metrics.js)
-- [`.github/workflows/sli_compute_sli_metrics.yml`](../.github/workflows/sli_compute_sli_metrics.yml)
+echo "Open OCI Logging console:"
+echo "https://cloud.oracle.com/logging/logs/${LOG_ID}/log-groups/${LOG_GROUP_ID}/explore-log?region=${OCI_REGION}"
+```
+
+Event is sent to OCI Monitoring under namespace `sli_tracker`, metric name `sli`. Open OCI Metric Exmplorer using link presented below.
+
+```bash
+echo "Open OCI Metric Explorer:"
+echo "https://cloud.oracle.com/monitoring/explore?region=${OCI_REGION}"
+```
+
+Having OCI Metric Explorer open:
+
+1. Press button: `Edit Queries`
+2. Select compartment: `SLI_tracker`
+3. Metric namespace: `sli_tracker`
+4. Metric name: `sli_ratio`
+5. Interval: `5 minutes`
+6. Statistic: `Mean`
+7. Press `Update Chart`
+
+You see a single dot on a chart - it's our computed SLI ratio. Toggle `Show Data Table` to see the data as a number.
+
+SLI computation is performed using [`tools/sli_compute_sli_metrics.js`](../tools/sli_compute_sli_metrics.js), and triggered by a GitHub workflow [`.github/workflows/sli_compute_sli_metrics.yml`](../.github/workflows/sli_compute_sli_metrics.yml). The workflow is configured with cron to be executed each 30 minutes.
 
 ## 7. Additional Tools
 

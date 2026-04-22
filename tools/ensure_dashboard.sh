@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 # ensure_dashboard.sh — OCI Console Dashboard for SLI Tracker
 #
-# Creates an OCI Console dashboard group and dashboard from etc/dashboard_sli_tracker.json.
+# Usage: bash tools/ensure_dashboard.sh [TEMPLATE_FILE]
+#
+#   TEMPLATE_FILE  Path to dashboard JSON template.
+#                  Default: $REPO_ROOT/etc/dashboard_sli_tracker.json
+#                  Override: positional arg $1, or env var DASHBOARD_TEMPLATE
+#
 # Substitutes four placeholders before creating:
 #   __COMPARTMENT_OCID__  → .inputs.oci_compartment
 #   __LOG_GROUP_OCID__    → .log_group.ocid
@@ -30,7 +35,8 @@ REGION_ID=$(oci iam region-subscription list \
   --raw-output 2>/dev/null)
 _require_env REGION_ID
 
-TEMPLATE_FILE="$REPO_ROOT/etc/dashboard_sli_tracker.json"
+TEMPLATE_FILE="${1:-${DASHBOARD_TEMPLATE:-$REPO_ROOT/etc/dashboard_sli_tracker.json}}"
+[ -f "$TEMPLATE_FILE" ] || { echo "  [ERROR] Template not found: $TEMPLATE_FILE" >&2; exit 1; }
 DG_NAME="${NAME_PREFIX}-sli-tracker"
 DASH_NAME="${NAME_PREFIX}-sli-tracker"
 

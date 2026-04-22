@@ -180,7 +180,7 @@ Before going deeper into the architecture, it helps to see the two basic sink ty
 - OCI Monitoring for compact numeric signals
 - OCI Logging for searchable event records
 
-> **Profile note:** The examples in this section use the local `DEFAULT` OCI profile on purpose. At this stage the reader only needs one working authenticated profile to see data arrive in OCI. The repository-specific `SLI_TEST` profile is introduced later in [Authenticate SLI_TEST](#authenticate-sli_test) and described in more detail in §5.6.
+> **Profile note:** The examples in this section use the local `DEFAULT` OCI profile on purpose. At this stage the reader only needs one working authenticated profile to see data arrive in OCI. The repository-specific `SLI_TEST` profile is introduced later in [Authenticate SLI_TEST](#authenticate-sli_test) and described in more detail in §7.1.
 
 ### 3.0 Prerequisites: OCI Resources
 

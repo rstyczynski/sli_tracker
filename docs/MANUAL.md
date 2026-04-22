@@ -2452,7 +2452,7 @@ outcome[1d].sum()     # total successes in the window
 outcome[1d].count()   # total events in the window
 ```
 
-`SLI = sum / count`. The resolution (`1d` by default) and window length are configurable. Dimension filters narrow the query to a specific repository, branch, or workflow name.
+`SLI = sum / count`. The window length defaults to **30 days** (`--window-days 30`) and the resolution to **1d** (`--mql-resolution 1d`); both are configurable. Dimension filters narrow the query to a specific repository, branch, or workflow name.
 
 `sli_compute_sli_metrics.js` queries OCI Monitoring for `workflow_run_result` datapoints over a rolling window, then computes `success / total` and publishes the ratio back as a derived SLI metric.
 

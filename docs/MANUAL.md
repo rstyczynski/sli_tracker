@@ -2445,16 +2445,14 @@ The compartment must be empty (no child resources) before OCI will delete it. Ru
 
 ## 6. SLI Calculation
 
-SLI computation is at the core of this project. Each request is recorded as a metric datapoint in OCI Monitoring under namespace `sli_tracker`, metric `outcome` — value `1` for success, `0` for failure. The SLI is then a simple ratio over a rolling window, expressed as two MQL queries:
+SLI computation is at the core of this project. Each request is recorded as a metric datapoint in OCI Monitoring under namespace `sli_tracker`, metric `outcome` — value `1` for success, `0` for failure. The SLI is a simple ratio over a configurable rolling window (default 30 days), expressed as two MQL queries at daily resolution:
 
 ```mql
 outcome[1d].sum()     # total successes in the window
 outcome[1d].count()   # total events in the window
 ```
 
-`SLI = sum / count`. The window length defaults to 30 days (`--window-days 30`) and the resolution to 1d (`--mql-resolution 1d`); both are configurable. Dimension filters narrow the query to a specific repository, branch, or workflow name.
-
-`sli_compute_sli_metrics.js` queries OCI Monitoring for `outcome` datapoints in namespace `sli_tracker` (both configurable via `--metric-name` and `--namespace`) over a configurable rolling window (`--window-days`, default 30), computes `success / total`, and optionally publishes the ratio back as a derived `sli` metric in the same namespace.
+`SLI = sum / count`. `sli_compute_sli_metrics.js` issues both queries, divides the results, and optionally persists the ratio as a derived `sli_ratio` metric in the same namespace. The metric name, namespace, window length, and resolution are all configurable (`--metric-name`, `--namespace`, `--window-days`, `--mql-resolution`). Dimension filters narrow the query to a specific repository, branch, or workflow name.
 
 The simplest way to trigger it is via the scheduled GitHub workflow. The workflow authenticates with `SLI_TEST`, queries the metric namespace, and posts the result, so we need to authenticate this session first:
 

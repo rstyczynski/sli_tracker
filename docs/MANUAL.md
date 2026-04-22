@@ -2688,11 +2688,11 @@ The project ships a ready-to-use template at [`etc/dashboard_sli_tracker.json`](
 **Prerequisites:** Set the template path and all substitution variables in state before running the script.
 
 ```bash
-_state_set '.inputs.dashboard_template'              "$(pwd)/etc/dashboard_sli_tracker.json"
-_state_set '.inputs.dashboard_var_COMPARTMENT_OCID'  "<compartment-ocid>"
-_state_set '.inputs.dashboard_var_LOG_GROUP_OCID'    "<log-group-ocid>"
-_state_set '.inputs.dashboard_var_LOG_OCID'          "<log-ocid>"
-_state_set '.inputs.dashboard_var_REGION_ID'         "<region-id, e.g. eu-zurich-1>"
+_state_set '.inputs.dashboard_template'             "$(pwd)/etc/dashboard_sli_tracker.json"
+_state_set '.inputs.dashboard_var_COMPARTMENT_OCID' "$(_state_get '.compartment.ocid')"
+_state_set '.inputs.dashboard_var_LOG_GROUP_OCID'   "$(_state_get '.log_group.ocid')"
+_state_set '.inputs.dashboard_var_LOG_OCID'         "$(_state_get '.log.ocid')"
+_state_set '.inputs.dashboard_var_REGION_ID'        "$(echo "$(_state_get '.log.ocid')" | cut -d. -f4)"
 ```
 
 **Deploy the dashboard:**

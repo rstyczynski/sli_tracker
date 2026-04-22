@@ -2445,6 +2445,15 @@ The compartment must be empty (no child resources) before OCI will delete it. Ru
 
 ## 6. SLI Calculation
 
+SLI computation is at the core of this project. Each request is recorded as a metric datapoint in OCI Monitoring under namespace `sli_tracker`, metric `outcome` — value `1` for success, `0` for failure. The SLI is then a simple ratio over a rolling window, expressed as two MQL queries:
+
+```mql
+outcome[1d].sum()     # total successes in the window
+outcome[1d].count()   # total events in the window
+```
+
+`SLI = sum / count`. The resolution (`1d` by default) and window length are configurable. Dimension filters narrow the query to a specific repository, branch, or workflow name.
+
 `sli_compute_sli_metrics.js` queries OCI Monitoring for `workflow_run_result` datapoints over a rolling window, then computes `success / total` and publishes the ratio back as a derived SLI metric.
 
 The simplest way to trigger it is via the scheduled GitHub workflow. The workflow authenticates with `SLI_TEST`, queries the metric namespace, and posts the result, so we need to authenticate this session first:
@@ -2500,7 +2509,19 @@ Having OCI Metric Explorer open:
 
 You see a single dot on a chart - it's our computed SLI ratio. Toggle `Show Data Table` to see the data as a number.
 
-SLI computation is performed using [`tools/sli_compute_sli_metrics.js`](../tools/sli_compute_sli_metrics.js), and triggered by a GitHub workflow [`.github/workflows/sli_compute_sli_metrics.yml`](../.github/workflows/sli_compute_sli_metrics.yml). The workflow is configured with cron to be executed each 30 minutes.
+SLI computation is performed using [`tools/sli_compute_sli_metrics.js`](../tools/sli_compute_sli_metrics.js), and triggered by a GitHub workflow [`.github/workflows/sli_compute_sli_metrics.yml`](../.github/workflows/sli_compute_sli_metrics.yml). 
+
+The workflow is configured with cron to be executed each 30 minutes. However to run in such continous mode it's mandatory to switch from token to key based authentication for GitHub workflows.
+
+```bash
+.github/actions/oci-profile-setup/setup_oci_github_access.sh \
+  --account-type config_profile \
+  --profile DEFAULT \
+  --session-profile-name SLI_TEST \
+  --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+```
+
+> **Note:** Emitting events and logs is treated as a supportive action. If the process fails (for example, due to authentication issues), the workflow will not be interrupted. Instead, the error will be reported in the workflow log as a non-critical issue.
 
 ## 7. Additional Tools
 

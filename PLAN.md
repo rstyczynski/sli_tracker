@@ -439,7 +439,7 @@ Backlog Items:
 
 ## Sprint 32 - OCI Console Dashboard (SLI-64, SLI-65)
 
-Status: Done
+Status: Progress
 Mode: YOLO
 Test: none
 Regression: none

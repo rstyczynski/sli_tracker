@@ -2511,7 +2511,7 @@ Having OCI Metric Explorer open:
 
 You see a single dot on a chart - it's our computed SLI ratio. Toggle `Show Data Table` to see the data as a number.
 
-SLI computation is performed using [`tools/sli_compute_sli_metrics.js`](../tools/sli_compute_sli_metrics.js), and triggered by a GitHub workflow [`.github/workflows/sli_compute_sli_metrics.yml`](../.github/workflows/sli_compute_sli_metrics.yml). 
+SLI computation is performed using [`tools/sli_compute_sli_metrics.js`](../tools/sli_compute_sli_metrics.js), and triggered by a GitHub workflow [`.github/workflows/sli_compute_sli_metrics.yml`](../.github/workflows/sli_compute_sli_metrics.yml).
 
 ### 6.2 Continous SLI calculator run
 

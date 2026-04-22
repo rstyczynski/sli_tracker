@@ -73,6 +73,7 @@ The editable source is [`model/model.drawio`](../model/model.drawio).
       - [Run the CLI with bucket routing](#run-the-cli-with-bucket-routing)
       - [Load both routing definition and mappings from the bucket](#load-both-routing-definition-and-mappings-from-the-bucket)
     - [5.8 Deploy the Public Router Function](#58-deploy-the-public-router-function)
+      - [Pit-Stop: Tear Down Any Previous Deployment](#pit-stop-tear-down-any-previous-deployment)
       - [Prerequisites](#prerequisites)
       - [Configure](#configure)
       - [Deploy](#deploy)
@@ -83,6 +84,10 @@ The editable source is [`model/model.drawio`](../model/model.drawio).
       - [POST a GitHub ping event](#post-a-github-ping-event)
       - [POST a completed workflow\_run event](#post-a-completed-workflow_run-event)
     - [5.10 Dead-Letter Training: Trigger a Transform Failure](#510-dead-letter-training-trigger-a-transform-failure)
+      - [Step 1 — upload a broken mapping](#step-1--upload-a-broken-mapping)
+      - [Step 2 — send a test event](#step-2--send-a-test-event)
+      - [Step 3 — verify the dead-letter object](#step-3--verify-the-dead-letter-object)
+      - [Step 4 — restore the mapping](#step-4--restore-the-mapping)
     - [5.11 Teardown](#511-teardown)
   - [6. SLI Calculation](#6-sli-calculation)
   - [7. Additional Tools](#7-additional-tools)
@@ -2442,7 +2447,15 @@ The compartment must be empty (no child resources) before OCI will delete it. Ru
 
 `sli_compute_sli_metrics.js` queries OCI Monitoring for `workflow_run_result` datapoints over a rolling window, then computes `success / total` and publishes the ratio back as a derived SLI metric.
 
-The simplest way to trigger it is via the scheduled GitHub workflow. The workflow authenticates with `SLI_TEST`, queries the metric namespace, and posts the result.
+The simplest way to trigger it is via the scheduled GitHub workflow. The workflow authenticates with `SLI_TEST`, queries the metric namespace, and posts the result, so we need to authenticate this session first:
+
+```bash
+.github/actions/oci-profile-setup/setup_oci_github_access.sh \
+  --account-type session \
+  --profile DEFAULT \
+  --session-profile-name SLI_TEST \
+  --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+```
 
 ```bash
 repo="$(gh repo view --json nameWithOwner -q .nameWithOwner)"

@@ -445,3 +445,9 @@ Test: URIs with compartment path prefix parse correctly and resolve to the same 
 Operators have no single-pane view of SLI health. Provide an OCI Console dashboard template that visualizes the key SLI Tracker metrics (outcome events, computed SLI ratio) scoped to the project compartment and log. The template is stored in the project repository and deployed via oci_scaffold so it can be reproduced in any environment from state alone. Use `oci dashboard-service dashboard get --dashboard-id ocid1.consoledashboard.oc1..aaaaaaaaikoqfpryjfhxp2rulyn3t7kgtq3re3ft33kxp52yqymc3ptzqhya` as the starting template.
 
 Test: running the ensure script creates the dashboard in OCI Console and the dashboard displays live data from the configured compartment and log.
+
+### SLI-65. MANUAL.md: document OCI Console Dashboard creation
+
+The dashboard deployment introduced in SLI-64 has no documentation. Add a section to the manual covering how to deploy the dashboard from the project template using oci_scaffold, what metrics and widgets it contains, and how to verify it is displaying live data after deployment.
+
+Test: a reader can follow the manual section to deploy and verify the dashboard without consulting any other source.

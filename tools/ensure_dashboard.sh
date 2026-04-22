@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
 # ensure_dashboard.sh — OCI Console Dashboard for SLI Tracker
 #
-# Usage: bash tools/ensure_dashboard.sh [TEMPLATE_FILE]
-#
-#   TEMPLATE_FILE  Path to dashboard JSON template.
-#                  Default: $REPO_ROOT/etc/dashboard_sli_tracker.json
-#                  Override: positional arg $1, or env var DASHBOARD_TEMPLATE
-#
 # Substitutes four placeholders before creating:
 #   __COMPARTMENT_OCID__  → .inputs.oci_compartment
 #   __LOG_GROUP_OCID__    → .log_group.ocid
 #   __LOG_OCID__          → .log.ocid
 #   __REGION_ID__         → home region from OCI
 #
-# Run from the project root with NAME_PREFIX set and state-${NAME_PREFIX}.json present.
+# Reads from state:
+#   .inputs.oci_compartment       (required)
+#   .inputs.name_prefix           (required)
+#   .inputs.dashboard_template    (required — path to template JSON)
+#   .log_group.ocid               (required)
+#   .log.ocid                     (required)
 #
 # Writes to state:
 #   .dashboard.group.ocid / .dashboard.group.name
@@ -35,7 +34,8 @@ REGION_ID=$(oci iam region-subscription list \
   --raw-output 2>/dev/null)
 _require_env REGION_ID
 
-TEMPLATE_FILE="${1:-${DASHBOARD_TEMPLATE:-$REPO_ROOT/etc/dashboard_sli_tracker.json}}"
+TEMPLATE_FILE=$(_state_get '.inputs.dashboard_template')
+_require_env TEMPLATE_FILE
 [ -f "$TEMPLATE_FILE" ] || { echo "  [ERROR] Template not found: $TEMPLATE_FILE" >&2; exit 1; }
 DG_NAME="${NAME_PREFIX}-sli-tracker"
 DASH_NAME="${NAME_PREFIX}-sli-tracker"

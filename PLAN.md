@@ -439,9 +439,9 @@ Backlog Items:
 
 ## Sprint 32 - OCI Console Dashboard (SLI-64, SLI-65)
 
-Status: Done
+Status: Progress
 Mode: YOLO
-Test: none
+Test: unit, integration
 Regression: none
 
 Deploy an OCI Console dashboard for SLI Tracker metrics and document the deployment procedure in the manual.

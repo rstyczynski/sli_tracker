@@ -177,7 +177,7 @@ if [ -n "$TILES_FILE" ] && [ -f "$TILES_FILE" ]; then
   fi
 
   # Fail if any __KEY__ placeholders remain unsubstituted after sed pass
-  remaining=$(grep -oP '__[A-Z0-9_]+__' "$_SUBST_TMP" | sort -u | tr '\n' ' ') || true
+  remaining=$(grep -oE '__[A-Z0-9_]+__' "$_SUBST_TMP" | sort -u | tr '\n' ' ') || true
   if [ -n "$remaining" ]; then
     _fail "Unsubstituted placeholders remain in tiles file: ${remaining}— add matching .inputs.dashboard_var_* keys to state"
     exit 1

@@ -1,0 +1,11 @@
+# Sprint 32 new tests — used by tests/run.sh --new-only
+
+# Unit tests
+unit:test_dashboard.sh:test_UT1_substitution_all_vars_set
+unit:test_dashboard.sh:test_UT2_empty_value_fails
+unit:test_dashboard.sh:test_UT3_null_value_fails
+unit:test_dashboard.sh:test_UT4_unsubstituted_placeholder_detected
+unit:test_dashboard.sh:test_UT5_oci_export_format_unwrapped
+
+# Integration tests
+integration:test_dashboard.sh:test_IT1_full_deploy_verify_teardown

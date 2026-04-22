@@ -114,6 +114,73 @@ Add §7.4 to `docs/MANUAL.md` documenting dashboard deployment, verification, an
 
 ---
 
+## Test Specification
+
+Sprint Test Configuration:
+- Test: unit, integration
+- Mode: YOLO
+
+### Unit Tests
+
+#### UT-1: Substitution with all vars set correctly
+- **Input:** tiles file with `__COMPARTMENT_OCID__` `__LOG_GROUP_OCID__` `__LOG_OCID__` `__REGION_ID__` placeholders; state with all four `dashboard_var_*` keys set to non-empty values
+- **Expected Output:** output JSON contains substituted values; no `__...__` patterns remain
+- **Edge Cases:** keys with underscores in names (e.g. `LOG_GROUP_OCID`)
+- **Isolation:** temp state file + temp tiles file; no OCI CLI calls
+- **Target file:** tests/unit/test_dashboard.sh
+
+#### UT-2: Empty value causes _fail and exit 1
+- **Input:** state with `dashboard_var_LOG_OCID` set to `""`
+- **Expected Output:** script exits non-zero; stderr contains `dashboard_var_LOG_OCID is empty or null`
+- **Edge Cases:** empty string vs unset key
+- **Isolation:** temp state file; script sourced in subshell
+- **Target file:** tests/unit/test_dashboard.sh
+
+#### UT-3: Null value causes _fail and exit 1
+- **Input:** state with `dashboard_var_REGION_ID` set to JSON `null`
+- **Expected Output:** script exits non-zero; stderr contains `dashboard_var_REGION_ID is empty or null`
+- **Isolation:** temp state file; script sourced in subshell
+- **Target file:** tests/unit/test_dashboard.sh
+
+#### UT-4: Unsubstituted placeholder detected after sed pass
+- **Input:** tiles file with `__UNKNOWN_KEY__`; no matching `dashboard_var_UNKNOWN_KEY` in state
+- **Expected Output:** script exits non-zero; stderr contains `Unsubstituted placeholders remain` and `__UNKNOWN_KEY__`
+- **Isolation:** temp state file + temp tiles file
+- **Target file:** tests/unit/test_dashboard.sh
+
+#### UT-5: OCI export format `{"widgets":[...]}` unwrapped to plain array
+- **Input:** tiles file in OCI Console export format `{"widgets":[{"id":"w1"}]}`; all dashboard_var_* set
+- **Expected Output:** `WIDGETS_JSON` is `[{"id":"w1"}]` (plain array, not wrapped object)
+- **Isolation:** temp state file + temp tiles file; capture WIDGETS_JSON via subshell
+- **Target file:** tests/unit/test_dashboard.sh
+
+### Integration Tests
+
+#### IT-1: Full deploy — create group + dashboard, verify via OCI CLI, compare against state
+- **Preconditions:** OCI CLI configured (profile DEFAULT); `NAME_PREFIX` set; `SLI_OCI_LOG_ID` and `SLI_OCI_LOG_GROUP_ID` available (gh variables or env); `etc/dashboard_sli_tracker.json` present
+- **Steps:**
+  1. Source `oci_scaffold/do/oci_scaffold.sh` with a test-scoped `NAME_PREFIX` (e.g. `sli-dash-test`)
+  2. Set all required state inputs (oci_compartment, dashboard_tiles_file, dashboard_var_*)
+  3. Run `tools/ensure_dashboard_group.sh`; capture exit code
+  4. Run `tools/ensure_dashboard.sh`; capture exit code
+  5. Read `.dashboard_group.ocid` and `.dashboard.ocid` from state file
+  6. Call `oci dashboard-service dashboard-group get --dashboard-group-id <ocid>` — verify `display-name` matches `{NAME_PREFIX}-group`
+  7. Call `oci dashboard-service dashboard get-dashboard-v1 --dashboard-id <ocid>` — verify `display-name` matches `{NAME_PREFIX}-dashboard` and `widgets` array is non-empty
+  8. Run `tools/teardown_dashboard.sh` then `tools/teardown_dashboard_group.sh`
+  9. Verify both resources return 404 after deletion
+- **Expected Outcome:** Both ensure scripts exit 0; OCIDs in state match OCI API responses; widgets non-empty; teardown exits 0; resources gone
+- **Verification:** jq comparison of state-file OCIDs against OCI CLI get responses
+- **Target file:** tests/integration/test_dashboard.sh
+
+### Traceability
+
+| Backlog Item | Unit Tests | Integration Tests |
+| --- | --- | --- |
+| SLI-64 | UT-1, UT-2, UT-3, UT-4, UT-5 | IT-1 |
+| SLI-65 | — | — |
+
+---
+
 # Design Summary
 
 ## Overall Architecture

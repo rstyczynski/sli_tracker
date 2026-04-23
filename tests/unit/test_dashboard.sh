@@ -44,9 +44,9 @@ _run_subst() {
   local tiles_content="$2"
 
   local state_tmp tiles_tmp subst_tmp
-  state_tmp="$(mktemp /tmp/test-state.XXXXXX.json)"
-  tiles_tmp="$(mktemp /tmp/test-tiles.XXXXXX.json)"
-  subst_tmp="$(mktemp /tmp/test-subst.XXXXXX.json)"
+  state_tmp="$(mktemp /tmp/test-state.XXXXXX)"
+  tiles_tmp="$(mktemp /tmp/test-tiles.XXXXXX)"
+  subst_tmp="$(mktemp /tmp/test-subst.XXXXXX)"
   printf '%s' "$state_json"    > "$state_tmp"
   printf '%s' "$tiles_content" > "$tiles_tmp"
 

@@ -98,6 +98,15 @@ fi
 
 _require_env COMPARTMENT_OCID
 
+# Path C lookup — check before creating when name came from name_prefix fallback
+if [ -z "$EXISTS" ] && [ -n "$GROUP_NAME" ] && [ -n "$COMPARTMENT_OCID" ]; then
+  FOUND=$(_group_lookup "$GROUP_NAME" "$COMPARTMENT_OCID")
+  if [ -n "$FOUND" ] && [ "$FOUND" != "null" ]; then
+    GROUP_OCID="$FOUND"
+    EXISTS="$GROUP_NAME"
+  fi
+fi
+
 #
 # Creation
 #

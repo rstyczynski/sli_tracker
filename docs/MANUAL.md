@@ -2691,7 +2691,9 @@ export NAME_PREFIX="sli-step6"
 source oci_scaffold/do/oci_scaffold.sh
 
 # Widget file
-_state_set '.inputs.dashboard_tiles_file' "$(pwd)/etc/dashboard_sli_tracker.json"
+_state_set '.inputs.dashboard_tiles_file'    "$(pwd)/etc/dashboard_sli_tracker.json"
+_state_set '.inputs.dashboard_group_name'   "${NAME_PREFIX}-group"
+_state_set '.inputs.dashboard_name'         "${NAME_PREFIX}-dashboard"
 
 # Compartment for the dashboard group — must be set explicitly for ensure_dashboard_group.sh
 _state_set '.inputs.oci_compartment' "$(_state_get '.compartment.ocid')"

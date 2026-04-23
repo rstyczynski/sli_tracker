@@ -14,8 +14,12 @@ const path = require('path');
 
 const jsonRouter = require('./json_router');
 const loadRoutingDefinition = jsonRouter.loadRoutingDefinition;
+const loadRoutingDefinitionAsync = jsonRouter.loadRoutingDefinitionAsync;
 const processEnvelope = jsonRouter.processEnvelope;
 const errorMessage = jsonRouter.errorMessage;
+
+const { parseOciUri, isOciUri, createFileSystemContentSourceAdapter } = require('./adapters/content_source_adapter');
+const { createOciObjectStorageContentSourceAdapter } = require('./adapters/oci_object_storage_content_source');
 
 const routerRuntime = require('./router_runtime');
 const runFromRoutingFile = routerRuntime.runFromRoutingFile;
@@ -43,17 +47,21 @@ function destinationPath(destination) {
 
 function usage(code) {
     process.stderr.write([
-        'Usage: node json_router_cli.js --routing <file> [--input <file>] [--pretty]',
+        'Usage: node json_router_cli.js --routing <file|oci://bucket/key> [--input <file>] [--pretty]',
         '       cat envelope.json | node json_router_cli.js --routing <file>',
         '       node json_router_cli.js --routing <file> --source-dir <dir> --output-dir <dir> [--pretty]',
         '',
         'Options:',
-        '  --routing     Path to routing.json (required)',
+        '  --routing     Path to routing.json or oci://bucket/object-key URI (required)',
         '  --input       Path to one envelope JSON file (optional; reads stdin if omitted)',
         '  --source-dir  Path to a source directory for batch routing',
         '  --output-dir  Path to output directory for batch routing',
         '  --pretty      Pretty-print output (default: compact)',
         '  --help        Show this help',
+        '',
+        'Examples:',
+        '  node json_router_cli.js --routing ./routing.json --input event.json',
+        '  node json_router_cli.js --routing oci://my-bucket/config/routing.json --input event.json',
     ].join('\n') + '\n');
     process.exit(code);
 }
@@ -176,6 +184,29 @@ async function buildLoadMapping(definition) {
     });
 }
 
+/**
+ * Load routing definition from file path or oci:// URI.
+ * @param {string} routingArg - File path or oci://bucket/object-key URI.
+ * @returns {Promise<Object>} Parsed routing definition.
+ */
+async function loadRoutingDefinitionFromArg(routingArg) {
+    if (isOciUri(routingArg)) {
+        const parsed = parseOciUri(routingArg);
+        if (!parsed) {
+            throw new Error(`Invalid OCI URI: ${routingArg}`);
+        }
+        const profile = process.env.OCI_CLI_PROFILE || 'DEFAULT';
+        const getObject = await buildOciObjectStorageGetObject(profile);
+        const adapter = createOciObjectStorageContentSourceAdapter({
+            bucket: parsed.bucket,
+            getObject,
+        });
+        return await loadRoutingDefinitionAsync(parsed.objectKey, adapter);
+    }
+    // Local file path
+    return loadRoutingDefinition(routingArg);
+}
+
 async function main() {
     const args = parseArgs(process.argv.slice(2));
 
@@ -192,7 +223,7 @@ async function main() {
         }
         let definition;
         try {
-            definition = loadRoutingDefinition(args.routing);
+            definition = await loadRoutingDefinitionFromArg(args.routing);
         } catch (err) {
             process.stderr.write(`Error: ${errorMessage(err)}\n`);
             process.exit(1);
@@ -301,7 +332,7 @@ async function main() {
 
     let definition;
     try {
-        definition = loadRoutingDefinition(args.routing);
+        definition = await loadRoutingDefinitionFromArg(args.routing);
     } catch (err) {
         process.stderr.write(`Error: ${errorMessage(err)}\n`);
         process.exit(1);

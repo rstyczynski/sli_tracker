@@ -1,0 +1,25 @@
+=== UT-1: substitution with all vars set ===
+PASS: UT-1: COMPARTMENT_OCID substituted
+PASS: UT-1: LOG_GROUP_OCID substituted
+PASS: UT-1: LOG_OCID substituted
+PASS: UT-1: REGION_ID substituted
+PASS: UT-1: no leftover __COMPARTMENT_OCID__
+PASS: UT-1: no leftover __LOG_GROUP_OCID__
+PASS: UT-1: no leftover __LOG_OCID__
+PASS: UT-1: no leftover __REGION_ID__
+=== UT-2: empty value causes failure ===
+PASS: UT-2: exits non-zero on empty value
+PASS: UT-2: error names the empty var
+=== UT-3: null value causes failure ===
+PASS: UT-3: exits non-zero on null value
+PASS: UT-3: error names the null var
+=== UT-4: unsubstituted placeholder detected ===
+PASS: UT-4: exits non-zero on leftover placeholder
+PASS: UT-4: error mentions unsubstituted placeholders
+PASS: UT-4: error names the missing key
+=== UT-5: OCI export format unwrapped ===
+PASS: UT-5: output is plain array
+PASS: UT-5: wrapper object removed
+PASS: UT-5: substitution applied after unwrap
+
+Results: 18 passed, 0 failed

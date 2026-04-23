@@ -1,0 +1,49 @@
+=== Precondition: OCI CLI auth ===
+PASS: OCI CLI authenticated (profile: DEFAULT)
+=== Precondition: resolve log OCIDs ===
+PASS: Log OCIDs from gh variables (rstyczynski/sli_tracker)
+=== Precondition: resolve compartment ===
+PASS: Compartment from state-sli-step6.json
+=== Setup: initialise test state ===
+  [INFO] STATE_FILE: /Users/rstyczynski/projects/SLI_tracker/state-sli-dash-test.json
+PASS: Test state initialised
+=== IT-1a: ensure_dashboard_group ===
+  [INFO] COMPARTMENT_OCID defaulted to tenancy: ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a
+  [INFO] OCI_REGION defaulted to home region: eu-zurich-1
+  [EXISTING] Dashboard group: sli-dash-test-group
+PASS: IT-1a: ensure_dashboard_group exited 0
+PASS: IT-1a: .dashboard_group.ocid written to state
+PASS: IT-1a: OCI group display-name matches state
+=== IT-1b: ensure_dashboard ===
+  [INFO] COMPARTMENT_OCID defaulted to tenancy: ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a
+  [INFO] OCI_REGION defaulted to home region: eu-zurich-1
+  [EXISTING] Dashboard: sli-dash-test-dashboard
+  [DONE] Dashboard widgets deployed: sli-dash-test-dashboard
+PASS: IT-1b: ensure_dashboard exited 0
+PASS: IT-1b: .dashboard.ocid written to state
+PASS: IT-1b: .dashboard.deployed is true
+PASS: IT-1b: OCI dashboard display-name matches state
+PASS: IT-1b: dashboard has 3 widget(s)
+=== IT-1c: idempotency ===
+  [INFO] COMPARTMENT_OCID defaulted to tenancy: ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a
+  [INFO] OCI_REGION defaulted to home region: eu-zurich-1
+  [EXISTING] Dashboard group: sli-dash-test-group
+  [INFO] COMPARTMENT_OCID defaulted to tenancy: ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a
+  [INFO] OCI_REGION defaulted to home region: eu-zurich-1
+  [EXISTING] Dashboard: sli-dash-test-dashboard
+  [DONE] Dashboard widgets deployed: sli-dash-test-dashboard
+PASS: IT-1c: second run exits 0 (idempotent)
+PASS: IT-1c: dashboard OCID unchanged on second run
+=== IT-1d: teardown ===
+  [INFO] COMPARTMENT_OCID defaulted to tenancy: ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a
+  [INFO] OCI_REGION defaulted to home region: eu-zurich-1
+  [OK]   Dashboard: nothing to delete (created=false or OCID missing)
+PASS: IT-1d: teardown_dashboard exited 0
+  [INFO] COMPARTMENT_OCID defaulted to tenancy: ocid1.tenancy.oc1..aaaaaaaay2b2tvqcmqmndvcbz5kuptzuo7sp4vufarqfgoru7qojdgywb27a
+  [INFO] OCI_REGION defaulted to home region: eu-zurich-1
+  [OK]   Dashboard group: nothing to delete (created=false or OCID missing)
+PASS: IT-1d: teardown_dashboard_group exited 0
+  [FAIL] IT-1d: dashboard still exists after teardown: ocid1.consoledashboard.oc1..aaaaaaaake57ycstovujs3iyhdsmpad5op3nhtn7dgjw5k3qsiqnukcxd56q
+  [FAIL] IT-1d: dashboard group still exists after teardown: ocid1.consoledashboardgroup.oc1..aaaaaaaavxuwct5cdgyo22kph74r6qq4clex4tnryc4gwjewngirn4o5dzgq
+
+Results: 16 passed, 0 failed

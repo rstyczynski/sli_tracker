@@ -4,6 +4,27 @@ GitHub pipeline execution emits events used to compute Service Level Indicators 
 
 Model works on a GitHub repository interacting with OCI tenancy where events are stored.
 
+## Recent Updates
+
+### Sprint 32 — OCI Console Dashboard
+
+**Status:** implemented
+
+**Backlog Items Implemented:**
+
+- **SLI-64**: OCI Console Dashboard — `ensure_dashboard.sh` + `teardown_dashboard.sh` + `etc/dashboard_sli_tracker.json` template
+- **SLI-65**: MANUAL.md §7.4 — dashboard deployment documentation
+
+**Key Features Added:**
+
+- Pre-built dashboard template (3 panels: SLI ratio, log events, outcome metric)
+- Idempotent ensure/teardown scripts following oci_scaffold pattern
+- 4-placeholder substitution: compartment, log group, log, region
+
+**Documentation:** `progress/sprint_32/`
+
+---
+
 ## Quick start (local `emit.sh`)
 
 1. **Create log group + log with `oci_scaffold` (copy/paste)**  

@@ -401,3 +401,52 @@ Make the router CLI and the deployed OCI Function execute the same routing defin
 Backlog Items:
 
 * SLI-48. Make router CLI and Fn execution use the same universal delivery path
+
+## Sprint 30 - Unified source-adapter interface (SLI-60)
+
+Status: Done
+Mode: managed
+Test: unit
+Regression: integration
+Regression scope: router
+
+Replace the three inconsistent loading mechanisms (hardwired `loadRoutingDefinition`, bespoke mapping-source interface, source-adapter pattern) with a single source-adapter interface in the router core. Ship two built-in adapters — filesystem and OCI Object Storage — and wire CLI and Fn to select the adapter from configuration, including `--routing oci://bucket/…` support in the CLI.
+
+Backlog Items:
+
+* SLI-60. Unified source-adapter interface for routing definition and mapping loading
+
+## Sprint 31 - MANUAL.md documentation gaps (SLI-51–59)
+
+Status: Done
+Mode: YOLO
+
+Fill documentation gaps identified after Sprint 30 delivery. All items cover `docs/MANUAL.md` only — no code changes.
+
+Backlog Items:
+
+* SLI-51. MANUAL.md: document teardown and cleanup tools
+* SLI-52. MANUAL.md: document list_monitoring_metrics.sh
+* SLI-53. MANUAL.md: document health_to_oci_metric.jsonata mapping
+* SLI-54. MANUAL.md: document model-call, model-reusable, model-pr, model-push workflows
+* SLI-55. MANUAL.md: document router internal architecture (router_core.js, destination_dispatcher.js)
+* SLI-56. MANUAL.md: document the routing definition JSON schema
+* SLI-57. MANUAL.md: document OCI Object Storage as a routing source
+* SLI-58. MANUAL.md: document test suites (unit, integration, smoke)
+* SLI-59. MANUAL.md: document test-oci-profile-setup.yml CI workflow
+* SLI-62. MANUAL.md: dead-letter training section in §5.10
+* SLI-63. MANUAL.md: pit-stop clean-slate section at start of §5.8
+
+## Sprint 32 - OCI Console Dashboard (SLI-64, SLI-65)
+
+Status: Done
+Mode: YOLO
+Test: unit, integration
+Regression: none
+
+Deploy an OCI Console dashboard for SLI Tracker metrics and document the deployment procedure in the manual.
+
+Backlog Items:
+
+* SLI-64. OCI Console Dashboard for SLI Tracker
+* SLI-65. MANUAL.md: document OCI Console Dashboard creation

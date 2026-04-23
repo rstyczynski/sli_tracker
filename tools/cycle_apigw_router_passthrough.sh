@@ -28,7 +28,6 @@ set -euo pipefail
 set -E  # ensure ERR trap fires in functions/subshells
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SCAFFOLD="$REPO_ROOT/oci_scaffold"
-cd "$SCAFFOLD"
 export PATH="$SCAFFOLD/do:$SCAFFOLD/resource:$PATH"
 
 export FN_FUNCTION_NAME="${FN_FUNCTION_NAME:-router_passthrough}"
@@ -426,7 +425,7 @@ echo ""
 
 if [ "${CYCLE_APIGW_RUN_TEARDOWN:-}" = "true" ]; then
   _info "CYCLE_APIGW_RUN_TEARDOWN=true — tearing down stack (use only for broken deploys or sprint-end cleanup)"
-  NAME_PREFIX=$NAME_PREFIX do/teardown.sh
+  NAME_PREFIX=$NAME_PREFIX bash "$SCAFFOLD/do/teardown.sh"
 else
   _info "Teardown skipped (default). Reuse: NAME_PREFIX=$NAME_PREFIX — bump fn/router_passthrough/func.yaml version + FN_FORCE_DEPLOY=true to redeploy code only."
   _info "Sprint-end cleanup (same idea as tests/cleanup_sli_buckets.sh): NAME_PREFIX=$NAME_PREFIX ./tests/cleanup_router_apigw_stack.sh"

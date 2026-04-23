@@ -377,3 +377,77 @@ Test: given the same routing definition and input envelope, CLI and Fn produce t
 The router runtime already supports source adapters conceptually, but operator-facing use is still validated mainly through `file_system` input. Add an OCI Queue input adapter so a routing definition can consume messages from an OCI Queue source and feed them into the same route-match, transform, and delivery runtime used by CLI and Fn. This is both a useful ingestion capability and a validation that the current source-adapter abstraction really works beyond local files. Sprint elaboration should decide polling model, message acknowledgement/delete semantics, visibility timeout handling, error/dead-letter behavior, and how queue message metadata should appear in the envelope.
 
 Test: with a routing definition that declares an OCI Queue source, the runtime can read queued JSON messages, route them through normal delivery adapters, and handle malformed or failed messages according to the agreed acknowledgement and dead-letter rules.
+
+### SLI-50. Emit step-level SLI events from GitHub workflow step context
+
+The current workflow emission path reports one aggregated event per job and uses step context mainly to derive failure reasons. Add support for emitting step-level SLI events so operators can observe which workflow steps succeeded or failed as first-class events instead of only as fields embedded in a job-level record. This matters when one job contains multiple operationally meaningful steps and the product needs finer-grained visibility without losing the existing job-level summary.
+
+Test: a workflow that passes its step context produces distinct emitted events for individual steps with correct step outcome data, while the existing job-level event remains available and consistent.
+
+### SLI-51. MANUAL.md: document teardown and cleanup tools
+
+`teardown_router_apigw_stack.sh` removes the full API Gateway + Fn + VCN stack provisioned by `cycle_apigw_router_passthrough.sh`. `clear_ingest_prefix.sh` deletes objects under a chosen ingest prefix in the Object Storage bucket. Neither tool is mentioned in the manual. Add a Teardown section (e.g. §5.12 or an appendix) that explains when and how to use each, with expected output and a warning about irreversibility.
+
+### SLI-52. MANUAL.md: document list_monitoring_metrics.sh
+
+`tools/list_monitoring_metrics.sh` lists OCI Monitoring metric definitions for the router stack — it is the companion to `validate_router_ingest_and_metrics.sh` for inspecting what metrics exist before querying datapoints. Add a short entry in §5.10 or §7 explaining its purpose, required environment variables, and sample output.
+
+### SLI-53. MANUAL.md: document health_to_oci_metric.jsonata mapping
+
+`tools/mappings/health_to_oci_metric.jsonata` is the second production mapping alongside the workflow_run-to-OCI-log mapping already documented in §5.4. Add coverage showing the mapping content, the envelope shape it expects, and what OCI Monitoring metric it produces.
+
+### SLI-54. MANUAL.md: document model-call, model-reusable, model-pr, model-push workflows
+
+`model-call.yml`, `model-reusable-main.yml`, `model-reusable-sub.yml`, `model-pr.yml`, and `model-push.yml` demonstrate how the SLI emission action is wired into real workflow patterns (call, reusable, PR trigger, push trigger). §4 covers only the emit-family workflows. Extend §4 with a subsection that shows the structure of these model workflows and explains the trigger-to-emission pattern each one illustrates.
+
+### SLI-55. MANUAL.md: document router internal architecture (router_core.js, destination_dispatcher.js)
+
+The manual explains the router from the outside (envelope in, deliveries out) but does not describe its internal structure. `fn/router_passthrough/router_core.js` owns the match-transform-dispatch loop; `tools/adapters/destination_dispatcher.js` resolves adapter labels and calls the correct adapter. Add a subsection in §5.1 or a new §5.12 that walks through the internal call chain so contributors understand where to add a new adapter or change routing behaviour.
+
+### SLI-56. MANUAL.md: document the routing definition JSON schema
+
+`tools/schemas/json_router_definition.schema.json` formally defines every field in `routing.json`. It is never mentioned in the manual. Add a reference in §5.1 Key Concepts pointing to the schema and explaining that it can be used for editor validation and as the authoritative field reference when authoring or debugging routing definitions.
+
+### SLI-57. MANUAL.md: document OCI Object Storage as a routing source
+
+`tools/adapters/oci_object_storage_source_adapter.js` and `oci_object_storage_mapping_source.js` allow the router to load routing definitions and JSONata mappings directly from an Object Storage bucket at runtime rather than from the local filesystem. This capability is not mentioned in the manual. Add coverage in §5.1 or §5.7 explaining how to configure the Function to read its routing definition from the bucket, and why this matters for updating routing logic without redeploying the Function.
+
+### SLI-58. MANUAL.md: document test suites (unit, integration, smoke)
+
+The project has three test layers under `tests/` — unit tests covering individual router components, integration tests covering the full OCI stack, and smoke tests for quick post-deploy validation — but the manual contains no description of the test infrastructure. Add a section (or appendix) that explains how to run each suite, what each layer validates, and which environment variables are required for the integration and smoke tests.
+
+### SLI-59. MANUAL.md: document test-oci-profile-setup.yml CI workflow
+
+`.github/workflows/test-oci-profile-setup.yml` validates that the OCI profile setup action works correctly in a CI runner environment. It is relevant to anyone troubleshooting authentication issues but is not mentioned in the manual. Add a brief entry in §5.11 OCI Authentication Profiles explaining what this workflow tests and how to trigger it manually when debugging profile restoration failures.
+
+### SLI-60. Unified source-adapter interface for routing definition and mapping loading
+
+The router loads its routing definition, mappings, and input envelopes through three different and inconsistent mechanisms; in particular the routing definition is hardwired to the local filesystem with no way to load it from OCI Object Storage. Introduce a single source-adapter interface in the router core with built-in filesystem and OCI Object Storage implementations, and route all three loading paths through it. CLI and Fn should select the adapter from configuration so operators can point any input at either storage backend without code changes.
+
+Test: routing definition, mapping, and envelopes each loaded from OCI Object Storage produce the same delivery result as when loaded from the local filesystem.
+
+### SLI-62. MANUAL.md: dead-letter training section in §5.10
+
+Add a hands-on training exercise to §5.10 that deliberately breaks `config/passthrough.jsonata` in OCI Object Storage, sends a generic POST to the deployed router, and shows the resulting dead-letter object in `ingest/dead_letter/`. The section must include: the upload-broken-mapping command, the curl send, the expected `{"status":"dead_letter",...}` response, listing and fetching the dead-letter object with the known key (`source_meta.file_name` is preserved), expected dead-letter content (`{error, envelope}`), and the restore command to re-upload the correct mapping.
+
+### SLI-63. MANUAL.md: pit-stop clean-slate section at start of §5.8
+
+Add a pit-stop subsection at the beginning of §5.8 that tears down any previous deployment before starting a new hands-on session. The section should check for an existing state file, clear all ingest objects via `clear_ingest_prefix.sh`, tear down the OCI stack via `teardown_router_apigw_stack.sh`, and delete the state file. Skips gracefully when no previous deployment exists.
+
+### SLI-61. Compartment path support in oci:// URI scheme
+
+The `oci://` URI scheme introduced in SLI-60 uses bucket name only (`oci://bucket/object-key`) because OCI looks up buckets by name within a namespace/tenancy where names must be unique. Operators in multi-compartment tenancies may want optional compartment path notation for clarity and documentation purposes (`oci://comp1/comp2/bucket/object-key`). This is not required for OCI API calls but improves URI readability and aligns with OCI Console navigation. Applies to both routing definition and mapping source URIs.
+
+Test: URIs with compartment path prefix parse correctly and resolve to the same bucket as the short form; the compartment path is available for logging/display but does not affect OCI SDK calls.
+
+### SLI-64. OCI Console Dashboard for SLI Tracker
+
+Operators have no single-pane view of SLI health. Provide an OCI Console dashboard template that visualizes the key SLI Tracker metrics (outcome events, computed SLI ratio) scoped to the project compartment and log. The template is stored in the project repository and deployed via oci_scaffold so it can be reproduced in any environment from state alone. Use `oci dashboard-service dashboard get --dashboard-id ocid1.consoledashboard.oc1..aaaaaaaaikoqfpryjfhxp2rulyn3t7kgtq3re3ft33kxp52yqymc3ptzqhya` as the starting template.
+
+Test: running the ensure script creates the dashboard in OCI Console and the dashboard displays live data from the configured compartment and log.
+
+### SLI-65. MANUAL.md: document OCI Console Dashboard creation
+
+The dashboard deployment introduced in SLI-64 has no documentation. Add a section to the manual covering how to deploy the dashboard from the project template using oci_scaffold, what metrics and widgets it contains, and how to verify it is displaying live data after deployment.
+
+Test: a reader can follow the manual section to deploy and verify the dashboard without consulting any other source.

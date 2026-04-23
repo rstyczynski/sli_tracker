@@ -220,17 +220,7 @@ else
   _existing "Dashboard: $DASHBOARD_NAME"
   _state_set '.dashboard.created' false
   _state_set '.dashboard.deleted' false
-
-  if [ -n "$WIDGETS_JSON" ]; then
-    oci dashboard-service dashboard update-dashboard-v1 \
-      --dashboard-id "$DASHBOARD_OCID" \
-      --widgets "$WIDGETS_JSON" \
-      --force >/dev/null
-    _done "Dashboard widgets deployed: $DASHBOARD_NAME"
-    _state_set '.dashboard.deployed' true
-  else
-    _state_set '.dashboard.deployed' false
-  fi
+  _state_set '.dashboard.deployed' false
 fi
 
 _state_set '.dashboard.name' "$DASHBOARD_NAME"

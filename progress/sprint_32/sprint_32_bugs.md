@@ -32,3 +32,14 @@
 - **Root cause**: Path D (name_prefix fallback) generates `{name_prefix}-dashboard` but, like the group script's Path C before BUG-2, falls straight through to creation without performing a lookup.
 - **Fix**: Added a lookup step after Path D name assignment in `tools/ensure_dashboard.sh` — mirrors the same fix applied to `ensure_dashboard_group.sh` in BUG-2. The MANUAL.md §7.4 deploy block already sets `.inputs.dashboard_name` (added during BUG-2 fix), so Path C fires on re-runs regardless.
 - **Verification**: Re-running the deploy block prints `[EXISTING] Dashboard:` instead of `[DONE] Dashboard created:`; no duplicate dashboards appear.
+
+## BUG-4: ensure_dashboard.sh updates widgets on adopted dashboards
+
+**Item:** SLI-64
+**Severity:** high
+**Status:** fixed
+
+- **Symptom**: `bash tools/ensure_dashboard.sh` on an already-existing dashboard prints `[EXISTING] Dashboard: ...` followed by `[DONE] Dashboard widgets deployed: ...` — it overwrites widgets on a dashboard it does not own.
+- **Root cause**: The `else` branch (adopted path, `created=false`) ran `update-dashboard-v1` whenever a tiles file was present. Adoption is not ownership — the `created` flag in state is the authority; only dashboards we created should have their widgets managed.
+- **Fix**: Removed the widget update block from the adopted (`else`) branch. Adopted dashboards now record `deployed=false` and exit cleanly without touching OCI. Widget deployment only happens during creation.
+- **Verification**: Re-running `ensure_dashboard.sh` against an existing dashboard prints `[EXISTING] Dashboard: ...` only, with no `[DONE]` update line. `.dashboard.deployed` is `false`.

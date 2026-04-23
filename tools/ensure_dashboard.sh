@@ -146,11 +146,20 @@ if [ -z "$DASHBOARD_NAME" ]; then
   DASHBOARD_NAME="${NAME_PREFIX}-dashboard"
 fi
 
+# Path D lookup — check before creating when name came from name_prefix fallback
+if [ -z "$EXISTS" ] && [ -n "$DASHBOARD_NAME" ] && [ -n "$GROUP_OCID" ] && [ "$GROUP_OCID" != "null" ]; then
+  FOUND=$(_dashboard_lookup "$DASHBOARD_NAME" "$GROUP_OCID")
+  if [ -n "$FOUND" ] && [ "$FOUND" != "null" ]; then
+    DASHBOARD_OCID="$FOUND"
+    EXISTS="$DASHBOARD_NAME"
+  fi
+fi
+
 # ── load tiles with dashboard_var_* substitution ─────────────────────────────
 WIDGETS_JSON=""
 TILES_FILE=$(_state_get_file dashboard_tiles)
 if [ -n "$TILES_FILE" ] && [ -f "$TILES_FILE" ]; then
-  _SUBST_TMP=$(mktemp /tmp/dashboard-tiles.XXXXXX.json)
+  _SUBST_TMP=$(mktemp /tmp/dashboard-tiles.XXXXXX)
   trap 'rm -f "$_SUBST_TMP"' EXIT
 
   # Build sed args from all .inputs.dashboard_var_* state keys

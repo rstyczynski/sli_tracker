@@ -21,3 +21,14 @@
 - **Root cause**: Path C (name_prefix fallback) generates the group name (`{name_prefix}-group`) but never performs a lookup — it falls straight through to creation. Additionally, the MANUAL.md §7.4 deploy block did not set `.inputs.dashboard_group_name`, so Path B (which does do a lookup) was never reached.
 - **Fix**: Added a lookup step at the end of Path C in `tools/ensure_dashboard_group.sh` so an existing group is adopted before attempting creation. Added `_state_set '.inputs.dashboard_group_name'` and `_state_set '.inputs.dashboard_name'` to the MANUAL.md §7.4 deploy block so Path B fires on subsequent runs.
 - **Verification**: Re-running the deploy block against OCI prints `[EXISTING] Dashboard group:` instead of `[DONE] Dashboard group created:`; no duplicate groups appear.
+
+## BUG-3: ensure_dashboard.sh Path D not idempotent — creates duplicate dashboards
+
+**Item:** SLI-64
+**Severity:** high
+**Status:** fixed
+
+- **Symptom**: Running `bash tools/ensure_dashboard.sh` from a state file that has no `.inputs.dashboard_name` creates a new dashboard on every run, producing duplicates with the same display name inside the group.
+- **Root cause**: Path D (name_prefix fallback) generates `{name_prefix}-dashboard` but, like the group script's Path C before BUG-2, falls straight through to creation without performing a lookup.
+- **Fix**: Added a lookup step after Path D name assignment in `tools/ensure_dashboard.sh` — mirrors the same fix applied to `ensure_dashboard_group.sh` in BUG-2. The MANUAL.md §7.4 deploy block already sets `.inputs.dashboard_name` (added during BUG-2 fix), so Path C fires on re-runs regardless.
+- **Verification**: Re-running the deploy block prints `[EXISTING] Dashboard:` instead of `[DONE] Dashboard created:`; no duplicate dashboards appear.
